@@ -35,8 +35,8 @@ function registerShutdownHandlers(): void {
 async function main(): Promise<void> {
   registerShutdownHandlers();
   await initPostgres();
-  if (config.requireApiKey && config.apiKeys.size === 0) {
-    console.warn('[startup] API key auth is enabled but no keys are configured. MCP endpoints will reject all requests until CUA_API_KEYS is set.');
+  if (!config.mcpAccessApiKey) {
+    console.warn('[startup] MCP_ACCESS_API_KEY is not configured. MCP endpoints are fail-closed and will reject all requests except root health.');
   }
   await startHttpServer();
 }

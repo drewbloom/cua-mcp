@@ -70,8 +70,7 @@ copy .env.example .env
 
 - `OPENAI_API_KEY`
 - `SCRAPYBARA_API_KEY`
-- `CUA_REQUIRE_API_KEY` (defaults to `true`; set `false` only for controlled local debugging)
-- `CUA_API_KEYS` (comma-separated API keys for short-term service protection)
+- `MCP_ACCESS_API_KEY` (required for MCP access; when unset, `/mcp` is fail-closed)
 - `CUA_ENGINE` (`openai-responses` recommended)
 - `CUA_MODEL` (`gpt-5.4` recommended for OpenAI native path)
 - `CUA_PERSISTENCE` (`memory` or `postgres`)
@@ -245,8 +244,8 @@ Railway should be phase 2 after local smoke tests pass.
 
 `cua-mcp` supports API key protection at the MCP transport layer:
 
-- Enabled by default (`CUA_REQUIRE_API_KEY=true`)
-- Set one or more keys in `CUA_API_KEYS` (comma-separated)
+- Fail-closed by default when no key is configured.
+- Set exactly one key in `MCP_ACCESS_API_KEY` for short-term protection.
 - Clients authenticate using either:
 	- `Authorization: Bearer <api-key>`
 	- `x-api-key: <api-key>`

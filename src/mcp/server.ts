@@ -18,12 +18,11 @@ function extractApiKey(request: import('node:http').IncomingMessage): string | n
 }
 
 function isAuthorized(request: import('node:http').IncomingMessage): boolean {
-  if (!config.requireApiKey) return true;
-  if (config.apiKeys.size === 0) return false;
+  if (!config.mcpAccessApiKey) return false;
 
   const key = extractApiKey(request);
   if (!key) return false;
-  return config.apiKeys.has(key);
+  return key === config.mcpAccessApiKey;
 }
 
 function writeUnauthorized(response: import('node:http').ServerResponse): void {
@@ -33,7 +32,7 @@ function writeUnauthorized(response: import('node:http').ServerResponse): void {
   }).end(
     JSON.stringify({
       error: 'Unauthorized',
-      message: 'Provide a valid API key using Authorization: Bearer <key> or x-api-key header.',
+      message: 'MCP access requires MCP_ACCESS_API_KEY using Authorization: Bearer <key> or x-api-key header.',
     }),
   );
 }
