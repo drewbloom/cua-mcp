@@ -19,6 +19,7 @@ ENV NODE_ENV=production
 COPY package.json package-lock.json ./
 COPY scripts ./scripts
 RUN npm ci --omit=dev
+RUN npx playwright install --with-deps chromium
 
 COPY --from=build /app/dist ./dist
 
