@@ -13,6 +13,21 @@ function asBoolean(value: string | undefined, fallback: boolean): boolean {
   return fallback;
 }
 
+function asStringArray(value: string | undefined): string[] {
+  if (!value) return [];
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function asSet(values: string[]): Set<string> {
+  return new Set(values);
+}
+
+const configuredApiKeys = asSet(asStringArray(process.env.CUA_API_KEYS || process.env.SERVICE_API_KEYS));
+const authRequiredDefault = true;
+
 export const config = {
   port: asNumber(process.env.PORT, 8788),
   mcpPath: process.env.MCP_PATH || '/mcp',
@@ -30,4 +45,6 @@ export const config = {
   browserViewportHeight: asNumber(process.env.CUA_BROWSER_HEIGHT, 900),
   cuaTimeoutHours: asNumber(process.env.CUA_TIMEOUT_HOURS, 1),
   exposeRecipeTools: asBoolean(process.env.CUA_EXPOSE_RECIPE_TOOLS, false),
+  requireApiKey: asBoolean(process.env.CUA_REQUIRE_API_KEY, authRequiredDefault),
+  apiKeys: configuredApiKeys,
 };

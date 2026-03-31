@@ -70,6 +70,8 @@ copy .env.example .env
 
 - `OPENAI_API_KEY`
 - `SCRAPYBARA_API_KEY`
+- `CUA_REQUIRE_API_KEY` (defaults to `true`; set `false` only for controlled local debugging)
+- `CUA_API_KEYS` (comma-separated API keys for short-term service protection)
 - `CUA_ENGINE` (`openai-responses` recommended)
 - `CUA_MODEL` (`gpt-5.4` recommended for OpenAI native path)
 - `CUA_PERSISTENCE` (`memory` or `postgres`)
@@ -238,3 +240,30 @@ Railway should be phase 2 after local smoke tests pass.
 - Keep tokens out of tool responses.
 - Gate high-risk actions with explicit user approval.
 - Prefer per-user auth states and scoped credentials.
+
+### MCP endpoint authentication (recommended now)
+
+`cua-mcp` supports API key protection at the MCP transport layer:
+
+- Enabled by default (`CUA_REQUIRE_API_KEY=true`)
+- Set one or more keys in `CUA_API_KEYS` (comma-separated)
+- Clients authenticate using either:
+	- `Authorization: Bearer <api-key>`
+	- `x-api-key: <api-key>`
+
+Generate a temporary 32-character key:
+
+```bash
+npm run keygen
+```
+
+For a single-user phase, one Railway-managed service key is sufficient.
+
+### Long-term auth direction
+
+For multi-user deployments, move from env keys to Postgres-backed key management:
+
+1. `users` table
+2. `api_keys` table with hashed keys + prefix IDs
+3. key scopes / revocation / rotation metadata
+4. `last_used_at` audit stamping and per-key rate limits
