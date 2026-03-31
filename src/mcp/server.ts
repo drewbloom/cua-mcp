@@ -75,7 +75,7 @@ export async function startHttpServer(): Promise<void> {
 
     try {
       await mcpServer.connect(transport);
-      await transport.handleRequest(request, response, {} as any);
+      await transport.handleRequest(request, response);
     } catch (error) {
       console.error('[mcp] request failed', error);
       if (!response.headersSent) {

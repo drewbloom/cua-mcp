@@ -14,8 +14,11 @@ This repo is experimental but should follow production-minded patterns for secur
 - Runtime: Node.js.
 - MCP SDK: `@modelcontextprotocol/sdk`.
 - MCP Apps SDK: `@modelcontextprotocol/ext-apps`.
-- CUA engine: `@langchain/langgraph-cua` + LangGraph.
+- CUA engines:
+	- OpenAI Responses native computer loop (`openai` + `playwright`).
+	- Optional LangGraph CUA fallback (`@langchain/langgraph-cua`).
 - Validation: Zod schemas for tool input parsing.
+- Persistence target: Postgres (Railway).
 
 Do not introduce CommonJS `require()`.
 
@@ -30,12 +33,32 @@ Do not introduce CommonJS `require()`.
 
 Current public tools:
 
+- `cua_get_delegation_guide`
+- `cua_preflight`
 - `cua_run_task`
 - `cua_get_run`
 - `cua_interrupt`
 - `cua_approve_action`
+
+Optional tools (hidden unless `CUA_EXPOSE_RECIPE_TOOLS=true`):
+
 - `cua_save_recipe`
 - `cua_run_recipe`
+
+
+Recommended run sequence for agent callers:
+
+1. Call `cua_get_delegation_guide` first.
+2. Call `cua_preflight`.
+3. Call `cua_run_task` or `cua_run_recipe`.
+4. Poll `cua_get_run`.
+5. Resolve handoffs with `cua_approve_action` or `cua_interrupt`.
+
+Environment behavior:
+
+1. `cua_run_task` defaults `environment` to `web`.
+2. `openai-responses` engine coerces non-web inputs to `web` and logs `environment_overridden`.
+3. Use `CUA_ENGINE=langgraph` for explicit `ubuntu`/`windows` runs.
 
 Rules:
 
@@ -50,7 +73,8 @@ Rules:
 - Register UI resources with `registerAppResource`.
 - Register interactive tools with `registerAppTool` when they should render UI.
 - Keep CSP metadata explicit and minimal.
-- Prefer official app lifecycle patterns for host bridge behavior.
+- Use official MCP Apps lifecycle patterns (`ui/initialize`, initialized notification, host-mediated `tools/call`) rather than ad-hoc message handling.
+- Prefer bundled App builds using `@modelcontextprotocol/ext-apps` for production widgets.
 
 ## Security guardrails
 
@@ -65,6 +89,7 @@ Rules:
 Target path for first production-like deploy:
 
 - Railway container for persistent CUA runtime.
+- Railway Postgres for persistent run/recipe/handoff state.
 
 Optional edge split:
 
@@ -89,6 +114,7 @@ Optional edge split:
 
 - MCP Apps: https://apps.extensions.modelcontextprotocol.io/api/
 - MCP specification: https://modelcontextprotocol.io/specification
+- OpenAI computer-use guide: https://developers.openai.com/api/docs/guides/tools-computer-use
 - LangGraph CUA API: https://reference.langchain.com/javascript/langchain-langgraph-cua
 - LangGraph concepts: https://langchain-ai.github.io/langgraph/concepts/
 
@@ -101,7 +127,7 @@ Optional edge split:
 
 ## Known first-draft limitations
 
-- In-memory run/recipe persistence only.
+- Postgres persistence implemented for runs/events/recipes, but no migration framework yet.
 - UI widget is minimal and not yet using full SDK app lifecycle hooks.
 - No multi-user auth partitioning yet.
 

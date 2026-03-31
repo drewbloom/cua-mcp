@@ -1,6 +1,43 @@
 import { startHttpServer } from './mcp/server.js';
+import { closePool, initPostgres } from './db/postgres.js';
 
-startHttpServer().catch((error) => {
+function registerShutdownHandlers(): void {
+  const shutdown = async (signal: string) => {
+    try {
+      await closePool();
+    } catch (error) {
+      console.error('[shutdown] failed to close postgres pool', error);
+    } finally {
+      process.exit(0);
+    }
+  };
+
+  process.on('SIGINT', () => {
+    void shutdown('SIGINT');
+  });
+
+  process.on('SIGTERM', () => {
+    void shutdown('SIGTERM');
+  });
+
+  process.on('uncaughtException', (error) => {
+    console.error('[runtime] uncaught exception', error);
+    void shutdown('uncaughtException');
+  });
+
+  process.on('unhandledRejection', (error) => {
+    console.error('[runtime] unhandled rejection', error);
+    void shutdown('unhandledRejection');
+  });
+}
+
+async function main(): Promise<void> {
+  registerShutdownHandlers();
+  await initPostgres();
+  await startHttpServer();
+}
+
+main().catch((error) => {
   console.error('[startup] fatal error', error);
   process.exit(1);
 });
