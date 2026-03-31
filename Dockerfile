@@ -3,6 +3,7 @@ WORKDIR /app
 
 FROM base AS deps
 COPY package.json package-lock.json ./
+COPY scripts ./scripts
 RUN npm ci
 
 FROM deps AS build
@@ -16,10 +17,10 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 COPY package.json package-lock.json ./
+COPY scripts ./scripts
 RUN npm ci --omit=dev
 
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/scripts ./scripts
 
 EXPOSE 8788
 CMD ["node", "dist/index.js"]
