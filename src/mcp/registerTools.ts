@@ -5,25 +5,25 @@ import { cuaRuntime } from '../cua/runtime.js';
 import { config } from '../config.js';
 import { CUA_WIDGET_HTML, CUA_WIDGET_URI } from '../ui/cuaWidgetHtml.js';
 import {
-  CUA_DELEGATION_GUIDE_TEXT,
-  CUA_DELEGATION_GUIDE_TITLE,
-  CUA_DELEGATION_GUIDE_URI,
+  CUA_ORCHESTRATION_QUICKSTART_TEXT,
+  CUA_ORCHESTRATION_QUICKSTART_TITLE,
+  CUA_ORCHESTRATION_QUICKSTART_URI,
 } from '../resources/cuaDelegationGuide.js';
 
 export function registerCuaTools(server: McpServer): void {
   server.registerResource(
-    'cua-delegation-guide',
-    CUA_DELEGATION_GUIDE_URI,
+    'cua-orchestration-quickstart',
+    CUA_ORCHESTRATION_QUICKSTART_URI,
     {
-      title: CUA_DELEGATION_GUIDE_TITLE,
-      description: 'Best practices for delegating CUA runs with strong prompts, clear guardrails, and predictable handoffs.',
+      title: CUA_ORCHESTRATION_QUICKSTART_TITLE,
+      description: 'Quickstart for CUA orchestration, prompting patterns, await loop usage, and handoff controls.',
       mimeType: 'text/markdown',
     },
     async (uri) => ({
       contents: [
         {
           uri: uri.href,
-          text: CUA_DELEGATION_GUIDE_TEXT,
+          text: CUA_ORCHESTRATION_QUICKSTART_TEXT,
           mimeType: 'text/markdown',
         },
       ],
@@ -62,7 +62,7 @@ export function registerCuaTools(server: McpServer): void {
     {
       title: 'CUA Run Task',
       description:
-        'Starts a persistent CUA run using the configured engine and returns a run id for polling and control. Environment defaults to web. Recommended sequence: 1) call cua_get_delegation_guide, 2) call cua_preflight, 3) call cua_run_task, 4) poll cua_get_run, 5) respond to handoffs with cua_approve_action or cua_interrupt. Keep task instructions concrete: objective, allowed domains, stop condition, strict output format.',
+        'Starts a persistent CUA run using the configured engine and returns a run id for polling and control. Environment defaults to web. Recommended sequence: 1) call cua_get_orchestration_guide, 2) call cua_preflight, 3) call cua_run_task, 4) call cua_await, 5) respond to handoffs with cua_approve_action or cua_interrupt. Keep task instructions concrete: objective, allowed domains, stop condition, and output contract.',
       inputSchema: {
         task: z.string().min(1),
         systemPrompt: z.string().optional(),
@@ -100,10 +100,10 @@ export function registerCuaTools(server: McpServer): void {
   );
 
   server.registerTool(
-    'cua_get_delegation_guide',
+    'cua_get_orchestration_guide',
     {
-      title: 'CUA Get Delegation Guide',
-      description: 'Returns the built-in delegation and prompting guide. Agent callers should read this before running CUA tasks.',
+      title: 'CUA Get Orchestration Guide',
+      description: 'Returns the built-in orchestration quickstart for prompting, await-loop control, and handoff policy. Agent callers should read this before running CUA tasks.',
       inputSchema: {},
       annotations: {
         readOnlyHint: true,
@@ -113,13 +113,40 @@ export function registerCuaTools(server: McpServer): void {
     },
     async () => {
       return {
-        content: [{ type: 'text', text: CUA_DELEGATION_GUIDE_TEXT }],
+        content: [{ type: 'text', text: CUA_ORCHESTRATION_QUICKSTART_TEXT }],
         structuredContent: {
           resource: {
-            uri: CUA_DELEGATION_GUIDE_URI,
-            title: CUA_DELEGATION_GUIDE_TITLE,
+            uri: CUA_ORCHESTRATION_QUICKSTART_URI,
+            title: CUA_ORCHESTRATION_QUICKSTART_TITLE,
             mimeType: 'text/markdown',
-            text: CUA_DELEGATION_GUIDE_TEXT,
+            text: CUA_ORCHESTRATION_QUICKSTART_TEXT,
+          },
+        },
+      };
+    },
+  );
+
+  server.registerTool(
+    'cua_get_delegation_guide',
+    {
+      title: 'CUA Get Delegation Guide (Deprecated Alias)',
+      description: 'Deprecated alias for cua_get_orchestration_guide. Returns the same orchestration quickstart content.',
+      inputSchema: {},
+      annotations: {
+        readOnlyHint: true,
+        openWorldHint: false,
+        destructiveHint: false,
+      },
+    },
+    async () => {
+      return {
+        content: [{ type: 'text', text: CUA_ORCHESTRATION_QUICKSTART_TEXT }],
+        structuredContent: {
+          resource: {
+            uri: CUA_ORCHESTRATION_QUICKSTART_URI,
+            title: CUA_ORCHESTRATION_QUICKSTART_TITLE,
+            mimeType: 'text/markdown',
+            text: CUA_ORCHESTRATION_QUICKSTART_TEXT,
           },
         },
       };
@@ -152,7 +179,7 @@ export function registerCuaTools(server: McpServer): void {
     'cua_get_run',
     {
       title: 'CUA Get Run',
-      description: 'Get current state and event history for a CUA run id. Poll this to monitor progress and detect approval/interrupt handoff events.',
+      description: 'Get current state and event history for a CUA run id. Use this for explicit snapshots. For orchestration loops, prefer cua_await to avoid tight polling.',
       inputSchema: {
         runId: z.string().min(1),
       },
@@ -175,6 +202,59 @@ export function registerCuaTools(server: McpServer): void {
       return {
         content: [{ type: 'text', text: `Run status: ${run.status}` }],
         structuredContent: { run },
+      };
+    },
+  );
+
+  server.registerTool(
+    'cua_await',
+    {
+      title: 'CUA Await',
+      description:
+        'Blocks briefly while monitoring a run, then returns on signal or timeout. Returns early when approval/interrupt/failure signals appear, or when the run reaches a terminal state. Use this to keep orchestrators responsive without constant polling.',
+      inputSchema: {
+        runId: z.string().min(1),
+        waitSeconds: z.number().int().min(1).max(300).optional(),
+        sinceEventCount: z.number().int().min(0).optional(),
+      },
+      annotations: {
+        readOnlyHint: true,
+        openWorldHint: false,
+        destructiveHint: false,
+      },
+    },
+    async (args: any) => {
+      const parsed = z
+        .object({
+          runId: z.string().min(1),
+          waitSeconds: z.number().int().min(1).max(300).optional(),
+          sinceEventCount: z.number().int().min(0).optional(),
+        })
+        .parse(args);
+
+      const result = await cuaRuntime.awaitRun(parsed.runId, {
+        waitSeconds: parsed.waitSeconds ?? 30,
+        sinceEventCount: parsed.sinceEventCount ?? 0,
+      });
+
+      if (result.reason === 'not_found') {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `Run not found: ${parsed.runId}` }],
+          structuredContent: { await: result },
+        };
+      }
+
+      const statusText =
+        result.reason === 'signal'
+          ? `Signal received: ${result.signalEvent?.type || 'unknown'}`
+          : result.reason === 'terminal'
+            ? `Run reached terminal status: ${result.run?.status}`
+            : `No signal during wait window (${Math.round(result.waitedSeconds)}s)`;
+
+      return {
+        content: [{ type: 'text', text: statusText }],
+        structuredContent: { await: result },
       };
     },
   );

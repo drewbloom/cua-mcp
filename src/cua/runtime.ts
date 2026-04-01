@@ -38,6 +38,76 @@ export class CuaRuntime {
     await new Promise((resolve) => setTimeout(resolve, ms));
   }
 
+  async awaitRun(
+    runId: string,
+    options?: {
+      waitSeconds?: number;
+      pollIntervalMs?: number;
+      sinceEventCount?: number;
+    },
+  ): Promise<{
+    reason: 'signal' | 'timeout' | 'terminal' | 'not_found';
+    waitedSeconds: number;
+    run?: CuaRunRecord;
+    signalEvent?: CuaEvent;
+    nextSinceEventCount?: number;
+  }> {
+    const waitSeconds = Math.max(1, Math.min(options?.waitSeconds ?? 30, 300));
+    const pollIntervalMs = Math.max(250, Math.min(options?.pollIntervalMs ?? 1000, 5000));
+    const sinceEventCount = Math.max(0, options?.sinceEventCount ?? 0);
+    const started = Date.now();
+
+    while (true) {
+      const run = await this.getRun(runId);
+      if (!run) {
+        return {
+          reason: 'not_found',
+          waitedSeconds: (Date.now() - started) / 1000,
+        };
+      }
+
+      const terminalStatuses = new Set(['completed', 'failed', 'interrupted']);
+      if (terminalStatuses.has(run.status)) {
+        return {
+          reason: 'terminal',
+          waitedSeconds: (Date.now() - started) / 1000,
+          run,
+          nextSinceEventCount: run.events.length,
+        };
+      }
+
+      const newEvents = run.events.slice(sinceEventCount);
+      const signalEvent = newEvents.find(
+        (event) =>
+          event.type === 'approval_handoff_required' ||
+          event.type === 'interrupt_handoff_required' ||
+          event.type === 'run_failed',
+      );
+
+      if (signalEvent) {
+        return {
+          reason: 'signal',
+          waitedSeconds: (Date.now() - started) / 1000,
+          run,
+          signalEvent,
+          nextSinceEventCount: run.events.length,
+        };
+      }
+
+      const elapsedMs = Date.now() - started;
+      if (elapsedMs >= waitSeconds * 1000) {
+        return {
+          reason: 'timeout',
+          waitedSeconds: elapsedMs / 1000,
+          run,
+          nextSinceEventCount: run.events.length,
+        };
+      }
+
+      await this.sleep(pollIntervalMs);
+    }
+  }
+
   private isInterrupted(runId: string): boolean {
     return this.runs.get(runId)?.status === 'interrupted';
   }

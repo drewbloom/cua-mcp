@@ -1,30 +1,51 @@
-export const CUA_DELEGATION_GUIDE_URI = 'resources:cua-delegation-guide';
+export const CUA_ORCHESTRATION_QUICKSTART_URI = 'resources:cua-orchestration-quickstart';
 
-export const CUA_DELEGATION_GUIDE_TITLE = 'CUA Delegation and Prompting Guide';
+export const CUA_ORCHESTRATION_QUICKSTART_TITLE = 'CUA Orchestration Quickstart';
 
-export const CUA_DELEGATION_GUIDE_TEXT = `# CUA Delegation and Prompting Guide
+export const CUA_ORCHESTRATION_QUICKSTART_TEXT = `# CUA Orchestration Quickstart
 
-Use this guide before calling \'cua_run_task\'.
+Use this quickstart before calling \'cua_run_task\'.
 
 ## Recommended call sequence
 
-1. Call \'cua_get_delegation_guide\' and apply these rules.
+1. Call \'cua_get_orchestration_guide\' and apply these rules.
 2. Call \'cua_preflight\' and confirm { ok: true }.
 3. Call \'cua_run_task\'.
-4. Poll \'cua_get_run\' for status and events.
-5. If handoff events appear, call \'cua_approve_action\' or \'cua_interrupt\'.
+4. Call \'cua_await\' with waitSeconds=30 and an event cursor (sinceEventCount) to block until timeout or handoff signal.
+5. On timeout, call \'cua_get_run\' for an explicit snapshot and continue orchestration.
+6. If handoff events appear, call \'cua_approve_action\' or \'cua_interrupt\'.
+7. Repeat \'cua_await\' until terminal status (completed, failed, interrupted).
 
 Recipe tools are optional and may be hidden from the MCP surface. If enabled by server config, use \'cua_save_recipe\' and \'cua_run_recipe\'.
+
+## Await orchestration pattern
+
+Use \'cua_await\' to avoid rapid-fire polling.
+
+- Pass \'sinceEventCount\' from the previous result to detect only new signal events.
+- Treat \'reason=signal\' as immediate action required (approval/interrupt/failure signal).
+- Treat \'reason=timeout\' as \'no new signal, continue monitoring\'.
+- Treat \'reason=terminal\' as done; then call \'cua_get_run\' once for final snapshot.
 
 ## Prompting patterns that improve performance
 
 - Use a single concrete objective with a measurable end-state.
-- Provide allowed domain(s) and forbid off-domain exploration.
-- Ask for short summaries and explicit stop conditions.
-- Keep tasks UI-focused; avoid asking for broad internet research in the same run.
+- Provide allowed domain(s), and explicitly allow exploratory navigation within those domains.
+- Ask for explicit stop conditions and bounded retries.
+- Keep tasks UI-focused; separate large research tasks from deep UI workflows.
 
 Good task shape:
-- \'Open docs.scrapybara.com, navigate to the quickstart page, and return exactly 5 numbered setup steps with one sentence each. Do not open other domains.\'
+- \'Open docs.scrapybara.com, find quickstart guidance, and return 5 concise setup steps with source URLs. Stay on docs.scrapybara.com unless blocked.\'
+
+## Exploration policy (important)
+
+CUA should be exploratory when needed to solve the task.
+
+- Start with likely direct routes when obvious (for speed), but do not assume slug paths are correct.
+- If a direct URL fails or appears blank, switch to exploratory methods: homepage navigation, visible menus, site search, footer links, and alternate common slugs.
+- Prefer browser-native exploration over OS-level app switching unless browser recovery is required.
+- Within allowed domains, exploration is expected behavior, not failure.
+- If blocked by domain restrictions, anti-bot, or rendering issues, report that explicitly with evidence.
 
 ## Safety and handoff policy
 
@@ -39,23 +60,32 @@ Always hand off before:
 
 If uncertain, emit a handoff and wait.
 
-## Reduce wasted turns
+## Robust execution and recovery
 
-- Prefer direct URL navigation as the first action when a target URL is known.
-- Keep viewport stable; avoid opening OS-level launchers unless browser recovery is needed.
-- Use bounded iteration language in the task, for example: \'If not found after 3 navigation attempts, stop and report blockers.\'
-- Ask for concise final output format to reduce token and turn usage.
+- Use a phased approach:
+	1) orient (screenshot + verify page loaded),
+	2) navigate,
+	3) verify target content,
+	4) extract,
+	5) finalize.
+- Verify each navigation by checking visible text/headings before concluding success.
+- If page looks blank, wait longer once, then hard refresh, then retry with alternate path.
+- Avoid repeated screenshot-only loops; take an action after repeated no-change observations.
+- Use bounded iteration language in task prompts, for example: \'if not found after 2 retries per path, try a new route, then report blockers.\'
+- Ask for concise outputs when possible, but allow richer output when links/evidence are required.
 
 ## Output contract to request in prompts
 
 Ask for:
 - Final answer only when confident.
 - If blocked: include blockers, last observed page title, and next best action.
-- For summaries: include citations as page section names or visible headings when available.
+- For summaries: include exact source URLs used.
+
+When structured output is needed, request strict JSON. Otherwise, allow freeform responses with sources.
 
 ## Delegation template
 
 Use this template when another agent delegates CUA work:
 
-\'Objective: <single outcome>.\nAllowed domains: <list>.\nDisallowed actions: <list>.\nStop condition: <condition>.\nOutput format: <strict format>.\nEscalate via approval if any risky action is required.\'
+\'Objective: <single outcome>.\nAllowed domains: <list>.\nExploration policy: direct navigation first, then exploratory fallback within allowed domains.\nDisallowed actions: <list>.\nRetry policy: <bounded retries and recovery steps>.\nStop condition: <condition>.\nOutput format: <strict JSON or flexible with sources>.\nEscalate via approval if any risky action is required.\'
 `;

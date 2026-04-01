@@ -20,7 +20,7 @@ First draft scaffold complete.
 
 Included tools:
 
-- `cua_get_delegation_guide`: Returns built-in prompting/delegation best practices.
+- `cua_get_orchestration_guide`: Returns built-in CUA orchestration quickstart and delegation patterns.
 - `cua_preflight`: Checks API/model readiness before starting a run.
 - `cua_run_task`: Starts a persistent CUA run and returns a run id (`environment` defaults to `web`).
 - `cua_get_run`: Returns run state and captured events.
@@ -38,7 +38,7 @@ Included app resource:
 
 Included standard MCP resource:
 
-- `resources:cua-delegation-guide`: Markdown guide with delegation templates, turn-efficiency tactics, and handoff policy.
+- `resources:cua-orchestration-quickstart`: Markdown quickstart with orchestration loop, delegation templates, and handoff policy.
 
 ## Architecture
 
@@ -190,7 +190,7 @@ Suggested local flow before Railway:
 2. `copy .env.example .env` then add keys
 3. `npm run dev`
 4. connect an MCP inspector/client to `http://localhost:8788/mcp`
-5. call `cua_get_delegation_guide`
+5. call `cua_get_orchestration_guide`
 6. call `cua_preflight`
 7. call `cua_run_task` with a low-risk prompt and then poll with `cua_get_run`
 

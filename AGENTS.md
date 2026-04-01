@@ -33,7 +33,7 @@ Do not introduce CommonJS `require()`.
 
 Current public tools:
 
-- `cua_get_delegation_guide`
+- `cua_get_orchestration_guide`
 - `cua_preflight`
 - `cua_run_task`
 - `cua_get_run`
@@ -48,7 +48,7 @@ Optional tools (hidden unless `CUA_EXPOSE_RECIPE_TOOLS=true`):
 
 Recommended run sequence for agent callers:
 
-1. Call `cua_get_delegation_guide` first.
+1. Call `cua_get_orchestration_guide` first.
 2. Call `cua_preflight`.
 3. Call `cua_run_task` or `cua_run_recipe`.
 4. Poll `cua_get_run`.
