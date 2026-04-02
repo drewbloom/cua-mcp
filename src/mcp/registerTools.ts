@@ -62,7 +62,7 @@ export function registerCuaTools(server: McpServer): void {
     {
       title: 'CUA Run Task',
       description:
-        'Starts a persistent CUA run using the configured engine and returns a run id for polling and control. Environment defaults to web. Recommended sequence: 1) call cua_get_orchestration_guide, 2) call cua_preflight, 3) call cua_run_task, 4) call cua_await, 5) respond to handoffs with cua_approve_action or cua_interrupt. Keep task instructions concrete: objective, allowed domains, stop condition, and output contract.',
+        'Starts a persistent CUA run using the configured engine and returns a run id for orchestration. Environment defaults to web. Recommended sequence: 1) call cua_get_orchestration_guide, 2) call cua_preflight, 3) call cua_run_task, 4) loop on cua_await, 5) respond to handoffs with cua_approve_action or cua_interrupt, 6) when terminal, call cua_get_run once and stop. Keep task instructions concrete: objective, allowed domains, stop condition, and output contract.',
       inputSchema: {
         task: z.string().min(1),
         systemPrompt: z.string().optional(),
@@ -103,7 +103,7 @@ export function registerCuaTools(server: McpServer): void {
     'cua_get_orchestration_guide',
     {
       title: 'CUA Get Orchestration Guide',
-      description: 'Returns the built-in orchestration quickstart for prompting, await-loop control, and handoff policy. Agent callers should read this before running CUA tasks.',
+      description: 'Returns the built-in orchestration quickstart for prompting, await-loop control, terminal handling, and hybrid direct+search navigation strategy. Agent callers should read this before running CUA tasks.',
       inputSchema: {},
       annotations: {
         readOnlyHint: true,
@@ -211,7 +211,7 @@ export function registerCuaTools(server: McpServer): void {
     {
       title: 'CUA Await',
       description:
-        'Blocks briefly while monitoring a run, then returns on signal or timeout. Returns early when approval/interrupt/failure signals appear, or when the run reaches a terminal state. Use this to keep orchestrators responsive without constant polling.',
+        'Blocks briefly while monitoring a run, then returns on signal or timeout. Returns early when approval/interrupt/failure signals appear, or when the run reaches a terminal state. Use this as the default orchestration loop primitive instead of tight polling. When reason=terminal, stop awaiting and fetch cua_get_run once.',
       inputSchema: {
         runId: z.string().min(1),
         waitSeconds: z.number().int().min(1).max(300).optional(),
@@ -263,7 +263,7 @@ export function registerCuaTools(server: McpServer): void {
     'cua_interrupt',
     {
       title: 'CUA Interrupt',
-      description: 'Mark a run as interrupted and log the reason/source. Use when policy risk is detected, user intervention is required, or execution drifts.',
+      description: 'Request interruption for an active run and log reason/source. Use when policy risk is detected, user intervention is required, or execution drifts. Interrupt requests are rejected for terminal runs (completed/failed/interrupted).',
       inputSchema: {
         runId: z.string().min(1),
         reason: z.string().min(1),
@@ -288,6 +288,14 @@ export function registerCuaTools(server: McpServer): void {
         return {
           isError: true,
           content: [{ type: 'text', text: `Run not found: ${parsed.runId}` }],
+        };
+      }
+
+      const terminalStatuses = new Set(['completed', 'failed', 'interrupted']);
+      if (terminalStatuses.has(run.status) && run.events.at(-1)?.type === 'interrupt_rejected_terminal') {
+        return {
+          content: [{ type: 'text', text: `Interrupt rejected: run is already terminal (${run.status}).` }],
+          structuredContent: { run },
         };
       }
 

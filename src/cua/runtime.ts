@@ -250,6 +250,17 @@ export class CuaRuntime {
     const run = this.runs.get(runId);
     if (!run) return undefined;
 
+    const terminalStatuses = new Set(['completed', 'failed', 'interrupted']);
+    if (terminalStatuses.has(run.status)) {
+      this.pushEvent(run, 'interrupt_rejected_terminal', {
+        reason,
+        source,
+        status: run.status,
+      });
+      await this.persistRun(run);
+      return run;
+    }
+
     this.pushEvent(run, 'interrupt_requested', { reason, source });
     this.pushEvent(run, 'interrupt_handoff_required', {
       runId,

@@ -140,6 +140,64 @@ function isFindShortcut(action: any): boolean {
   return keys.includes('F') && (keys.includes('Control') || keys.includes('Meta') || keys.includes('ControlOrMeta'));
 }
 
+async function performInPageFindFallback(page: Page, query: string): Promise<{ query: string; matchCount: number; snippets: string[]; scrolledToFirstMatch: boolean }> {
+  const result = await page.evaluate((rawQuery) => {
+    const query = String(rawQuery || '').trim();
+    if (!query) {
+      return {
+        query,
+        matchCount: 0,
+        snippets: [] as string[],
+        scrolledToFirstMatch: false,
+      };
+    }
+
+    const lowerQuery = query.toLowerCase();
+    const walker = document.createTreeWalker(document.body || document.documentElement, NodeFilter.SHOW_TEXT);
+    const snippets: string[] = [];
+    let matchCount = 0;
+    let firstMatchElement: Element | null = null;
+
+    let node: Node | null = walker.nextNode();
+    while (node) {
+      const text = String(node.textContent || '').trim();
+      if (text && text.toLowerCase().includes(lowerQuery)) {
+        matchCount += 1;
+        if (snippets.length < 5) {
+          snippets.push(text.slice(0, 220));
+        }
+        if (!firstMatchElement) {
+          const parent = (node as any).parentElement as Element | null;
+          if (parent) {
+            firstMatchElement = parent;
+          }
+        }
+      }
+      node = walker.nextNode();
+    }
+
+    let scrolledToFirstMatch = false;
+    if (firstMatchElement) {
+      firstMatchElement.scrollIntoView({ behavior: 'instant' as ScrollBehavior, block: 'center', inline: 'nearest' });
+      scrolledToFirstMatch = true;
+    }
+
+    return {
+      query,
+      matchCount,
+      snippets,
+      scrolledToFirstMatch,
+    };
+  }, query);
+
+  return {
+    query: String(result.query || ''),
+    matchCount: Number(result.matchCount || 0),
+    snippets: Array.isArray(result.snippets) ? result.snippets.map((s: any) => String(s)) : [],
+    scrolledToFirstMatch: Boolean(result.scrolledToFirstMatch),
+  };
+}
+
 function isBrowserHomeShortcut(action: any): boolean {
   const keys = extractNormalizedKeys(action);
   return keys.includes('BrowserHome') || keys.includes('GoHome');
@@ -477,6 +535,7 @@ export async function runOpenAiComputerLoop(
       }
 
       const toolOutputs: any[] = [];
+      const turnNotes: string[] = [];
 
       for (const item of output) {
         if (item?.type === 'function_call') {
@@ -655,13 +714,39 @@ export async function runOpenAiComputerLoop(
           }
 
           // Ctrl/Cmd+F usually opens in-page find UI that is invisible in some
-          // headless contexts. Skip this safely and let the model continue.
+          // headless contexts. Use deterministic DOM text search fallback.
           if (isFindShortcut(action)) {
+            const queryCandidate = actions[index + 1];
+            const queryText = queryCandidate?.type === 'type' ? String(queryCandidate?.text || '').trim() : '';
+
+            if (queryText) {
+              const findResult = await performInPageFindFallback(page, queryText);
+              pushEvent(run, 'find_fallback_results', {
+                turn,
+                query: findResult.query,
+                matchCount: findResult.matchCount,
+                scrolledToFirstMatch: findResult.scrolledToFirstMatch,
+                snippets: findResult.snippets,
+              });
+              turnNotes.push(
+                `Harness note: Headless Ctrl/Cmd+F was replaced with DOM text search for "${findResult.query}". ` +
+                  `Matches: ${findResult.matchCount}. ${findResult.snippets.length > 0 ? `Top snippets: ${findResult.snippets.join(' | ')}` : 'No snippets found.'}`,
+              );
+
+              // Consume "type query" and optional Enter after Ctrl/Cmd+F.
+              index += 1;
+              if (isEnterPress(actions[index + 1])) {
+                index += 1;
+              }
+              continue;
+            }
+
             pushEvent(run, 'keypress_skipped', {
               turn,
               reason: 'find_shortcut_not_reliably_observable_headless',
               keys: extractNormalizedKeys(action),
             });
+            turnNotes.push('Harness note: Headless Ctrl/Cmd+F was skipped because no search query was provided in the next action.');
             continue;
           }
 
@@ -722,6 +807,18 @@ export async function runOpenAiComputerLoop(
             type: 'computer_screenshot',
             image_url: frameImage,
           },
+        });
+      }
+
+      if (turnNotes.length > 0) {
+        toolOutputs.push({
+          role: 'user',
+          content: [
+            {
+              type: 'input_text',
+              text: turnNotes.join('\n\n'),
+            },
+          ],
         });
       }
 

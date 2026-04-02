@@ -15,6 +15,9 @@ Use this quickstart before calling \'cua_run_task\'.
 5. On timeout, call \'cua_get_run\' for an explicit snapshot and continue orchestration.
 6. If handoff events appear, call \'cua_approve_action\' or \'cua_interrupt\'.
 7. Repeat \'cua_await\' until terminal status (completed, failed, interrupted).
+8. When terminal, call \'cua_get_run\' once, return the result, and stop orchestration.
+
+Important: Do not call \'cua_interrupt\' after a run is terminal. Terminal interrupts are rejected and logged for diagnostics.
 
 Recipe tools are optional and may be hidden from the MCP surface. If enabled by server config, use \'cua_save_recipe\' and \'cua_run_recipe\'.
 
@@ -43,6 +46,8 @@ CUA should be exploratory when needed to solve the task.
 
 - Start with likely direct routes when obvious (for speed), but do not assume slug paths are correct.
 - If a direct URL fails or appears blank, switch to exploratory methods: homepage navigation, visible menus, site search, footer links, and alternate common slugs.
+- Use hybrid web behavior: combine on-site navigation with external web search when site structure is unclear. Use new context from discovered terms/product names to refine internet searches and re-enter the site from better entry points.
+- Consider subdomains and docs/help hubs as first-class candidates when primary marketing pages are sparse.
 - Prefer browser-native exploration over OS-level app switching unless browser recovery is required.
 - Within allowed domains, exploration is expected behavior, not failure.
 - If blocked by domain restrictions, anti-bot, or rendering issues, report that explicitly with evidence.
@@ -68,6 +73,7 @@ If uncertain, emit a handoff and wait.
 	3) verify target content,
 	4) extract,
 	5) finalize.
+- Treat in-page find (Ctrl/Cmd+F) as best-effort in headless. If unavailable, use page-level text search signals and continue.
 - Verify each navigation by checking visible text/headings before concluding success.
 - If page looks blank, wait longer once, then hard refresh, then retry with alternate path.
 - Avoid repeated screenshot-only loops; take an action after repeated no-change observations.
