@@ -51,6 +51,35 @@ function summarizeActions(actions: any[]): string {
   return actions.map((a) => String(a?.type || 'unknown')).join(' -> ');
 }
 
+function isUrlLike(value: string): boolean {
+  const text = value.trim().toLowerCase();
+  return text.startsWith('http://') || text.startsWith('https://') || text.startsWith('view-source:http://') || text.startsWith('view-source:https://');
+}
+
+function isAddressBarShortcut(action: any): boolean {
+  if (String(action?.type || '') !== 'keypress') return false;
+  const keys = Array.isArray(action?.keys)
+    ? action.keys.map((k: any) => normalizePlaywrightKey(String(k)))
+    : [normalizePlaywrightKey(String(action?.key ?? ''))];
+  return keys.includes('L') && (keys.includes('Control') || keys.includes('Meta'));
+}
+
+function isReloadShortcut(action: any): boolean {
+  if (String(action?.type || '') !== 'keypress') return false;
+  const keys = Array.isArray(action?.keys)
+    ? action.keys.map((k: any) => normalizePlaywrightKey(String(k)))
+    : [normalizePlaywrightKey(String(action?.key ?? ''))];
+  return keys.includes('R') && (keys.includes('Control') || keys.includes('Meta'));
+}
+
+function isEnterPress(action: any): boolean {
+  if (String(action?.type || '') !== 'keypress') return false;
+  const keys = Array.isArray(action?.keys)
+    ? action.keys.map((k: any) => normalizePlaywrightKey(String(k)))
+    : [normalizePlaywrightKey(String(action?.key ?? ''))];
+  return keys.length === 1 && keys[0] === 'Enter';
+}
+
 function getReasoningEffortForModel(model: string): string {
   const normalized = model.toLowerCase();
   if (normalized.includes('computer-use-preview')) {
@@ -351,7 +380,68 @@ export async function runOpenAiComputerLoop(
           actions,
         });
 
-        for (const action of actions) {
+        for (let index = 0; index < actions.length; index += 1) {
+          const action = actions[index];
+
+          // In Playwright page context there is no browser omnibox. Convert
+          // common "Ctrl/Cmd+L, type URL, Enter" patterns into page.goto().
+          if (
+            isAddressBarShortcut(action) &&
+            actions[index + 1]?.type === 'type' &&
+            typeof actions[index + 1]?.text === 'string' &&
+            isUrlLike(String(actions[index + 1].text)) &&
+            isEnterPress(actions[index + 2])
+          ) {
+            const targetUrl = String(actions[index + 1].text).trim();
+            try {
+              await page.goto(targetUrl, {
+                waitUntil: 'domcontentloaded',
+                timeout: config.browserNavigationTimeoutMs,
+              });
+              pushEvent(run, 'navigation_fallback_goto', {
+                turn,
+                targetUrl,
+                reason: 'translated_omnibox_sequence',
+              });
+            } catch (error) {
+              pushEvent(run, 'navigation_fallback_goto_failed', {
+                turn,
+                targetUrl,
+                error: error instanceof Error ? error.message : String(error),
+              });
+            }
+            index += 2;
+            await sleep(config.browserPostActionWaitMs);
+            if (isInterrupted(run.id)) {
+              return {};
+            }
+            continue;
+          }
+
+          // Browsers in this harness may not honor Ctrl/Cmd+R; reload directly.
+          if (isReloadShortcut(action)) {
+            try {
+              await page.reload({
+                waitUntil: 'domcontentloaded',
+                timeout: config.browserNavigationTimeoutMs,
+              });
+              pushEvent(run, 'navigation_fallback_reload', {
+                turn,
+                reason: 'translated_reload_shortcut',
+              });
+            } catch (error) {
+              pushEvent(run, 'navigation_fallback_reload_failed', {
+                turn,
+                error: error instanceof Error ? error.message : String(error),
+              });
+            }
+            await sleep(config.browserPostActionWaitMs);
+            if (isInterrupted(run.id)) {
+              return {};
+            }
+            continue;
+          }
+
           await executeComputerAction(page, action);
           await sleep(config.browserPostActionWaitMs);
           if (isInterrupted(run.id)) {
