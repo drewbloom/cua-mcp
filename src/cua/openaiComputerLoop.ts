@@ -24,6 +24,19 @@ function normalizePlaywrightKey(key: string): string {
   const value = key.trim().toUpperCase();
   const map: Record<string, string> = {
     ALT: 'Alt',
+    ALTGRAPH: 'Alt',
+    APPS: 'ContextMenu',
+    BROWSERBACK: 'BrowserBack',
+    BROWSERFORWARD: 'BrowserForward',
+    BROWSERHOME: 'BrowserHome',
+    BROWSERREFRESH: 'BrowserRefresh',
+    BROWSERSEARCH: 'BrowserSearch',
+    BROWSERSTOP: 'BrowserStop',
+    DEL: 'Delete',
+    DOWN: 'ArrowDown',
+    LEFT: 'ArrowLeft',
+    PGDOWN: 'PageDown',
+    PGUP: 'PageUp',
     ARROWDOWN: 'ArrowDown',
     ARROWLEFT: 'ArrowLeft',
     ARROWRIGHT: 'ArrowRight',
@@ -31,20 +44,49 @@ function normalizePlaywrightKey(key: string): string {
     BACKSPACE: 'Backspace',
     CMD: 'Meta',
     COMMAND: 'Meta',
+    COMMANDORCONTROL: 'ControlOrMeta',
     CONTROL: 'Control',
+    CONTROLORMETA: 'ControlOrMeta',
     CTRL: 'Control',
     DELETE: 'Delete',
     ENTER: 'Enter',
+    F5: 'F5',
+    GOHOME: 'BrowserHome',
+    GOBACK: 'BrowserBack',
+    GOFORWARD: 'BrowserForward',
     ESC: 'Escape',
     ESCAPE: 'Escape',
+    INS: 'Insert',
     META: 'Meta',
+    OS: 'Meta',
     OPTION: 'Alt',
+    RIGHT: 'ArrowRight',
     RETURN: 'Enter',
     SHIFT: 'Shift',
+    SPACEBAR: ' ',
     SPACE: ' ',
     TAB: 'Tab',
+    UP: 'ArrowUp',
   };
   return map[value] || key;
+}
+
+function extractNormalizedKeys(action: any): string[] {
+  if (String(action?.type || '') !== 'keypress') {
+    return [];
+  }
+
+  const rawValues = Array.isArray(action?.keys)
+    ? action.keys.map((k: any) => String(k))
+    : [String(action?.key ?? '')];
+
+  const expanded = rawValues
+    .flatMap((value: string) => value.split('+'))
+    .map((value: string) => normalizePlaywrightKey(value))
+    .map((value: string) => value.trim())
+    .filter(Boolean);
+
+  return expanded;
 }
 
 function summarizeActions(actions: any[]): string {
@@ -57,27 +99,50 @@ function isUrlLike(value: string): boolean {
 }
 
 function isAddressBarShortcut(action: any): boolean {
-  if (String(action?.type || '') !== 'keypress') return false;
-  const keys = Array.isArray(action?.keys)
-    ? action.keys.map((k: any) => normalizePlaywrightKey(String(k)))
-    : [normalizePlaywrightKey(String(action?.key ?? ''))];
-  return keys.includes('L') && (keys.includes('Control') || keys.includes('Meta'));
+  const keys = extractNormalizedKeys(action);
+  return keys.includes('L') && (keys.includes('Control') || keys.includes('Meta') || keys.includes('ControlOrMeta'));
 }
 
 function isReloadShortcut(action: any): boolean {
-  if (String(action?.type || '') !== 'keypress') return false;
-  const keys = Array.isArray(action?.keys)
-    ? action.keys.map((k: any) => normalizePlaywrightKey(String(k)))
-    : [normalizePlaywrightKey(String(action?.key ?? ''))];
-  return keys.includes('R') && (keys.includes('Control') || keys.includes('Meta'));
+  const keys = extractNormalizedKeys(action);
+  return (
+    keys.includes('F5') ||
+    keys.includes('BrowserRefresh') ||
+    (keys.includes('R') && (keys.includes('Control') || keys.includes('Meta') || keys.includes('ControlOrMeta')))
+  );
 }
 
 function isEnterPress(action: any): boolean {
-  if (String(action?.type || '') !== 'keypress') return false;
-  const keys = Array.isArray(action?.keys)
-    ? action.keys.map((k: any) => normalizePlaywrightKey(String(k)))
-    : [normalizePlaywrightKey(String(action?.key ?? ''))];
+  const keys = extractNormalizedKeys(action);
   return keys.length === 1 && keys[0] === 'Enter';
+}
+
+function isGoBackShortcut(action: any): boolean {
+  const keys = extractNormalizedKeys(action);
+  return (
+    keys.includes('BrowserBack') ||
+    keys.includes('GoBack') ||
+    (keys.includes('ArrowLeft') && (keys.includes('Alt') || keys.includes('Control') || keys.includes('Meta') || keys.includes('ControlOrMeta')))
+  );
+}
+
+function isGoForwardShortcut(action: any): boolean {
+  const keys = extractNormalizedKeys(action);
+  return (
+    keys.includes('BrowserForward') ||
+    keys.includes('GoForward') ||
+    (keys.includes('ArrowRight') && (keys.includes('Alt') || keys.includes('Control') || keys.includes('Meta') || keys.includes('ControlOrMeta')))
+  );
+}
+
+function isFindShortcut(action: any): boolean {
+  const keys = extractNormalizedKeys(action);
+  return keys.includes('F') && (keys.includes('Control') || keys.includes('Meta') || keys.includes('ControlOrMeta'));
+}
+
+function isBrowserHomeShortcut(action: any): boolean {
+  const keys = extractNormalizedKeys(action);
+  return keys.includes('BrowserHome') || keys.includes('GoHome');
 }
 
 function getReasoningEffortForModel(model: string): string {
@@ -222,9 +287,7 @@ async function executeComputerAction(page: Page, action: any): Promise<void> {
       break;
     }
     case 'keypress': {
-      const keys = Array.isArray(action?.keys)
-        ? action.keys.map((k: any) => normalizePlaywrightKey(String(k))).filter(Boolean)
-        : [normalizePlaywrightKey(String(action?.key ?? ''))].filter(Boolean);
+      const keys = extractNormalizedKeys(action);
       if (keys.length === 0) {
         throw new Error('keypress action did not include a key value.');
       }
@@ -442,7 +505,108 @@ export async function runOpenAiComputerLoop(
             continue;
           }
 
-          await executeComputerAction(page, action);
+          if (isGoBackShortcut(action)) {
+            try {
+              const navigated = await page.goBack({
+                waitUntil: 'domcontentloaded',
+                timeout: config.browserNavigationTimeoutMs,
+              });
+              pushEvent(run, 'navigation_fallback_back', {
+                turn,
+                reason: 'translated_history_shortcut',
+                navigated: Boolean(navigated),
+              });
+            } catch (error) {
+              pushEvent(run, 'navigation_fallback_back_failed', {
+                turn,
+                error: error instanceof Error ? error.message : String(error),
+              });
+            }
+            await sleep(config.browserPostActionWaitMs);
+            if (isInterrupted(run.id)) {
+              return {};
+            }
+            continue;
+          }
+
+          if (isGoForwardShortcut(action)) {
+            try {
+              const navigated = await page.goForward({
+                waitUntil: 'domcontentloaded',
+                timeout: config.browserNavigationTimeoutMs,
+              });
+              pushEvent(run, 'navigation_fallback_forward', {
+                turn,
+                reason: 'translated_history_shortcut',
+                navigated: Boolean(navigated),
+              });
+            } catch (error) {
+              pushEvent(run, 'navigation_fallback_forward_failed', {
+                turn,
+                error: error instanceof Error ? error.message : String(error),
+              });
+            }
+            await sleep(config.browserPostActionWaitMs);
+            if (isInterrupted(run.id)) {
+              return {};
+            }
+            continue;
+          }
+
+          // Browser-home shortcuts vary by environment. Use direct navigation to
+          // the target domain home in current tab for deterministic behavior.
+          if (isBrowserHomeShortcut(action)) {
+            try {
+              const currentUrl = page.url();
+              const parsed = new URL(currentUrl);
+              const targetUrl = `${parsed.protocol}//${parsed.host}/`;
+              await page.goto(targetUrl, {
+                waitUntil: 'domcontentloaded',
+                timeout: config.browserNavigationTimeoutMs,
+              });
+              pushEvent(run, 'navigation_fallback_home', {
+                turn,
+                reason: 'translated_browser_home_shortcut',
+                targetUrl,
+              });
+            } catch (error) {
+              pushEvent(run, 'navigation_fallback_home_failed', {
+                turn,
+                error: error instanceof Error ? error.message : String(error),
+              });
+            }
+            await sleep(config.browserPostActionWaitMs);
+            if (isInterrupted(run.id)) {
+              return {};
+            }
+            continue;
+          }
+
+          // Ctrl/Cmd+F usually opens in-page find UI that is invisible in some
+          // headless contexts. Skip this safely and let the model continue.
+          if (isFindShortcut(action)) {
+            pushEvent(run, 'keypress_skipped', {
+              turn,
+              reason: 'find_shortcut_not_reliably_observable_headless',
+              keys: extractNormalizedKeys(action),
+            });
+            continue;
+          }
+
+          try {
+            await executeComputerAction(page, action);
+          } catch (error) {
+            pushEvent(run, 'computer_action_execution_error', {
+              turn,
+              actionIndex: index,
+              actionType: String(action?.type || 'unknown'),
+              action,
+              error: error instanceof Error ? error.message : String(error),
+            });
+            // Continue remaining actions so one unsupported shortcut does not
+            // hard-fail the entire run.
+            continue;
+          }
           await sleep(config.browserPostActionWaitMs);
           if (isInterrupted(run.id)) {
             return {};
