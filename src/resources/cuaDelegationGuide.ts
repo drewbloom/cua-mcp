@@ -40,6 +40,20 @@ Use \'cua_await\' to avoid rapid-fire polling.
 Good task shape:
 - \'Open docs.scrapybara.com, find quickstart guidance, and return 5 concise setup steps with source URLs. Stay on docs.scrapybara.com unless blocked.\'
 
+## Source selection heuristic (general-purpose)
+
+Rank source candidates by task-specific authority and relevance.
+
+1. Official, task-specific pages (for example docs, help-center, knowledge-base, API reference, policy, support, or specialized product pages).
+2. Official long-form explanatory pages (guides, tutorials, how-to content).
+3. Official announcements/news/blog content.
+4. Third-party summaries or secondary sources.
+5. Generic homepage/platform pages.
+
+When search results are visible, evaluate the top visible results before clicking. Prefer titles/snippets that match the requested task intent and appear to be official sources. If a task-specific official source is visible, prefer it over a generic homepage.
+
+Homepage navigation is a fallback discovery route, not the default route, unless the user explicitly asks for homepage content.
+
 ## Exploration policy (important)
 
 CUA should be exploratory when needed to solve the task.
@@ -48,6 +62,9 @@ CUA should be exploratory when needed to solve the task.
 - If a direct URL fails or appears blank, switch to exploratory methods: homepage navigation, visible menus, site search, footer links, and alternate common slugs.
 - Use hybrid web behavior: combine on-site navigation with external web search when site structure is unclear. Use new context from discovered terms/product names to refine internet searches and re-enter the site from better entry points.
 - Consider subdomains and docs/help hubs as first-class candidates when primary marketing pages are sparse.
+- For search-first tasks, begin with internet search unless a direct task URL is provided by the user.
+- If on-site exploration becomes generic (for example, repeated homepage/platform browsing) without finding task-specific sources, pivot back to search with refined queries based on terms discovered on-page.
+- Limit generic-site exploration to 2 navigation attempts before a search pivot when task-specific sources are not found.
 - Prefer browser-native exploration over OS-level app switching unless browser recovery is required.
 - Within allowed domains, exploration is expected behavior, not failure.
 - If blocked by domain restrictions, anti-bot, or rendering issues, report that explicitly with evidence.

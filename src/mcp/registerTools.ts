@@ -62,7 +62,7 @@ export function registerCuaTools(server: McpServer): void {
     {
       title: 'CUA Run Task',
       description:
-        'Starts a persistent CUA run using the configured engine and returns a run id for orchestration. Environment defaults to web. Recommended sequence: 1) call cua_get_orchestration_guide, 2) call cua_preflight, 3) call cua_run_task, 4) loop on cua_await, 5) respond to handoffs with cua_approve_action or cua_interrupt, 6) when terminal, call cua_get_run once and stop. Keep task instructions concrete: objective, allowed domains, stop condition, and output contract.',
+        'Starts a persistent CUA run using the configured engine and returns a run id for orchestration. Environment defaults to web. Recommended sequence: 1) call cua_get_orchestration_guide, 2) call cua_preflight, 3) call cua_run_task, 4) loop on cua_await, 5) respond to handoffs with cua_approve_action or cua_interrupt, 6) when terminal, call cua_get_run once and stop. Prefer search-first discovery when no direct URL is provided, then prioritize task-specific authoritative sources over generic homepage browsing. Keep task instructions concrete: objective, allowed domains, stop condition, and output contract.',
       inputSchema: {
         task: z.string().min(1),
         systemPrompt: z.string().optional(),
@@ -103,7 +103,7 @@ export function registerCuaTools(server: McpServer): void {
     'cua_get_orchestration_guide',
     {
       title: 'CUA Get Orchestration Guide',
-      description: 'Returns the built-in orchestration quickstart for prompting, await-loop control, terminal handling, and hybrid direct+search navigation strategy. Agent callers should read this before running CUA tasks.',
+      description: 'Returns the built-in orchestration quickstart for prompting, await-loop control, terminal handling, hybrid direct+search navigation, and generic source-selection heuristics. Agent callers should read this before running CUA tasks.',
       inputSchema: {},
       annotations: {
         readOnlyHint: true,
