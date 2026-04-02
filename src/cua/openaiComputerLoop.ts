@@ -153,9 +153,74 @@ function getReasoningEffortForModel(model: string): string {
   return config.cuaReasoningEffort;
 }
 
-async function capturePageImageDataUrl(page: Page): Promise<string> {
-  const screenshot = await page.screenshot({ fullPage: true, type: 'png' });
-  return `data:image/png;base64,${screenshot.toString('base64')}`;
+async function capturePageImageDataUrl(
+  page: Page,
+  options?: {
+    onDiagnostic?: (type: string, payload: Record<string, unknown>) => void;
+    turn?: number;
+  },
+): Promise<string> {
+  const emit = options?.onDiagnostic;
+  const turn = options?.turn;
+  const screenshotAttempts: Array<{
+    label: string;
+    mime: 'image/png' | 'image/jpeg';
+    opts: Parameters<Page['screenshot']>[0];
+  }> = [
+    { label: 'png_viewport', mime: 'image/png', opts: { type: 'png', fullPage: false } },
+    { label: 'jpeg_viewport', mime: 'image/jpeg', opts: { type: 'jpeg', quality: 85, fullPage: false } },
+  ];
+
+  const errors: string[] = [];
+  for (const attempt of screenshotAttempts) {
+    try {
+      const image = await page.screenshot(attempt.opts as any);
+      return `data:${attempt.mime};base64,${image.toString('base64')}`;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      errors.push(`${attempt.label}: ${message}`);
+      emit?.('screenshot_capture_attempt_failed', {
+        turn,
+        attempt: attempt.label,
+        error: message,
+      });
+    }
+  }
+
+  const currentUrl = page.url();
+  if (currentUrl.startsWith('view-source:http://') || currentUrl.startsWith('view-source:https://')) {
+    const targetUrl = currentUrl.replace(/^view-source:/, '');
+    try {
+      await page.goto(targetUrl, {
+        waitUntil: 'domcontentloaded',
+        timeout: config.browserNavigationTimeoutMs,
+      });
+      await waitForPageSettled(page);
+      const image = await page.screenshot({ type: 'png', fullPage: false });
+      emit?.('screenshot_capture_fallback_navigated', {
+        turn,
+        from: currentUrl,
+        to: targetUrl,
+        reason: 'view_source_not_screenshotable',
+      });
+      return `data:image/png;base64,${image.toString('base64')}`;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      errors.push(`view_source_fallback: ${message}`);
+      emit?.('screenshot_capture_fallback_failed', {
+        turn,
+        strategy: 'view_source_navigation',
+        error: message,
+      });
+    }
+  }
+
+  emit?.('screenshot_capture_fallback_exhausted', {
+    turn,
+    reason: 'capture_failed_without_safe_fallback',
+    errors,
+  });
+  throw new Error(`Screenshot capture failed after all fallback strategies: ${errors.join(' | ')}`);
 }
 
 async function sleep(ms: number): Promise<void> {
@@ -362,12 +427,19 @@ export async function runOpenAiComputerLoop(
       'You are controlling a browser with the built-in computer tool. Use safe, reversible actions first. Ask for handoff before risky or sensitive actions.';
 
     let previousResponseId: string | undefined;
+    const emitScreenshotDiagnostic = (type: string, payload: Record<string, unknown>) => pushEvent(run, type, payload);
     let nextInput: unknown = [
       {
         role: 'user',
         content: [
           { type: 'input_text', text: run.input.task },
-          { type: 'input_image', image_url: await capturePageImageDataUrl(page), detail: 'original' },
+          {
+            type: 'input_image',
+            image_url: await capturePageImageDataUrl(page, {
+              onDiagnostic: emitScreenshotDiagnostic,
+            }),
+            detail: 'original',
+          },
         ],
       },
     ];
@@ -638,12 +710,17 @@ export async function runOpenAiComputerLoop(
           summary: summarizeActions(actions),
         });
 
+        const frameImage = await capturePageImageDataUrl(page, {
+          onDiagnostic: emitScreenshotDiagnostic,
+          turn,
+        });
+
         toolOutputs.push({
           type: 'computer_call_output',
           call_id: item.call_id,
           output: {
             type: 'computer_screenshot',
-            image_url: await capturePageImageDataUrl(page),
+            image_url: frameImage,
           },
         });
       }
