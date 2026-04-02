@@ -34,6 +34,66 @@ export class CuaRuntime {
     await cuaRepository.saveRecipe(recipe);
   }
 
+  private shouldLogEvent(type: string): boolean {
+    return new Set([
+      'run_started',
+      'run_completed',
+      'run_failed',
+      'response_turn',
+      'computer_call_requested',
+      'computer_actions_executed',
+      'page_diagnostics',
+      'possible_render_or_bot_block',
+      'approval_handoff_required',
+      'interrupt_handoff_required',
+      'environment_overridden',
+    ]).has(type);
+  }
+
+  private toLogPayload(type: string, payload: Record<string, unknown>): Record<string, unknown> {
+    if (type === 'computer_call_requested') {
+      return {
+        turn: payload.turn,
+        actionCount: payload.actionCount,
+        summary: payload.summary,
+      };
+    }
+
+    if (type === 'page_diagnostics' || type === 'possible_render_or_bot_block') {
+      return {
+        stage: payload.stage,
+        turn: payload.turn,
+        url: payload.url,
+        title: payload.title,
+        readyState: payload.readyState,
+        bodyTextLength: payload.bodyTextLength,
+        visibleNodeCount: payload.visibleNodeCount,
+        blankLike: payload.blankLike,
+        matchedHints: payload.matchedHints,
+      };
+    }
+
+    if (type === 'response_turn') {
+      const usage = (payload.usage || {}) as Record<string, unknown>;
+      return {
+        turn: payload.turn,
+        status: payload.status,
+        responseId: payload.responseId,
+        usage: {
+          input_tokens: usage.input_tokens,
+          output_tokens: usage.output_tokens,
+          total_tokens: usage.total_tokens,
+        },
+      };
+    }
+
+    if (type === 'run_failed') {
+      return { error: payload.error };
+    }
+
+    return payload;
+  }
+
   private async sleep(ms: number): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, ms));
   }
@@ -461,6 +521,18 @@ export class CuaRuntime {
 
     run.events.push(event);
     run.updatedAt = event.timestamp;
+
+    if (config.cuaLogEvents && this.shouldLogEvent(type)) {
+      const line = {
+        component: 'cua-runtime',
+        runId: run.id,
+        eventType: type,
+        timestamp: event.timestamp,
+        payload: this.toLogPayload(type, payload),
+      };
+      console.log(JSON.stringify(line));
+    }
+
     if (this.usesPostgres()) {
       void cuaRepository.appendEvent(run.id, event);
     }

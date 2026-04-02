@@ -64,6 +64,77 @@ async function capturePageImageDataUrl(page: Page): Promise<string> {
   return `data:image/png;base64,${screenshot.toString('base64')}`;
 }
 
+async function sleep(ms: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, Math.max(0, ms)));
+}
+
+async function waitForPageSettled(page: Page): Promise<void> {
+  try {
+    await page.waitForLoadState('domcontentloaded', { timeout: config.browserNavigationTimeoutMs });
+  } catch {
+    // Continue with diagnostics even if state wait times out.
+  }
+
+  try {
+    await page.waitForLoadState('networkidle', { timeout: Math.min(config.browserNavigationTimeoutMs, 8000) });
+  } catch {
+    // Network idle is frequently unavailable on modern sites.
+  }
+}
+
+async function collectPageDiagnostics(page: Page): Promise<Record<string, unknown>> {
+  const url = page.url();
+  let title = '';
+  try {
+    title = await page.title();
+  } catch {
+    // Ignore title errors.
+  }
+
+  const dom = await page
+    .evaluate(() => {
+      const bodyText = (document.body?.innerText || '').trim();
+      const htmlText = (document.documentElement?.innerText || '').trim();
+      const challengeHints = [
+        'captcha',
+        'cf-challenge',
+        'attention required',
+        'verify you are human',
+        'cloudflare',
+        'akamai',
+      ];
+      const combined = `${document.title} ${bodyText.slice(0, 2000)}`.toLowerCase();
+      const matchedHints = challengeHints.filter((hint) => combined.includes(hint));
+
+      return {
+        readyState: document.readyState,
+        bodyTextLength: bodyText.length,
+        htmlTextLength: htmlText.length,
+        visibleNodeCount: document.querySelectorAll('body *').length,
+        matchedHints,
+      };
+    })
+    .catch(() => ({
+      readyState: 'unknown',
+      bodyTextLength: 0,
+      htmlTextLength: 0,
+      visibleNodeCount: 0,
+      matchedHints: [],
+    }));
+
+  const blankLike =
+    String(url || '').startsWith('http') &&
+    Number(dom.bodyTextLength || 0) < 20 &&
+    Number(dom.visibleNodeCount || 0) < 10;
+
+  return {
+    url,
+    title,
+    ...dom,
+    blankLike,
+  };
+}
+
 async function executeComputerAction(page: Page, action: any): Promise<void> {
   const type = String(action?.type || '');
   const x = Number(action?.x ?? 0);
@@ -155,12 +226,45 @@ export async function runOpenAiComputerLoop(
   }
 
   const client = new OpenAI({ apiKey: config.openAiApiKey });
-  const browser = await chromium.launch({ headless: config.browserHeadless });
-  const context = await browser.newContext({ viewport: { width: config.browserViewportWidth, height: config.browserViewportHeight } });
+  const browser = await chromium.launch({
+    headless: config.browserHeadless,
+    args: [
+      '--disable-blink-features=AutomationControlled',
+      '--disable-dev-shm-usage',
+      '--no-sandbox',
+    ],
+  });
+  const context = await browser.newContext({
+    viewport: { width: config.browserViewportWidth, height: config.browserViewportHeight },
+    locale: config.browserLocale,
+    timezoneId: config.browserTimezone,
+    ...(config.browserUserAgent ? { userAgent: config.browserUserAgent } : {}),
+    extraHTTPHeaders: {
+      'Accept-Language': `${config.browserLocale},en;q=0.9`,
+    },
+  });
   const page = await context.newPage();
+  await context.addInitScript(() => {
+    Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+  });
+
+  pushEvent(run, 'browser_session_config', {
+    headless: config.browserHeadless,
+    viewport: {
+      width: config.browserViewportWidth,
+      height: config.browserViewportHeight,
+    },
+    locale: config.browserLocale,
+    timezone: config.browserTimezone,
+    customUserAgent: Boolean(config.browserUserAgent),
+  });
 
   try {
     await page.goto('about:blank', { waitUntil: 'domcontentloaded' });
+    pushEvent(run, 'page_diagnostics', {
+      stage: 'initial',
+      ...(await collectPageDiagnostics(page)),
+    });
 
     const systemPrompt = run.input.systemPrompt ||
       'You are controlling a browser with the built-in computer tool. Use safe, reversible actions first. Ask for handoff before risky or sensitive actions.';
@@ -249,9 +353,29 @@ export async function runOpenAiComputerLoop(
 
         for (const action of actions) {
           await executeComputerAction(page, action);
+          await sleep(config.browserPostActionWaitMs);
           if (isInterrupted(run.id)) {
             return {};
           }
+        }
+
+        await waitForPageSettled(page);
+
+        const diagnostics = await collectPageDiagnostics(page);
+        pushEvent(run, 'page_diagnostics', {
+          stage: 'post_actions',
+          turn,
+          ...diagnostics,
+        });
+        if (diagnostics.blankLike) {
+          pushEvent(run, 'possible_render_or_bot_block', {
+            turn,
+            url: diagnostics.url,
+            title: diagnostics.title,
+            matchedHints: diagnostics.matchedHints,
+            bodyTextLength: diagnostics.bodyTextLength,
+            visibleNodeCount: diagnostics.visibleNodeCount,
+          });
         }
 
         pushEvent(run, 'computer_actions_executed', {
