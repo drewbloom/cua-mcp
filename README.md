@@ -22,11 +22,11 @@
                                        ||     |
 ```
 
-### Working MCP written by 5.3-codex.  
-### All Security written by GPT-5.4 using the prompt: _"Make it secure, then make it more secure."_  
-### Result: enterprise-grade buffoonery.
+- Working MCP written by 5.3-codex.  
+- Then, security was written by GPT-5.4 using the prompt: _"Make it secure, then make it more secure."_
+- Result: **Enterprise-grade buffoonery.**
 
-## CUA MCP = **Computer Use Agent, Missing Common Precautions**.
+## CUA MCP: **Computer Use Agent, Missing Common Precautions**.
 
 ```text
 ¯\_(ツ)_/¯
@@ -45,13 +45,13 @@ Headless CUAs are limited in their ability to do the things users actually want 
 
 Thanks to the relentless efforts of our vibe coders, who glanced at VS Code once per hour and typed `continue` to our security agent, we now have enough security in place to convincingly market a security posture we do not understand.
 
-## Leadership Philosophy
+## Leaderslop Philosophy
 
-As lead on the project, my responsibility was to ward off the spirits of real security experts who could ruin the vibes. I made sure to post frequently on LinkedIn to create a protective layer of slop, dissuading actual developers from seeing our work.
+As lead on the project, my responsibility was to ward off the spirits of real security experts who could ruin the vibes. I made sure to post frequently on LinkedIn to create a protective layer of slop, dissuading actual developers from ever looking at our work.
 
-Like the Dennis Nedry of George Costanzas, I've also inserted a secret fake GitHub Action to make the repo private the moment we have enough users or stars that people begin to question what's underneath the hood. Security by obscurity is a non-negotiable.
+Like the Dennis Nedry of George Costanzas, I've also inserted a secret fake GitHub Action to make the repo private the moment we have enough users or stars that people begin to question what's underneath the hood. Security by obscurity is a non-negotiable. Our enterprise-grade security posture is:
 
-### We don't know, and neither should you.
+> ### We don't know, and neither should you.
 
 Enjoy your CUA and stop asking for fries and a drink.
 
@@ -67,8 +67,8 @@ And if you want to PR this repo, it better be good, seriously, because I'm just 
 
 Have a blessed day with your new tech tool, and remember:
 
-> Necessity is not the mother of invention. True innovation is the ethical abrogation of responsibility and delegating risk to tech tools because other people did, too.
+> Necessity is not the mother of invention. True innovation is the abrogation of ethical responsibility by delegating risk to tech companies because enough other people did it, too.
 
-This gold standard has guided legal tech since 1997.
+This is the gold standard has guided legal tech since 1997.
 
 Check out our [SOC II compliance](https://www.youtube.com/watch?v=dQw4w9WgXcQ&pp=ygUXbmV2ZXIgZ29ubmEgZ2l2ZSB5b3UgdXA%3D) if you don't believe me.
