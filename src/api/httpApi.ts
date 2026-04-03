@@ -331,23 +331,28 @@ async function enforceRateLimit(actionName: string, scopeKey: string, limit: num
 }
 
 function getOtpEmailHtml(code: string): string {
+  const brandName = config.resendFromName || 'CUA MCP';
   return `<!doctype html>
   <html>
-    <body style="margin:0;padding:0;background:#f2efe8;color:#10202f;font-family:Avenir Next,Segoe UI,sans-serif;">
-      <div style="max-width:640px;margin:0 auto;padding:36px 20px;">
-        <div style="border-radius:28px;overflow:hidden;background:linear-gradient(160deg,#fbf7ef,#eef4f7);border:1px solid rgba(16,32,47,0.08);box-shadow:0 24px 60px rgba(16,32,47,0.12);">
-          <div style="padding:28px 28px 22px;background:linear-gradient(135deg,#0d6d67,#124f74);color:#fff;">
-            <div style="display:inline-flex;align-items:center;gap:12px;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;opacity:0.9;">
-              <span style="display:inline-grid;place-items:center;width:40px;height:40px;border-radius:14px;background:rgba(255,255,255,0.16);font-weight:800;">CUA</span>
-              Control Plane Access
+    <body style="margin:0;padding:0;background:#050b11;color:#eff6ff;font-family:Avenir Next,Segoe UI,sans-serif;">
+      <div style="max-width:680px;margin:0 auto;padding:32px 18px;">
+        <div style="border-radius:30px;overflow:hidden;background:#07111a;border:1px solid rgba(173,205,236,0.14);box-shadow:0 28px 80px rgba(0,0,0,0.36);">
+          <div style="padding:28px 28px 20px;background:radial-gradient(circle at top left, rgba(255,140,66,0.18), transparent 28%),radial-gradient(circle at 85% 12%, rgba(115,210,222,0.16), transparent 24%),linear-gradient(180deg,#050b11 0%,#07111a 38%,#0b1724 100%);color:#eff6ff;">
+            <div style="display:inline-flex;align-items:center;gap:12px;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#73d2de;">
+              <span style="display:inline-grid;place-items:center;width:42px;height:42px;border-radius:14px;background:linear-gradient(135deg,#ff8c42,#ffd166);color:#07111a;font-weight:900;box-shadow:0 18px 30px rgba(255,140,66,0.22);">CUA</span>
+              ${brandName}
             </div>
-            <h1 style="margin:18px 0 8px;font-family:Iowan Old Style,Palatino Linotype,serif;font-size:36px;line-height:1;letter-spacing:-0.04em;">Your sign-in code</h1>
-            <p style="margin:0;max-width:32ch;font-size:15px;line-height:1.6;opacity:0.92;">Use this one-time code to access your CUA control plane and manage keys, connections, and secure automation settings.</p>
+            <h1 style="margin:18px 0 10px;font-family:Iowan Old Style,Palatino Linotype,serif;font-size:38px;line-height:1;letter-spacing:-0.04em;color:#eff6ff;">Your sign-in code</h1>
+            <p style="margin:0;max-width:34ch;font-size:15px;line-height:1.7;color:#8da0b6;">Use this one-time code to access your control plane and manage keys, connections, and automation settings.</p>
           </div>
-          <div style="padding:30px 28px 32px;">
-            <div style="font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#617388;margin-bottom:12px;">One-time code</div>
-            <div style="font-size:40px;font-weight:800;letter-spacing:0.18em;color:#10202f;padding:18px 20px;border-radius:20px;background:rgba(255,255,255,0.9);border:1px solid rgba(16,32,47,0.08);text-align:center;">${code}</div>
-            <p style="margin:18px 0 0;font-size:14px;line-height:1.6;color:#516274;">This code expires in ${config.otpTtlMinutes} minutes and can be used once. If you did not request access, you can ignore this email.</p>
+          <div style="padding:30px 28px 32px;background:linear-gradient(180deg, rgba(14,28,43,0.88), rgba(8,17,27,0.92));">
+            <div style="margin-bottom:16px;padding:10px 14px;border-radius:999px;background:rgba(255,255,255,0.04);border:1px solid rgba(173,205,236,0.14);color:#eff6ff;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;">
+              Secure enough to verify. Fast enough to get back to work.
+            </div>
+            <div style="font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#73d2de;margin-bottom:12px;">One-time code</div>
+            <div style="font-size:40px;font-weight:800;letter-spacing:0.18em;color:#ffd166;padding:18px 20px;border-radius:20px;background:rgba(255,255,255,0.04);border:1px solid rgba(173,205,236,0.14);text-align:center;">${code}</div>
+            <p style="margin:18px 0 0;font-size:14px;line-height:1.7;color:#8da0b6;">This code expires in ${config.otpTtlMinutes} minutes and can be used once. If you did not request access, you can ignore this email.</p>
+            <p style="margin:18px 0 0;font-size:12px;line-height:1.7;color:#6f8298;">Sent by ${brandName}. For production delivery, make sure this sender address is verified in Resend before you deploy.</p>
           </div>
         </div>
       </div>

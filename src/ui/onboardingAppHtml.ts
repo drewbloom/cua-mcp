@@ -316,18 +316,47 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
       .step-list {
         display: flex;
         gap: 10px;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
+        align-items: center;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        scrollbar-width: thin;
       }
 
       .step-link {
-        display: grid;
-        grid-template-columns: auto 1fr;
-        gap: 10px;
+        position: relative;
+        display: inline-flex;
         align-items: center;
+        gap: 10px;
         padding: 10px 12px;
-        border-radius: 18px;
-        min-width: min(100%, 230px);
+        border-radius: 999px;
+        min-width: auto;
+        flex: 0 0 auto;
+        white-space: nowrap;
         transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease;
+      }
+
+      .step-link::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        left: 50%;
+        bottom: calc(100% + 10px);
+        transform: translateX(-50%) translateY(6px);
+        width: min(300px, calc(100vw - 36px));
+        padding: 11px 13px;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 209, 102, 0.2);
+        background: rgba(9, 17, 27, 0.98);
+        color: var(--ink);
+        font-size: 12px;
+        line-height: 1.45;
+        text-transform: none;
+        letter-spacing: normal;
+        white-space: normal;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.28);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 160ms ease, transform 160ms ease;
       }
 
       .step-link:hover,
@@ -335,6 +364,12 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
         transform: translateY(-1px);
         border-color: rgba(255, 209, 102, 0.22);
         background: rgba(255, 209, 102, 0.1);
+      }
+
+      .step-link:hover::after,
+      .step-link:focus-visible::after {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
       }
 
       .step-index {
@@ -357,14 +392,7 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
       .step-copy strong {
         display: block;
         font-size: 13px;
-        margin-bottom: 2px;
-      }
-
-      .step-copy span {
-        display: block;
-        color: var(--muted);
-        font-size: 12px;
-        line-height: 1.45;
+        margin-bottom: 0;
       }
 
       .workspace-main {
@@ -617,13 +645,7 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
         }
 
         .step-list {
-          flex-wrap: nowrap;
-          overflow-x: auto;
-          padding-bottom: 4px;
-        }
-
-        .step-link {
-          min-width: 220px;
+          gap: 8px;
         }
 
         .hero-meta {
@@ -677,46 +699,40 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
       <div class="workspace-nav">
         <div class="nav-label">Tabs for the brave</div>
         <nav class="step-list" aria-label="Onboarding steps">
-          <a class="step-link" href="#session-step" data-step-link="session-step">
+          <a class="step-link" href="#session-step" data-step-link="session-step" data-tooltip="Start with the human so the automation has someone specific to authenticate before it disappoints them." title="Start with the human so the automation has someone specific to authenticate before it disappoints them.">
             <div class="step-index">01</div>
             <div class="step-copy">
               <strong>Session</strong>
-              <span>Start with the human so the automation has someone specific to authenticate before it disappoints them.</span>
             </div>
           </a>
-          <a class="step-link" href="#llm-step" data-step-link="llm-step">
+          <a class="step-link" href="#llm-step" data-step-link="llm-step" data-tooltip="Store a user-owned OpenAI key instead of one shared key to centralize every future regret." title="Store a user-owned OpenAI key instead of one shared key to centralize every future regret.">
             <div class="step-index">02</div>
             <div class="step-copy">
               <strong>Model keys</strong>
-              <span>Store a user-owned OpenAI key instead of one shared key to centralize every future regret.</span>
             </div>
           </a>
-          <a class="step-link" href="#keys-step" data-step-link="keys-step">
+          <a class="step-link" href="#keys-step" data-step-link="keys-step" data-tooltip="Issue machine credentials once and pray nobody screenshots them in Slack or a lunch-and-learn deck." title="Issue machine credentials once and pray nobody screenshots them in Slack or a lunch-and-learn deck.">
             <div class="step-index">03</div>
             <div class="step-copy">
               <strong>API keys</strong>
-              <span>Issue machine credentials once and pray nobody screenshots them in Slack or a lunch-and-learn deck.</span>
             </div>
           </a>
-          <a class="step-link" href="#connections-step" data-step-link="connections-step">
+          <a class="step-link" href="#connections-step" data-step-link="connections-step" data-tooltip="Decide where the robot is actually allowed to go before it discovers a new and exciting interpretation of scope." title="Decide where the robot is actually allowed to go before it discovers a new and exciting interpretation of scope.">
             <div class="step-index">04</div>
             <div class="step-copy">
               <strong>Connections</strong>
-              <span>Decide where the robot is actually allowed to go before it discovers a new and exciting interpretation of scope.</span>
             </div>
           </a>
-          <a class="step-link" href="#secrets-step" data-step-link="secrets-step">
+          <a class="step-link" href="#secrets-step" data-step-link="secrets-step" data-tooltip="Keep the actual secrets encrypted and let the fill plans do the dangerous flirting on your behalf." title="Keep the actual secrets encrypted and let the fill plans do the dangerous flirting on your behalf.">
             <div class="step-index">05</div>
             <div class="step-copy">
               <strong>Secret refs</strong>
-              <span>Keep the actual secrets encrypted and let the fill plans do the dangerous flirting on your behalf.</span>
             </div>
           </a>
-          <a class="step-link" href="#runs-step" data-step-link="runs-step">
+          <a class="step-link" href="#runs-step" data-step-link="runs-step" data-tooltip="Inspect what was retained, delete what should not outlive the bit, and decide how forgetful the machine should act." title="Inspect what was retained, delete what should not outlive the bit, and decide how forgetful the machine should act.">
             <div class="step-index">06</div>
             <div class="step-copy">
               <strong>Runs and privacy</strong>
-              <span>Inspect what was retained, delete what should not outlive the bit, and decide how forgetful the machine should act.</span>
             </div>
           </a>
         </nav>

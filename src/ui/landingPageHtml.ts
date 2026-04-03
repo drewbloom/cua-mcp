@@ -176,6 +176,8 @@ export const LANDING_PAGE_HTML = `<!doctype html>
         background: rgba(7, 17, 26, 0.72);
         color: #ffdca3;
         overflow: auto;
+        white-space: pre;
+        font-family: "Cascadia Mono", "Consolas", "Courier New", monospace;
         font-size: 12px;
         line-height: 1.25;
       }
@@ -320,7 +322,19 @@ export const LANDING_PAGE_HTML = `<!doctype html>
 / /___   / /_/ /  / ___ |    / /  / /  / /___   / ____/
 \____/   \____/  /_/  |_|   /_/  /_/   \____/  /_/
 
-Computer Use Agent, Missing Common Precautions</pre>
+         Computer Use Agent, Missing Common Precautions
+
+   .-----------------------------------------------------------------------.
+   |  secure enough to demo | fast enough to regret | vague enough to sell |
+   '-----------------------------------------------------------------------'
+                              \
+                               \
+                                \  }__{
+                                 \ (oo)
+                                   (__)____
+                                      \\   \__
+                                       ||*--* |
+                                       ||     |</pre>
             <div class="ticker">
               <div class="pill"><strong>OTP</strong> one-time code theatrics</div>
               <div class="pill"><strong>Keys</strong> shown once, regretted forever</div>
