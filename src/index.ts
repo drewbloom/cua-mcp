@@ -1,6 +1,7 @@
 import { startHttpServer } from './mcp/server.js';
 import { closePool, initPostgres } from './db/postgres.js';
 import { config } from './config.js';
+import { recoverPersistedCaptureSessions } from './security/authCapture.js';
 
 function registerShutdownHandlers(): void {
   const shutdown = async (signal: string) => {
@@ -35,9 +36,10 @@ function registerShutdownHandlers(): void {
 async function main(): Promise<void> {
   registerShutdownHandlers();
   await initPostgres();
-  if (!config.mcpAccessApiKey) {
-    console.warn('[startup] MCP_ACCESS_API_KEY is not configured. MCP endpoints are fail-closed and will reject all requests except root health.');
+  if (config.persistence === 'postgres') {
+    await recoverPersistedCaptureSessions();
   }
+  console.log('[startup] MCP endpoints require user-issued API keys backed by the database.');
   await startHttpServer();
 }
 

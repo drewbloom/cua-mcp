@@ -6,7 +6,7 @@ Guidance for coding agents working in this repository.
 
 Build a portable Computer Use Agent MCP server that can run in headless mode for orchestrators and interactive mode for MCP Apps-capable clients.
 
-This repo is experimental but should follow production-minded patterns for security, composability, and clear tool contracts.
+This repo now includes a public onboarding/control-plane surface for end users in addition to the MCP endpoint. It should still follow production-minded patterns for security, composability, and clear tool contracts.
 
 ## Stack and frameworks
 
@@ -20,6 +20,12 @@ This repo is experimental but should follow production-minded patterns for secur
 - Validation: Zod schemas for tool input parsing.
 - Persistence target: Postgres (Railway).
 
+Primary runtime mode today:
+
+- OpenAI Responses + Playwright is the default and expected CUA engine.
+- LangGraph remains optional and secondary.
+- Multi-user auth, per-user API keys, per-user OpenAI keys, connection policies, secret refs, auth states, and capture sessions are first-class parts of the system.
+
 Do not introduce CommonJS `require()`.
 
 ## Architecture conventions
@@ -28,6 +34,16 @@ Do not introduce CommonJS `require()`.
 - Keep MCP registration and transport logic in `src/mcp/`.
 - Keep UI resource templates in `src/ui/`.
 - Keep transport-neutral business logic outside `src/mcp/`.
+- Keep onboarding/session/account routes in `src/api/`.
+- Keep sensitive decrypt/secret-resolution logic in `src/security/` or narrowly scoped auth modules, not in UI-facing or orchestration-facing layers.
+
+Current top-level surfaces:
+
+- `GET /` serves the public landing page.
+- `GET /app` serves the onboarding/control-plane UI.
+- `GET /health` serves service health.
+- `POST|GET|DELETE /mcp` is the authenticated MCP surface.
+- `/api/*` serves authenticated onboarding, key, connection, secret, auth-state, and capture-session routes.
 
 ## Tool contract conventions
 
@@ -70,6 +86,8 @@ Rules:
 3. Return explicit error messages for missing ids or invalid state.
 4. Avoid embedding secrets in tool outputs or metadata.
 5. Keep headless orchestration steering-first; do not introduce credential approval handoffs.
+6. Treat `connectionId` as the preferred authenticated-execution primitive for headless runs.
+7. Enforce user ownership and connection scoping on every run, get, await, steer, interrupt, and recipe path.
 
 ## MCP Apps guidance
 
@@ -84,8 +102,13 @@ Rules:
 - Never print access tokens or API keys.
 - Redact sensitive fields before writing run events.
 - Validate all tool input via Zod.
-- Add domain allowlists before enabling unrestricted web automation.
 - Keep credential handling out of orchestration surfaces in headless mode.
+- MCP access must use user-issued API keys stored in Postgres, not a shared global env key.
+- Headless runs may use approved secret refs and saved auth states only through backend resolution, never by exposing plaintext to orchestration callers.
+- Connection policies are the enforcement boundary for approved hosts and path prefixes.
+- Interactive auth capture is an isolated browser flow for saving auth state; it is not a prompt-level credential handoff.
+- Session cookies must remain `HttpOnly` and same-site constrained.
+- Audit logs must stay redacted.
 
 ## Runtime and deployment guidance
 
@@ -100,9 +123,9 @@ Optional edge split:
 
 Feature-flag rollout rules:
 
-- Keep `CUA_ENABLE_ACCOUNT_API=false` and `CUA_ENABLE_SECRET_API=false` by default.
-- Enable `CUA_ENABLE_ACCOUNT_API=true` first for onboarding/session/API-key flows.
-- Enable `CUA_ENABLE_SECRET_API=true` only after encryption key and URL policy checks are validated.
+- `CUA_ENABLE_ACCOUNT_API` and `CUA_ENABLE_SECRET_API` are enabled by default in the current product shape.
+- Do not disable them casually in environments intended for real onboarding or connection management.
+- If you introduce new secret-bearing routes, gate them behind the existing auth, policy, and audit layers rather than adding bypass routes.
 
 ## Development workflow
 
@@ -117,7 +140,9 @@ Feature-flag rollout rules:
 2. MCP endpoint still serves on configured path.
 3. Tool schemas still parse correctly.
 4. Tool names and response shapes are backward compatible.
-5. README and AGENTS docs updated when behavior changes.
+5. User ownership boundaries are preserved for MCP and `/api/*` routes.
+6. Secret or auth-state plaintext is not exposed in tool responses, API responses, logs, or audit records.
+7. README and AGENTS docs updated when behavior changes.
 
 ## Documentation references
 
@@ -134,10 +159,10 @@ Feature-flag rollout rules:
 - Add brief comments only when logic is non-obvious.
 - Avoid large framework abstractions in early iterations.
 
-## Known first-draft limitations
+## Current system notes
 
-- Postgres persistence implemented for runs/events/recipes, but no migration framework yet.
-- UI widget is minimal and not yet using full SDK app lifecycle hooks.
-- No multi-user auth partitioning yet.
-
-Treat these as planned improvements, not regressions.
+- Postgres persistence covers runs, events, recipes, users, sessions, API keys, LLM keys, connections, secrets, auth states, audit logs, and capture sessions.
+- The onboarding app is part of the product surface, not just a dev-only scaffold.
+- The widget remains useful but minimal compared with the onboarding control plane.
+- There is still no formal migration framework; schema creation is startup-driven.
+- README may intentionally be non-technical. Treat this file as the authoritative contributor guidance unless told otherwise.

@@ -1,7 +1,8 @@
 import OpenAI from 'openai';
-import { chromium, type Page } from 'playwright';
+import { chromium, type BrowserContext, type Page } from 'playwright';
 import { config } from '../config.js';
 import type { CuaRunRecord } from './types.js';
+import { resolveExecutionArtifacts } from '../security/secretBoundary.js';
 
 export type PushEvent = (run: CuaRunRecord, type: string, payload: Record<string, unknown>) => void;
 
@@ -352,6 +353,159 @@ async function collectPageDiagnostics(page: Page): Promise<Record<string, unknow
   };
 }
 
+function isLikelyLoginPage(url: string, title: string, diagnostics: Record<string, unknown>): boolean {
+  const haystack = `${url} ${title} ${JSON.stringify(diagnostics.matchedHints || [])}`.toLowerCase();
+  return /(login|log-in|signin|sign-in|sso|authenticate|auth|account)/.test(haystack);
+}
+
+function parseJsonSafely(value: string): unknown {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
+async function applyAuthStateToPage(
+  context: BrowserContext,
+  page: Page,
+  targetUrl: string,
+  authState: { stateType: string; plaintext: string },
+): Promise<{ applied: boolean; details: Record<string, unknown> }> {
+  const stateType = String(authState.stateType || '').toLowerCase();
+  const parsed = parseJsonSafely(authState.plaintext);
+
+  if (stateType.includes('playwright') || stateType.includes('storage')) {
+    const cookies = Array.isArray((parsed as any)?.cookies) ? (parsed as any).cookies : [];
+    if (cookies.length > 0) {
+      await context.addCookies(cookies as any);
+    }
+
+    const origins = Array.isArray((parsed as any)?.origins) ? (parsed as any).origins : [];
+    const targetOrigin = new URL(targetUrl).origin;
+    const matchingOrigin = origins.find((entry: any) => String(entry?.origin || '') === targetOrigin);
+    if (matchingOrigin && Array.isArray(matchingOrigin.localStorage) && matchingOrigin.localStorage.length > 0) {
+      const storageEntries = matchingOrigin.localStorage.map((entry: any) => ({
+        name: String(entry?.name || ''),
+        value: String(entry?.value || ''),
+      })).filter((entry: any) => entry.name);
+      if (storageEntries.length > 0) {
+        await page.evaluate((entries) => {
+          for (const entry of entries as Array<{ name: string; value: string }>) {
+            window.localStorage.setItem(entry.name, entry.value);
+          }
+        }, storageEntries);
+      }
+    }
+
+    return {
+      applied: cookies.length > 0 || Boolean(matchingOrigin),
+      details: {
+        stateType,
+        cookieCount: cookies.length,
+        localStorageApplied: Boolean(matchingOrigin),
+      },
+    };
+  }
+
+  if (stateType.includes('cookie')) {
+    const cookies = Array.isArray(parsed)
+      ? parsed
+      : Array.isArray((parsed as any)?.cookies)
+        ? (parsed as any).cookies
+        : [];
+    if (cookies.length > 0) {
+      await context.addCookies(cookies as any);
+      return {
+        applied: true,
+        details: {
+          stateType,
+          cookieCount: cookies.length,
+        },
+      };
+    }
+  }
+
+  return {
+    applied: false,
+    details: {
+      stateType,
+      reason: 'unsupported_auth_state_format',
+    },
+  };
+}
+
+async function autofillApprovedSecrets(
+  page: Page,
+  secrets: Array<{ secretType: string; plaintext: string }>,
+): Promise<{ filledTypes: string[]; loginLike: boolean }> {
+  const valueByType = new Map(secrets.map((secret) => [secret.secretType, secret.plaintext]));
+
+  const result = await page.evaluate((values) => {
+    const entries = Object.fromEntries(values as Array<[string, string]>);
+    const isVisible = (element: Element | null): element is HTMLElement => {
+      if (!element || !(element instanceof HTMLElement)) return false;
+      const style = window.getComputedStyle(element);
+      return style.display !== 'none' && style.visibility !== 'hidden' && element.offsetParent !== null;
+    };
+
+    const inputs = Array.from(document.querySelectorAll('input, textarea')).filter(isVisible);
+    const classify = (el: HTMLInputElement | HTMLTextAreaElement) => {
+      const haystack = [
+        el.getAttribute('type') || '',
+        el.getAttribute('name') || '',
+        el.getAttribute('id') || '',
+        el.getAttribute('placeholder') || '',
+        el.getAttribute('autocomplete') || '',
+        el.getAttribute('aria-label') || '',
+      ].join(' ').toLowerCase();
+
+      if (/(password|current-password|new-password)/.test(haystack)) return 'password';
+      if (/(one-time|otp|verification|2fa|two-factor|auth code|passcode)/.test(haystack)) return 'otp';
+      if (/(api key|apikey|token|bearer|access token)/.test(haystack)) return 'api_token';
+      if (/(user|email|login|identifier|account)/.test(haystack)) return 'username';
+      return null;
+    };
+
+    const fillField = (target: HTMLInputElement | HTMLTextAreaElement | undefined, value: string | undefined) => {
+      if (!target || !value) return false;
+      target.focus();
+      target.value = value;
+      target.dispatchEvent(new Event('input', { bubbles: true }));
+      target.dispatchEvent(new Event('change', { bubbles: true }));
+      return true;
+    };
+
+    const groups: Record<string, Array<HTMLInputElement | HTMLTextAreaElement>> = {
+      username: [],
+      password: [],
+      otp: [],
+      api_token: [],
+    };
+
+    for (const input of inputs as Array<HTMLInputElement | HTMLTextAreaElement>) {
+      const kind = classify(input);
+      if (kind) groups[kind].push(input);
+    }
+
+    const filledTypes: string[] = [];
+    if (fillField(groups.username[0], entries.username)) filledTypes.push('username');
+    if (fillField(groups.password[0], entries.password)) filledTypes.push('password');
+    if (fillField(groups.otp[0], entries.otp)) filledTypes.push('otp');
+    if (fillField(groups.api_token[0], entries.api_token)) filledTypes.push('api_token');
+
+    return {
+      filledTypes,
+      loginLike: groups.password.length > 0 || groups.username.length > 0 || groups.otp.length > 0,
+    };
+  }, Array.from(valueByType.entries()));
+
+  return {
+    filledTypes: Array.isArray(result.filledTypes) ? result.filledTypes.map((entry: any) => String(entry)) : [],
+    loginLike: Boolean(result.loginLike),
+  };
+}
+
 async function executeComputerAction(page: Page, action: any): Promise<void> {
   const type = String(action?.type || '');
   const x = Number(action?.x ?? 0);
@@ -432,15 +586,12 @@ async function executeComputerAction(page: Page, action: any): Promise<void> {
 
 export async function runOpenAiComputerLoop(
   run: CuaRunRecord,
+  openAiApiKey: string,
   pushEvent: PushEvent,
   isInterrupted: (runId: string) => boolean,
   consumeSteering: (runId: string) => Array<{ message: string; mode: 'append' | 'replace_goal'; source: 'user' | 'agent'; timestamp: string }>,
 ): Promise<{ finalMessage?: string; blockedReason?: string }> {
-  if (!config.openAiApiKey) {
-    throw new Error('OPENAI_API_KEY is required for openai-responses engine.');
-  }
-
-  const client = new OpenAI({ apiKey: config.openAiApiKey });
+  const client = new OpenAI({ apiKey: openAiApiKey });
   const browser = await chromium.launch({
     headless: config.browserHeadless,
     args: [
@@ -459,9 +610,117 @@ export async function runOpenAiComputerLoop(
     },
   });
   const page = await context.newPage();
+  const authApplicationState = {
+    authStateIds: new Set<string>(),
+    secretFillKeys: new Set<string>(),
+    connectionContextLogged: false,
+  };
   await context.addInitScript(() => {
     Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
   });
+
+  const maybeApplyConnectionArtifacts = async (turn: number): Promise<{ blocked: boolean; message?: string; notes?: string[] }> => {
+    const connectionId = String(run.input.connectionId || '').trim();
+    if (!connectionId) {
+      return { blocked: false };
+    }
+
+    const currentUrl = page.url();
+    if (!/^https?:\/\//i.test(currentUrl)) {
+      return { blocked: false };
+    }
+
+    let artifacts;
+    try {
+      artifacts = await resolveExecutionArtifacts(run.userId, connectionId, currentUrl, ['cookie_bundle', 'api_token', 'username', 'password', 'otp']);
+    } catch (error) {
+      pushEvent(run, 'connection_artifact_resolution_denied', {
+        turn,
+        connectionId,
+        url: currentUrl,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return { blocked: false };
+    }
+
+    if (!authApplicationState.connectionContextLogged) {
+      pushEvent(run, 'connection_context_resolved', {
+        turn,
+        connectionId: artifacts.connectionId,
+        connectionName: artifacts.connectionName,
+        connectionBaseHost: artifacts.connectionBaseHost,
+        url: currentUrl,
+        authStateAvailable: Boolean(artifacts.authState),
+        availableSecretTypes: artifacts.secrets.map((secret) => secret.secretType),
+        missingSecretTypes: artifacts.missing,
+      });
+      authApplicationState.connectionContextLogged = true;
+    }
+
+    const notes: string[] = [];
+    if (artifacts.authState && !authApplicationState.authStateIds.has(artifacts.authState.id)) {
+      const applied = await applyAuthStateToPage(context, page, currentUrl, artifacts.authState);
+      pushEvent(run, 'connection_auth_state_applied', {
+        turn,
+        connectionId: artifacts.connectionId,
+        connectionName: artifacts.connectionName,
+        connectionBaseHost: artifacts.connectionBaseHost,
+        url: currentUrl,
+        authStateId: artifacts.authState.id,
+        applied: applied.applied,
+        ...applied.details,
+      });
+      if (applied.applied) {
+        authApplicationState.authStateIds.add(artifacts.authState.id);
+        await page.reload({ waitUntil: 'domcontentloaded', timeout: config.browserNavigationTimeoutMs }).catch(() => undefined);
+        await waitForPageSettled(page);
+        notes.push('Harness note: An approved saved auth state was applied for this connection on the current allowed URL.');
+      }
+    }
+
+    const diagnostics = await collectPageDiagnostics(page);
+    const loginLike = isLikelyLoginPage(String(diagnostics.url || currentUrl), String(diagnostics.title || ''), diagnostics);
+    const fillKey = `${currentUrl}`;
+    const hasAnyManualSecret = artifacts.secrets.some((secret) => ['username', 'password', 'otp', 'api_token'].includes(secret.secretType));
+
+    if (loginLike && !authApplicationState.secretFillKeys.has(fillKey) && hasAnyManualSecret) {
+      const fillResult = await autofillApprovedSecrets(page, artifacts.secrets);
+      pushEvent(run, 'connection_secret_fill_applied', {
+        turn,
+        connectionId: artifacts.connectionId,
+        connectionName: artifacts.connectionName,
+        connectionBaseHost: artifacts.connectionBaseHost,
+        url: currentUrl,
+        filledTypes: fillResult.filledTypes,
+        loginLike: fillResult.loginLike,
+      });
+      if (fillResult.filledTypes.length > 0) {
+        authApplicationState.secretFillKeys.add(fillKey);
+        notes.push(`Harness note: Approved secret references were autofilled for fields: ${fillResult.filledTypes.join(', ')} on the current allowed login page.`);
+      }
+    }
+
+    if (loginLike && !artifacts.authState && !hasAnyManualSecret) {
+      pushEvent(run, 'clarification_required', {
+        runId: run.id,
+        connectionId: artifacts.connectionId,
+        connectionName: artifacts.connectionName,
+        connectionBaseHost: artifacts.connectionBaseHost,
+        action: 'connection_setup_or_steering_required',
+        reason: 'approved_connection_has_no_usable_auth_artifacts',
+        url: currentUrl,
+        missingSecretTypes: artifacts.missing,
+        message: 'This run reached an allowed authentication page, but no usable saved auth state or secret refs are available for the approved connection. Guide the user to configure or refresh the connection before retrying headless execution.',
+      });
+      return {
+        blocked: true,
+        message: 'Run paused because the approved connection has no usable auth state or secret refs for this allowed login page.',
+        notes,
+      };
+    }
+
+    return { blocked: false, notes };
+  };
 
   pushEvent(run, 'browser_session_config', {
     headless: config.browserHeadless,
@@ -809,6 +1068,17 @@ export async function runOpenAiComputerLoop(
         }
 
         await waitForPageSettled(page);
+
+        const artifactOutcome = await maybeApplyConnectionArtifacts(turn);
+        if (artifactOutcome.notes && artifactOutcome.notes.length > 0) {
+          turnNotes.push(...artifactOutcome.notes);
+        }
+        if (artifactOutcome.blocked) {
+          return {
+            blockedReason: 'missing_connection_auth_artifacts',
+            finalMessage: artifactOutcome.message,
+          };
+        }
 
         const diagnostics = await collectPageDiagnostics(page);
         pushEvent(run, 'page_diagnostics', {

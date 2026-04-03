@@ -11,6 +11,7 @@ Use this quickstart before calling \'cua_run_task\'.
 1. Call \'cua_get_orchestration_guide\' and apply these rules.
 2. Call \'cua_preflight\' and confirm { ok: true }.
 3. Call \'cua_run_task\'.
+	If the task should use a previously approved authenticated utility connection, pass \'connectionId\' so the runtime can apply saved auth state and secret refs only on allowed URLs.
 4. Call \'cua_await\' with waitSeconds=30 and an event cursor (sinceEventCount) to block until timeout or handoff signal.
 5. On timeout, call \'cua_get_run\' for an explicit snapshot and continue orchestration.
 6. If the run drifts or user clarifies intent, call \'cua_steer_run\' to redirect without stopping the run.
@@ -85,6 +86,7 @@ For headless orchestration:
 
 - Do not request or collect user credentials through orchestration tools.
 - Credential approvals are disabled; use pre-approved frontend connections and secret references only.
+- If a task needs authenticated access, prefer passing a pre-approved \'connectionId\' on the run rather than describing login steps in natural language.
 - If a task requires auth that is not available, emit clarification and ask for steering or stop.
 - Use \'cua_steer_run\' to refine approach, or \'cua_interrupt\' to terminate safely.
 

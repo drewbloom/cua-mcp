@@ -18,12 +18,20 @@ async function main(): Promise<void> {
 
   await initPostgres();
 
+  const userId = `smoke-user-${randomUUID()}`;
+  const db = getPool();
+  await db.query(
+    'INSERT INTO users (id, email, display_name, created_at, updated_at) VALUES ($1, $2, $3, NOW(), NOW()) ON CONFLICT (email) DO NOTHING',
+    [userId, `smoke-${Date.now()}@example.com`, 'Postgres Smoke'],
+  );
+
   const runId = `smoke-${randomUUID()}`;
   const recipeId = `smoke-${randomUUID()}`;
   const timestamp = nowIso();
 
   const run: CuaRunRecord = {
     id: runId,
+    userId,
     status: 'running',
     input: {
       task: 'postgres smoke test run',
@@ -46,14 +54,15 @@ async function main(): Promise<void> {
 
   await cuaRepository.saveRecipe({
     id: recipeId,
+    userId,
     name: 'smoke recipe',
     description: 'repository persistence smoke test',
     promptTemplate: 'open {{url}} and summarize',
     createdAt: nowIso(),
   });
 
-  const persistedRun = await cuaRepository.getRun(runId);
-  const persistedRecipe = await cuaRepository.getRecipe(recipeId);
+  const persistedRun = await cuaRepository.getRun(runId, userId);
+  const persistedRecipe = await cuaRepository.getRecipe(recipeId, userId);
 
   if (!persistedRun) {
     throw new Error('Smoke test failed: run not found after insert.');
@@ -65,7 +74,6 @@ async function main(): Promise<void> {
     throw new Error('Smoke test failed: run events were not persisted.');
   }
 
-  const db = getPool();
   const counts = await db.query(`
     SELECT
       (SELECT COUNT(*)::int FROM cua_runs) AS run_count,

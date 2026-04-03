@@ -4,13 +4,47 @@ import { registerAppResource, registerAppTool, RESOURCE_MIME_TYPE } from '@model
 import { cuaRuntime } from '../cua/runtime.js';
 import { config } from '../config.js';
 import { CUA_WIDGET_HTML, CUA_WIDGET_URI } from '../ui/cuaWidgetHtml.js';
+import type { McpAuthContext } from '../auth/mcpAuth.js';
 import {
   CUA_ORCHESTRATION_QUICKSTART_TEXT,
   CUA_ORCHESTRATION_QUICKSTART_TITLE,
   CUA_ORCHESTRATION_QUICKSTART_URI,
 } from '../resources/cuaDelegationGuide.js';
 
-export function registerCuaTools(server: McpServer): void {
+function extractReferencedConnectionIds(input: unknown): string[] {
+  if (!input || typeof input !== 'object') return [];
+  const record = input as Record<string, unknown>;
+  const ids = new Set<string>();
+
+  const direct = String(record.connectionId || '').trim();
+  if (direct) ids.add(direct);
+
+  const list = record.connectionIds;
+  if (Array.isArray(list)) {
+    for (const entry of list) {
+      const value = String(entry || '').trim();
+      if (value) ids.add(value);
+    }
+  }
+
+  return [...ids];
+}
+
+function enforceConnectionScope(authContext: McpAuthContext, input: unknown): { ok: true } | { ok: false; deniedIds: string[] } {
+  if (!authContext.allowedConnectionIds.length) return { ok: true };
+  const referencedIds = extractReferencedConnectionIds(input);
+  if (!referencedIds.length) return { ok: true };
+
+  const allowed = new Set(authContext.allowedConnectionIds);
+  const deniedIds = referencedIds.filter((id) => !allowed.has(id));
+  if (deniedIds.length) {
+    return { ok: false, deniedIds };
+  }
+
+  return { ok: true };
+}
+
+export function registerCuaTools(server: McpServer, authContext: McpAuthContext): void {
   server.registerResource(
     'cua-orchestration-quickstart',
     CUA_ORCHESTRATION_QUICKSTART_URI,
@@ -62,11 +96,12 @@ export function registerCuaTools(server: McpServer): void {
     {
       title: 'CUA Run Task',
       description:
-        'Starts a persistent CUA run using the configured engine and returns a run id for orchestration. Environment defaults to web. Recommended sequence: 1) call cua_get_orchestration_guide, 2) call cua_preflight, 3) call cua_run_task, 4) loop on cua_await, 5) use cua_steer_run to redirect when drift occurs, 6) when clarification or interruption signals appear, either steer or interrupt, 7) when terminal, call cua_get_run once and stop. Prefer search-first discovery when no direct URL is provided, then prioritize task-specific authoritative sources over generic homepage browsing. Keep task instructions concrete: objective, allowed domains, stop condition, and output contract.',
+        'Starts a persistent CUA run using the configured engine and returns a run id for orchestration. Environment defaults to web. Recommended sequence: 1) call cua_get_orchestration_guide, 2) call cua_preflight, 3) call cua_run_task, 4) loop on cua_await, 5) use cua_steer_run to redirect when drift occurs, 6) when clarification or interruption signals appear, either steer or interrupt, 7) when terminal, call cua_get_run once and stop. Prefer search-first discovery when no direct URL is provided, then prioritize task-specific authoritative sources over generic homepage browsing. Keep task instructions concrete: objective, allowed domains, stop condition, and output contract. If the run should use an approved authenticated connection, pass connectionId so the runtime can apply that user-owned auth context only on allowed URLs.',
       inputSchema: {
         task: z.string().min(1),
         systemPrompt: z.string().optional(),
         authStateId: z.string().optional(),
+        connectionId: z.string().optional(),
         environment: z.enum(['web', 'ubuntu', 'windows']).default('web'),
       },
       _meta: {
@@ -81,16 +116,25 @@ export function registerCuaTools(server: McpServer): void {
       },
     },
     async (args: any) => {
+      const scope = enforceConnectionScope(authContext, args);
+      if (!scope.ok) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `API key is not authorized for connection ids: ${scope.deniedIds.join(', ')}` }],
+        };
+      }
+
       const parsed = z
         .object({
           task: z.string().min(1),
           systemPrompt: z.string().optional(),
           authStateId: z.string().optional(),
+          connectionId: z.string().optional(),
           environment: z.enum(['web', 'ubuntu', 'windows']).default('web'),
         })
         .parse(args);
 
-      const run = await cuaRuntime.startRun(parsed);
+      const run = await cuaRuntime.startRun(parsed, authContext.userId);
       return {
         content: [{ type: 'text', text: `CUA run started: ${run.id}` }],
         structuredContent: { run },
@@ -103,7 +147,7 @@ export function registerCuaTools(server: McpServer): void {
     'cua_get_orchestration_guide',
     {
       title: 'CUA Get Orchestration Guide',
-      description: 'Returns the built-in orchestration quickstart for prompting, await-loop control, terminal handling, hybrid direct+search navigation, and generic source-selection heuristics. Agent callers should read this before running CUA tasks.',
+      description: 'Returns the built-in orchestration quickstart for prompting, await-loop control, terminal handling, hybrid direct+search navigation, generic source-selection heuristics, and when to pass connectionId for approved headless auth-safe execution. Agent callers should read this before running CUA tasks.',
       inputSchema: {},
       annotations: {
         readOnlyHint: true,
@@ -166,7 +210,7 @@ export function registerCuaTools(server: McpServer): void {
       },
     },
     async () => {
-      const result = await cuaRuntime.preflightModelAccess();
+      const result = await cuaRuntime.preflightModelAccess(authContext.userId);
       return {
         isError: !result.ok,
         content: [{ type: 'text', text: result.detail }],
@@ -190,8 +234,16 @@ export function registerCuaTools(server: McpServer): void {
       },
     },
     async (args: any) => {
+      const scope = enforceConnectionScope(authContext, args);
+      if (!scope.ok) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `API key is not authorized for connection ids: ${scope.deniedIds.join(', ')}` }],
+        };
+      }
+
       const parsed = z.object({ runId: z.string().min(1) }).parse(args);
-      const run = await cuaRuntime.getRun(parsed.runId);
+      const run = await cuaRuntime.getRun(parsed.runId, authContext.userId);
       if (!run) {
         return {
           isError: true,
@@ -224,6 +276,15 @@ export function registerCuaTools(server: McpServer): void {
       },
     },
     async (args: any) => {
+      const scope = enforceConnectionScope(authContext, args);
+      if (!scope.ok) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `API key is not authorized for connection ids: ${scope.deniedIds.join(', ')}` }],
+          structuredContent: { await: { reason: 'unauthorized_connection_scope', deniedIds: scope.deniedIds } },
+        };
+      }
+
       const parsed = z
         .object({
           runId: z.string().min(1),
@@ -232,29 +293,29 @@ export function registerCuaTools(server: McpServer): void {
         })
         .parse(args);
 
-      const result = await cuaRuntime.awaitRun(parsed.runId, {
+      const awaited = await cuaRuntime.awaitRun(parsed.runId, authContext.userId, {
         waitSeconds: parsed.waitSeconds ?? 30,
         sinceEventCount: parsed.sinceEventCount ?? 0,
       });
 
-      if (result.reason === 'not_found') {
+      if (awaited.reason === 'not_found') {
         return {
           isError: true,
           content: [{ type: 'text', text: `Run not found: ${parsed.runId}` }],
-          structuredContent: { await: result },
+          structuredContent: { await: awaited },
         };
       }
 
       const statusText =
-        result.reason === 'signal'
-          ? `Signal received: ${result.signalEvent?.type || 'unknown'}`
-          : result.reason === 'terminal'
-            ? `Run reached terminal status: ${result.run?.status}`
-            : `No signal during wait window (${Math.round(result.waitedSeconds)}s)`;
+        awaited.reason === 'signal'
+          ? `Signal received: ${awaited.signalEvent?.type || 'unknown'}`
+          : awaited.reason === 'terminal'
+            ? `Run reached terminal status: ${awaited.run?.status}`
+            : `No signal during wait window (${Math.round(awaited.waitedSeconds)}s)`;
 
       return {
         content: [{ type: 'text', text: statusText }],
-        structuredContent: { await: result },
+        structuredContent: { await: awaited },
       };
     },
   );
@@ -278,6 +339,14 @@ export function registerCuaTools(server: McpServer): void {
       },
     },
     async (args: any) => {
+      const scope = enforceConnectionScope(authContext, args);
+      if (!scope.ok) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `API key is not authorized for connection ids: ${scope.deniedIds.join(', ')}` }],
+        };
+      }
+
       const parsed = z
         .object({
           runId: z.string().min(1),
@@ -287,7 +356,7 @@ export function registerCuaTools(server: McpServer): void {
         })
         .parse(args);
 
-      const run = await cuaRuntime.steerRun(parsed.runId, parsed.steeringMessage, parsed.mode, parsed.source || 'agent');
+      const run = await cuaRuntime.steerRun(parsed.runId, parsed.steeringMessage, parsed.mode, parsed.source || 'agent', authContext.userId);
       if (!run) {
         return {
           isError: true,
@@ -327,6 +396,14 @@ export function registerCuaTools(server: McpServer): void {
       },
     },
     async (args: any) => {
+      const scope = enforceConnectionScope(authContext, args);
+      if (!scope.ok) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `API key is not authorized for connection ids: ${scope.deniedIds.join(', ')}` }],
+        };
+      }
+
       const parsed = z
         .object({
           runId: z.string().min(1),
@@ -334,7 +411,7 @@ export function registerCuaTools(server: McpServer): void {
           source: z.enum(['user', 'agent']).optional(),
         })
         .parse(args);
-      const run = await cuaRuntime.interruptRun(parsed.runId, parsed.reason, parsed.source || 'user');
+      const run = await cuaRuntime.interruptRun(parsed.runId, parsed.reason, parsed.source || 'user', authContext.userId);
       if (!run) {
         return {
           isError: true,
@@ -383,7 +460,7 @@ export function registerCuaTools(server: McpServer): void {
           })
           .parse(args);
 
-        const recipe = await cuaRuntime.saveRecipe(parsed.name, parsed.promptTemplate, parsed.description);
+        const recipe = await cuaRuntime.saveRecipe(authContext.userId, parsed.name, parsed.promptTemplate, parsed.description);
         return {
           content: [{ type: 'text', text: `Recipe saved: ${recipe.id}` }],
           structuredContent: { recipe },
@@ -401,6 +478,7 @@ export function registerCuaTools(server: McpServer): void {
           variables: z.record(z.string(), z.string()),
           systemPrompt: z.string().optional(),
           authStateId: z.string().optional(),
+          connectionId: z.string().optional(),
           environment: z.enum(['web', 'ubuntu', 'windows']).optional(),
         },
         annotations: {
@@ -416,13 +494,15 @@ export function registerCuaTools(server: McpServer): void {
             variables: z.record(z.string(), z.string()),
             systemPrompt: z.string().optional(),
             authStateId: z.string().optional(),
+            connectionId: z.string().optional(),
             environment: z.enum(['web', 'ubuntu', 'windows']).optional(),
           })
           .parse(args);
 
-        const run = await cuaRuntime.runRecipe(parsed.recipeId, parsed.variables as Record<string, string>, {
+        const run = await cuaRuntime.runRecipe(authContext.userId, parsed.recipeId, parsed.variables as Record<string, string>, {
           systemPrompt: parsed.systemPrompt,
           authStateId: parsed.authStateId,
+          connectionId: parsed.connectionId,
           environment: parsed.environment,
         });
 

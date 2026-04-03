@@ -6,6 +6,7 @@ export interface CuaRunInput {
   task: string;
   systemPrompt?: string;
   authStateId?: string;
+  connectionId?: string;
   environment?: CuaEnvironment;
 }
 
@@ -17,6 +18,7 @@ export interface CuaEvent {
 
 export interface CuaRunRecord {
   id: string;
+  userId: string;
   status: CuaRunStatus;
   input: CuaRunInput;
   createdAt: string;
@@ -28,6 +30,7 @@ export interface CuaRunRecord {
 
 export interface CuaRecipe {
   id: string;
+  userId: string;
   name: string;
   description?: string;
   promptTemplate: string;

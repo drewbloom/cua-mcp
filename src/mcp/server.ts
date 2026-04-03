@@ -3,7 +3,8 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { config } from '../config.js';
 import { registerCuaTools } from './registerTools.js';
-import { handleApiRequest } from '../api/httpApi.js';
+import { handleApiRequest, handleFrontendRequest } from '../api/httpApi.js';
+import { authenticateMcpApiKey, type McpAuthContext } from '../auth/mcpAuth.js';
 
 function extractApiKey(request: import('node:http').IncomingMessage): string | null {
   const bearerHeader = String(request.headers.authorization || '').trim();
@@ -18,12 +19,10 @@ function extractApiKey(request: import('node:http').IncomingMessage): string | n
   return null;
 }
 
-function isAuthorized(request: import('node:http').IncomingMessage): boolean {
-  if (!config.mcpAccessApiKey) return false;
-
+async function getAuthorizationContext(request: import('node:http').IncomingMessage): Promise<McpAuthContext | null> {
   const key = extractApiKey(request);
-  if (!key) return false;
-  return key === config.mcpAccessApiKey;
+  if (!key) return null;
+  return await authenticateMcpApiKey(key);
 }
 
 function writeUnauthorized(response: import('node:http').ServerResponse): void {
@@ -33,18 +32,18 @@ function writeUnauthorized(response: import('node:http').ServerResponse): void {
   }).end(
     JSON.stringify({
       error: 'Unauthorized',
-      message: 'MCP access requires MCP_ACCESS_API_KEY using Authorization: Bearer <key> or x-api-key header.',
+      message: 'MCP access requires a valid user-issued API key using Authorization: Bearer <key> or x-api-key header.',
     }),
   );
 }
 
-function createMcpServer(): McpServer {
+function createMcpServer(authContext: McpAuthContext): McpServer {
   const server = new McpServer({
     name: 'cua-mcp',
     version: '0.1.0',
   });
 
-  registerCuaTools(server);
+  registerCuaTools(server, authContext);
   return server;
 }
 
@@ -61,6 +60,10 @@ export async function startHttpServer(): Promise<void> {
       return;
     }
 
+    if (handleFrontendRequest(request, response, url)) {
+      return;
+    }
+
     if (request.method === 'OPTIONS' && url.pathname === config.mcpPath) {
       response.writeHead(204, {
         'Access-Control-Allow-Origin': '*',
@@ -72,7 +75,7 @@ export async function startHttpServer(): Promise<void> {
       return;
     }
 
-    if (request.method === 'GET' && url.pathname === '/') {
+    if (request.method === 'GET' && url.pathname === '/health') {
       response.writeHead(200, { 'content-type': 'application/json' }).end(
         JSON.stringify(
           {
@@ -97,7 +100,8 @@ export async function startHttpServer(): Promise<void> {
       return;
     }
 
-    if (!isAuthorized(request)) {
+    const authContext = await getAuthorizationContext(request);
+    if (!authContext) {
       writeUnauthorized(response);
       return;
     }
@@ -105,7 +109,7 @@ export async function startHttpServer(): Promise<void> {
     response.setHeader('Access-Control-Allow-Origin', '*');
     response.setHeader('Access-Control-Expose-Headers', 'Mcp-Session-Id');
 
-    const mcpServer = createMcpServer();
+    const mcpServer = createMcpServer(authContext);
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
       enableJsonResponse: true,

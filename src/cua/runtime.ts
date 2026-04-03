@@ -5,6 +5,8 @@ import { config } from '../config.js';
 import { runOpenAiComputerLoop } from './openaiComputerLoop.js';
 import OpenAI from 'openai';
 import { cuaRepository } from '../db/cuaRepository.js';
+import { getActiveOpenAiApiKeyForUser } from '../auth/userLlmKeys.js';
+import { getConnectionPolicyForUser } from '../security/secretBoundary.js';
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -107,6 +109,7 @@ export class CuaRuntime {
 
   async awaitRun(
     runId: string,
+    userId: string,
     options?: {
       waitSeconds?: number;
       pollIntervalMs?: number;
@@ -125,7 +128,7 @@ export class CuaRuntime {
     const started = Date.now();
 
     while (true) {
-      const run = await this.getRun(runId);
+      const run = await this.getRun(runId, userId);
       if (!run) {
         return {
           reason: 'not_found',
@@ -187,6 +190,26 @@ export class CuaRuntime {
     return queue;
   }
 
+  private async resolveOwnedRun(runId: string, userId?: string): Promise<CuaRunRecord | undefined> {
+    const inMemory = this.runs.get(runId);
+    if (inMemory) {
+      if (!userId || inMemory.userId === userId) {
+        return inMemory;
+      }
+      return undefined;
+    }
+
+    if (!userId || !this.usesPostgres()) {
+      return undefined;
+    }
+
+    const persisted = await cuaRepository.getRun(runId, userId);
+    if (persisted) {
+      this.runs.set(persisted.id, persisted);
+    }
+    return persisted;
+  }
+
   private containsApprovalSignal(update: unknown): boolean {
     const text = JSON.stringify(update).toLowerCase();
     return text.includes('approve_action') || text.includes('approval_required') || text.includes('awaiting_approval');
@@ -197,12 +220,13 @@ export class CuaRuntime {
     return text.includes('_interrupt') || text.includes('interrupt_requested') || text.includes('agent_interrupt');
   }
 
-  async startRun(input: CuaRunInput): Promise<CuaRunRecord> {
+  async startRun(input: CuaRunInput, userId: string): Promise<CuaRunRecord> {
     const id = randomUUID();
     const timestamp = nowIso();
 
     const run: CuaRunRecord = {
       id,
+      userId,
       status: 'queued',
       input,
       createdAt: timestamp,
@@ -216,31 +240,31 @@ export class CuaRuntime {
     return run;
   }
 
-  async getRun(runId: string): Promise<CuaRunRecord | undefined> {
+  async getRun(runId: string, userId: string): Promise<CuaRunRecord | undefined> {
     const inMemory = this.runs.get(runId);
-    if (inMemory) return inMemory;
+    if (inMemory && inMemory.userId === userId) return inMemory;
     if (!this.usesPostgres()) return undefined;
 
-    const persisted = await cuaRepository.getRun(runId);
+    const persisted = await cuaRepository.getRun(runId, userId);
     if (persisted) {
       this.runs.set(persisted.id, persisted);
     }
     return persisted;
   }
 
-  async listRuns(): Promise<CuaRunRecord[]> {
+  async listRuns(userId: string): Promise<CuaRunRecord[]> {
     if (this.usesPostgres()) {
-      const runs = await cuaRepository.listRuns();
+      const runs = await cuaRepository.listRuns(userId);
       for (const run of runs) {
         this.runs.set(run.id, run);
       }
       return runs;
     }
-    return [...this.runs.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return [...this.runs.values()].filter((run) => run.userId === userId).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 
-  async interruptRun(runId: string, reason: string, source: 'user' | 'agent' = 'user'): Promise<CuaRunRecord | undefined> {
-    const run = this.runs.get(runId);
+  async interruptRun(runId: string, reason: string, source: 'user' | 'agent' = 'user', userId?: string): Promise<CuaRunRecord | undefined> {
+    const run = await this.resolveOwnedRun(runId, userId);
     if (!run) return undefined;
 
     const terminalStatuses = new Set(['completed', 'failed', 'interrupted']);
@@ -273,8 +297,9 @@ export class CuaRuntime {
     steeringMessage: string,
     mode: 'append' | 'replace_goal' = 'append',
     source: 'user' | 'agent' = 'agent',
+    userId?: string,
   ): Promise<CuaRunRecord | undefined> {
-    const run = this.runs.get(runId);
+    const run = await this.resolveOwnedRun(runId, userId);
     if (!run) return undefined;
 
     const terminalStatuses = new Set(['completed', 'failed', 'interrupted']);
@@ -322,9 +347,10 @@ export class CuaRuntime {
     return run;
   }
 
-  async saveRecipe(name: string, promptTemplate: string, description?: string): Promise<CuaRecipe> {
+  async saveRecipe(userId: string, name: string, promptTemplate: string, description?: string): Promise<CuaRecipe> {
     const recipe: CuaRecipe = {
       id: randomUUID(),
+      userId,
       name,
       description,
       promptTemplate,
@@ -335,30 +361,30 @@ export class CuaRuntime {
     return recipe;
   }
 
-  async getRecipe(recipeId: string): Promise<CuaRecipe | undefined> {
+  async getRecipe(recipeId: string, userId: string): Promise<CuaRecipe | undefined> {
     const inMemory = this.recipes.get(recipeId);
-    if (inMemory) return inMemory;
+    if (inMemory && inMemory.userId === userId) return inMemory;
     if (!this.usesPostgres()) return undefined;
 
-    const persisted = await cuaRepository.getRecipe(recipeId);
+    const persisted = await cuaRepository.getRecipe(recipeId, userId);
     if (persisted) {
       this.recipes.set(persisted.id, persisted);
     }
     return persisted;
   }
 
-  async listRecipes(): Promise<CuaRecipe[]> {
+  async listRecipes(userId: string): Promise<CuaRecipe[]> {
     if (this.usesPostgres()) {
-      const recipes = await cuaRepository.listRecipes();
+      const recipes = await cuaRepository.listRecipes(userId);
       for (const recipe of recipes) {
         this.recipes.set(recipe.id, recipe);
       }
       return recipes;
     }
-    return [...this.recipes.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return [...this.recipes.values()].filter((recipe) => recipe.userId === userId).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 
-  async preflightModelAccess(): Promise<{ ok: boolean; engine: string; model: string; detail: string }> {
+  async preflightModelAccess(userId: string): Promise<{ ok: boolean; engine: string; model: string; detail: string }> {
     if (config.cuaEngine !== 'openai-responses') {
       return {
         ok: true,
@@ -368,17 +394,18 @@ export class CuaRuntime {
       };
     }
 
-    if (!config.openAiApiKey) {
+    const openAiApiKey = await getActiveOpenAiApiKeyForUser(userId);
+    if (!openAiApiKey) {
       return {
         ok: false,
         engine: config.cuaEngine,
         model: config.cuaModel,
-        detail: 'OPENAI_API_KEY is missing.',
+        detail: 'No active OpenAI API key is configured for this user.',
       };
     }
 
     try {
-      const client = new OpenAI({ apiKey: config.openAiApiKey });
+      const client = new OpenAI({ apiKey: openAiApiKey });
       await client.responses.create({
         model: config.cuaModel,
         input: 'preflight ping',
@@ -402,8 +429,8 @@ export class CuaRuntime {
     }
   }
 
-  async runRecipe(recipeId: string, variables: Record<string, string>, options?: { systemPrompt?: string; authStateId?: string; environment?: CuaEnvironment }): Promise<CuaRunRecord | undefined> {
-    const recipe = await this.getRecipe(recipeId);
+  async runRecipe(userId: string, recipeId: string, variables: Record<string, string>, options?: { systemPrompt?: string; authStateId?: string; connectionId?: string; environment?: CuaEnvironment }): Promise<CuaRunRecord | undefined> {
+    const recipe = await this.getRecipe(recipeId, userId);
     if (!recipe) return undefined;
 
     const task = applyTemplate(recipe.promptTemplate, variables);
@@ -411,19 +438,26 @@ export class CuaRuntime {
       task,
       systemPrompt: options?.systemPrompt,
       authStateId: options?.authStateId,
+      connectionId: options?.connectionId,
       environment: options?.environment,
-    });
+    }, userId);
   }
 
   private async executeRun(runId: string, input: CuaRunInput): Promise<void> {
     const run = this.runs.get(runId);
     if (!run) return;
 
+    const connectionId = String(input.connectionId || '').trim();
+    const connectionPolicy = connectionId ? await getConnectionPolicyForUser(run.userId, connectionId) : null;
+
     run.status = 'running';
     run.updatedAt = nowIso();
     this.pushEvent(run, 'run_started', {
       environment: input.environment || 'web',
       authStateId: input.authStateId || null,
+      connectionId: connectionId || null,
+      connectionName: connectionPolicy ? String(connectionPolicy.name || '') : null,
+      connectionBaseHost: connectionPolicy ? String(connectionPolicy.base_host || '') : null,
       engine: config.cuaEngine,
       model: config.cuaModel,
     });
@@ -431,6 +465,11 @@ export class CuaRuntime {
 
     try {
       if (config.cuaEngine === 'openai-responses') {
+        const openAiApiKey = await getActiveOpenAiApiKeyForUser(run.userId);
+        if (!openAiApiKey) {
+          throw new Error('No active OpenAI API key is configured for this user.');
+        }
+
         const requestedEnvironment = input.environment || 'web';
         if (requestedEnvironment !== 'web') {
           this.pushEvent(run, 'environment_overridden', {
@@ -443,6 +482,7 @@ export class CuaRuntime {
 
         const result = await runOpenAiComputerLoop(
           run,
+          openAiApiKey,
           (targetRun, type, payload) => this.pushEvent(targetRun, type, payload),
           (id) => this.isInterrupted(id),
           (id) => this.consumeSteering(id),

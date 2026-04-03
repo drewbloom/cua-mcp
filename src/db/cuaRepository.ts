@@ -8,6 +8,7 @@ function toDate(value: string): Date {
 function mapRunRow(row: any): Omit<CuaRunRecord, 'events'> {
   return {
     id: String(row.id),
+    userId: String(row.user_id || ''),
     status: row.status,
     input: row.input_json,
     outputSummary: row.output_summary || undefined,
@@ -28,6 +29,7 @@ function mapEventRow(row: any): CuaEvent {
 function mapRecipeRow(row: any): CuaRecipe {
   return {
     id: String(row.id),
+    userId: String(row.user_id || ''),
     name: String(row.name),
     description: row.description || undefined,
     promptTemplate: String(row.prompt_template),
@@ -40,10 +42,11 @@ export const cuaRepository = {
     const db = getPool();
     await db.query(
       `
-      INSERT INTO cua_runs (id, status, input_json, output_summary, error_text, created_at, updated_at)
-      VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7)
+      INSERT INTO cua_runs (id, user_id, status, input_json, output_summary, error_text, created_at, updated_at)
+      VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, $8)
       ON CONFLICT (id) DO UPDATE
-      SET status = EXCLUDED.status,
+      SET user_id = EXCLUDED.user_id,
+          status = EXCLUDED.status,
           input_json = EXCLUDED.input_json,
           output_summary = EXCLUDED.output_summary,
           error_text = EXCLUDED.error_text,
@@ -51,6 +54,7 @@ export const cuaRepository = {
       `,
       [
         run.id,
+        run.userId,
         run.status,
         JSON.stringify(run.input),
         run.outputSummary || null,
@@ -72,9 +76,9 @@ export const cuaRepository = {
     );
   },
 
-  async getRun(runId: string): Promise<CuaRunRecord | undefined> {
+  async getRun(runId: string, userId: string): Promise<CuaRunRecord | undefined> {
     const db = getPool();
-    const runRes = await db.query('SELECT * FROM cua_runs WHERE id = $1', [runId]);
+    const runRes = await db.query('SELECT * FROM cua_runs WHERE id = $1 AND user_id = $2', [runId, userId]);
     if (runRes.rowCount === 0) return undefined;
 
     const evtRes = await db.query(
@@ -89,11 +93,11 @@ export const cuaRepository = {
     };
   },
 
-  async listRuns(limit: number = 50): Promise<CuaRunRecord[]> {
+  async listRuns(userId: string, limit: number = 50): Promise<CuaRunRecord[]> {
     const db = getPool();
     const runRes = await db.query(
-      'SELECT * FROM cua_runs ORDER BY created_at DESC LIMIT $1',
-      [limit],
+      'SELECT * FROM cua_runs WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2',
+      [userId, limit],
     );
 
     const runs: CuaRunRecord[] = [];
@@ -116,24 +120,24 @@ export const cuaRepository = {
     const db = getPool();
     await db.query(
       `
-      INSERT INTO cua_recipes (id, name, description, prompt_template, created_at)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO cua_recipes (id, user_id, name, description, prompt_template, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6)
       ON CONFLICT (id) DO NOTHING
       `,
-      [recipe.id, recipe.name, recipe.description || null, recipe.promptTemplate, toDate(recipe.createdAt)],
+      [recipe.id, recipe.userId, recipe.name, recipe.description || null, recipe.promptTemplate, toDate(recipe.createdAt)],
     );
   },
 
-  async getRecipe(recipeId: string): Promise<CuaRecipe | undefined> {
+  async getRecipe(recipeId: string, userId: string): Promise<CuaRecipe | undefined> {
     const db = getPool();
-    const res = await db.query('SELECT * FROM cua_recipes WHERE id = $1', [recipeId]);
+    const res = await db.query('SELECT * FROM cua_recipes WHERE id = $1 AND user_id = $2', [recipeId, userId]);
     if (res.rowCount === 0) return undefined;
     return mapRecipeRow(res.rows[0]);
   },
 
-  async listRecipes(limit: number = 100): Promise<CuaRecipe[]> {
+  async listRecipes(userId: string, limit: number = 100): Promise<CuaRecipe[]> {
     const db = getPool();
-    const res = await db.query('SELECT * FROM cua_recipes ORDER BY created_at DESC LIMIT $1', [limit]);
+    const res = await db.query('SELECT * FROM cua_recipes WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2', [userId, limit]);
     return res.rows.map(mapRecipeRow);
   },
 };

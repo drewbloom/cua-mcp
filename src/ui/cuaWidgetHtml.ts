@@ -70,6 +70,37 @@ export const CUA_WIDGET_HTML = `<!doctype html>
         flex-wrap: wrap;
       }
 
+      .summary-grid {
+        margin-top: 12px;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .summary-card {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 10px 12px;
+        background: #f8fbff;
+      }
+
+      .summary-label {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+      }
+
+      .summary-value {
+        font-size: 13px;
+        line-height: 1.45;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
       button {
         border: 1px solid var(--line);
         border-radius: 10px;
@@ -107,6 +138,24 @@ export const CUA_WIDGET_HTML = `<!doctype html>
           <button id="refresh-btn" type="button">Refresh Run</button>
           <button id="interrupt-btn" type="button">Interrupt</button>
         </div>
+        <div class="summary-grid">
+          <div class="summary-card">
+            <span class="summary-label">Connection</span>
+            <div id="connection-summary" class="summary-value">None</div>
+          </div>
+          <div class="summary-card">
+            <span class="summary-label">Auth Artifacts</span>
+            <div id="artifact-summary" class="summary-value">No auth artifact activity yet.</div>
+          </div>
+          <div class="summary-card">
+            <span class="summary-label">Latest Signal</span>
+            <div id="signal-summary" class="summary-value">No run signals yet.</div>
+          </div>
+          <div class="summary-card">
+            <span class="summary-label">Final Output</span>
+            <div id="final-summary" class="summary-value">No final output yet.</div>
+          </div>
+        </div>
         <pre id="output">No run payload yet.</pre>
       </article>
     </main>
@@ -116,6 +165,10 @@ export const CUA_WIDGET_HTML = `<!doctype html>
       const outputEl = document.getElementById('output');
       const refreshBtn = document.getElementById('refresh-btn');
       const interruptBtn = document.getElementById('interrupt-btn');
+      const connectionSummaryEl = document.getElementById('connection-summary');
+      const artifactSummaryEl = document.getElementById('artifact-summary');
+      const signalSummaryEl = document.getElementById('signal-summary');
+      const finalSummaryEl = document.getElementById('final-summary');
 
       const inFlight = new Map();
       let nextId = 1;
@@ -133,6 +186,42 @@ export const CUA_WIDGET_HTML = `<!doctype html>
         window.parent.postMessage({ jsonrpc: '2.0', method, params }, '*');
       }
 
+      function summarizeRun(run) {
+        const events = Array.isArray(run?.events) ? run.events : [];
+        const started = events.find((event) => event?.type === 'run_started');
+        const connectionEvent = events.find((event) => event?.type === 'connection_context_resolved');
+        const authStateEvent = [...events].reverse().find((event) => event?.type === 'connection_auth_state_applied');
+        const secretFillEvent = [...events].reverse().find((event) => event?.type === 'connection_secret_fill_applied');
+        const signalEvent = [...events].reverse().find((event) => ['clarification_required', 'interrupt_handoff_required', 'run_blocked', 'interrupt_rejected_terminal', 'steering_rejected_terminal'].includes(String(event?.type || '')));
+        const finalEvent = [...events].reverse().find((event) => event?.type === 'run_completed' || event?.type === 'run_failed');
+
+        const connectionName = connectionEvent?.payload?.connectionName || started?.payload?.connectionName || '';
+        const connectionHost = connectionEvent?.payload?.connectionBaseHost || started?.payload?.connectionBaseHost || '';
+        const connectionId = connectionEvent?.payload?.connectionId || started?.payload?.connectionId || run?.input?.connectionId || '';
+        connectionSummaryEl.textContent = connectionName || connectionHost || connectionId
+          ? [connectionName, connectionHost, connectionId ? '(' + connectionId + ')' : ''].filter(Boolean).join(' ')
+          : 'No approved connection bound to this run.';
+
+        const artifactLines = [];
+        if (authStateEvent?.payload?.authStateId) {
+          artifactLines.push('Auth state applied: ' + String(authStateEvent.payload.authStateId));
+        }
+        if (Array.isArray(secretFillEvent?.payload?.filledTypes) && secretFillEvent.payload.filledTypes.length > 0) {
+          artifactLines.push('Filled types: ' + secretFillEvent.payload.filledTypes.join(', '));
+        }
+        if (Array.isArray(connectionEvent?.payload?.missingSecretTypes) && connectionEvent.payload.missingSecretTypes.length > 0) {
+          artifactLines.push('Missing types: ' + connectionEvent.payload.missingSecretTypes.join(', '));
+        }
+        artifactSummaryEl.textContent = artifactLines.length ? artifactLines.join('\n') : 'No auth artifact activity yet.';
+
+        signalSummaryEl.textContent = signalEvent
+          ? String(signalEvent.type) + (signalEvent?.payload?.message ? '\n' + String(signalEvent.payload.message) : '')
+          : 'No run signals yet.';
+
+        const finalMessage = run?.outputSummary || finalEvent?.payload?.finalMessage || run?.error || '';
+        finalSummaryEl.textContent = finalMessage ? String(finalMessage).slice(0, 700) : 'No final output yet.';
+      }
+
       function updateFromPayload(payload) {
         const run = payload?.structuredContent?.run || payload?.result?.structuredContent?.run;
         if (!run) return;
@@ -141,6 +230,7 @@ export const CUA_WIDGET_HTML = `<!doctype html>
         const status = String(run.status || 'unknown').toLowerCase();
         statusEl.textContent = status;
         statusEl.className = 'status ' + status;
+        summarizeRun(run);
         outputEl.textContent = JSON.stringify(run, null, 2);
       }
 
