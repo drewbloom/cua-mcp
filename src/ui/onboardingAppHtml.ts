@@ -1,4 +1,6 @@
-export const ONBOARDING_APP_HTML = `<!doctype html>
+import { CUA_MCP_ASCII } from './brandAscii.js';
+
+export const DASHBOARD_APP_HTML = `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -26,7 +28,7 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
         --radius-lg: 28px;
         --radius-md: 18px;
         --radius-sm: 12px;
-        --hero-max: 1120px;
+        --hero-max: 1280px;
       }
 
       * { box-sizing: border-box; }
@@ -113,6 +115,7 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
       .capture-preview,
       .capture-summary,
       .capture-history-list,
+      .connection-card,
       .trust-list,
       .status-strip,
       .summary-strip {
@@ -161,7 +164,7 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
 
       .hero-copy {
         gap: 18px;
-        max-width: 72ch;
+        max-width: none;
       }
 
       .hero-copy h1,
@@ -172,7 +175,7 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
       }
 
       .hero-copy h1 {
-        max-width: 12ch;
+        max-width: 16ch;
         font-size: clamp(3.2rem, 8vw, 5.7rem);
         line-height: 0.92;
       }
@@ -191,8 +194,23 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
       }
 
       .hero-copy p {
-        max-width: 62ch;
+        max-width: 78ch;
         font-size: 1.03rem;
+      }
+
+      .hero-art {
+        width: min(100%, 1100px);
+        margin: 2px auto 0;
+        padding: 20px 24px;
+        border-radius: 22px;
+        border: 1px solid rgba(255, 209, 102, 0.16);
+        background: rgba(7, 17, 26, 0.72);
+        color: #ffdca3;
+        overflow: auto;
+        white-space: pre;
+        font-family: "Cascadia Mono", "Consolas", "Courier New", monospace;
+        font-size: clamp(11px, 1vw, 13px);
+        line-height: 1.18;
       }
 
       .hero-actions,
@@ -266,6 +284,7 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
 
       .trust-grid,
       .summary-strip,
+      .connection-board,
       .capture-summary-grid,
       .field-grid {
         display: grid;
@@ -276,10 +295,123 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
       .trust-cell,
       .summary-block,
       .capture-summary-card,
+      .connection-card,
       .capture-history-item,
       .capture-history-empty {
         padding: 16px;
         border-radius: 20px;
+      }
+
+      .connection-board {
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      }
+
+      .connection-card {
+        gap: 14px;
+        align-content: start;
+        min-height: 188px;
+        transition: border-color 180ms ease, transform 180ms ease, background-color 180ms ease;
+      }
+
+      .connection-card:hover {
+        transform: translateY(-1px);
+        border-color: rgba(255, 209, 102, 0.22);
+      }
+
+      .connection-card.active {
+        border-color: rgba(255, 209, 102, 0.28);
+        background: rgba(255, 209, 102, 0.08);
+      }
+
+      .connection-card-head,
+      .selected-connection-head,
+      .connection-card-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .connection-favicon {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        overflow: hidden;
+        display: grid;
+        place-items: center;
+        background: rgba(255,255,255,0.06);
+        border: 1px solid var(--line);
+        color: var(--warning);
+        font-weight: 900;
+        font-size: 15px;
+        flex: 0 0 auto;
+      }
+
+      .connection-favicon img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .connection-card-body,
+      .selected-connection-title {
+        display: grid;
+        gap: 8px;
+      }
+
+      .connection-card-body strong {
+        font-size: 1rem;
+      }
+
+      .connection-card-body code,
+      .selected-connection-meta code {
+        font-family: "Cascadia Mono", "Consolas", monospace;
+        font-size: 12px;
+        color: #ffdca3;
+        word-break: break-all;
+      }
+
+      .connection-card-tags,
+      .selected-connection-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .connection-tag {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 0 10px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .selected-connection-shell {
+        display: grid;
+        gap: 12px;
+        padding: 16px;
+        border-radius: 20px;
+        border: 1px solid var(--line);
+        background: rgba(255,255,255,0.04);
+      }
+
+      .selected-connection-shell.empty {
+        color: var(--muted);
+      }
+
+      .connection-card-actions button {
+        min-height: 38px;
+        padding: 0 12px;
+        font-size: 12px;
       }
 
       .trust-cell h2,
@@ -641,7 +773,7 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
         }
 
         .hero-copy h1 {
-          max-width: 10ch;
+          max-width: 12ch;
         }
 
         .step-list {
@@ -674,6 +806,8 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
             <a class="hero-button secondary" href="/">Back to the manifesto</a>
           </div>
         </div>
+
+        <pre class="hero-art">${CUA_MCP_ASCII}</pre>
 
         <div class="hero-meta">
           <article class="trust-cell">
@@ -720,17 +854,11 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
           <a class="step-link" href="#connections-step" data-step-link="connections-step" data-tooltip="Decide where the robot is actually allowed to go before it discovers a new and exciting interpretation of scope." title="Decide where the robot is actually allowed to go before it discovers a new and exciting interpretation of scope.">
             <div class="step-index">04</div>
             <div class="step-copy">
-              <strong>Connections</strong>
-            </div>
-          </a>
-          <a class="step-link" href="#secrets-step" data-step-link="secrets-step" data-tooltip="Keep the actual secrets encrypted and let the fill plans do the dangerous flirting on your behalf." title="Keep the actual secrets encrypted and let the fill plans do the dangerous flirting on your behalf.">
-            <div class="step-index">05</div>
-            <div class="step-copy">
-              <strong>Secret refs</strong>
+              <strong>Connections and access</strong>
             </div>
           </a>
           <a class="step-link" href="#runs-step" data-step-link="runs-step" data-tooltip="Inspect what was retained, delete what should not outlive the bit, and decide how forgetful the machine should act." title="Inspect what was retained, delete what should not outlive the bit, and decide how forgetful the machine should act.">
-            <div class="step-index">06</div>
+            <div class="step-index">05</div>
             <div class="step-copy">
               <strong>Runs and privacy</strong>
             </div>
@@ -875,11 +1003,29 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
         <section class="section-panel" id="connections-step" data-reveal>
           <div class="section-head">
             <div class="section-number">Step 04 · Utility mapping</div>
-            <h2>Define where automation may roam before it discovers a new frontier.</h2>
+            <h2>Define the connection, then manage its hidden access artifacts from the same place.</h2>
             <p>
-              A connection is a policy boundary: primary host, approved subdomains, permissive path prefixes, and the auth method you expect the CUA runtime to prefer before it gets any creative ideas.
+              A connection is the security boundary. You create the host policy here, decide whether the boundary should expand to subdomains or all paths, then manage encrypted secret refs, saved auth state, and interactive browser capture without splitting that work across a second tab.
             </p>
           </div>
+
+          <div id="selectedConnectionShell" class="selected-connection-shell empty">
+            <div class="selected-connection-head">
+              <div class="selected-connection-title">
+                <span class="field-label">Selected connection</span>
+                <strong id="selectedConnectionName">No connection selected</strong>
+              </div>
+              <div class="button-row">
+                <button class="secondary" id="refreshConnections">Refresh list</button>
+                <button class="ghost" id="newConnection">New connection</button>
+              </div>
+            </div>
+            <div id="selectedConnectionMeta" class="selected-connection-meta">
+              <span class="connection-tag">Create or choose a connection card to manage its policy and hidden refs.</span>
+            </div>
+          </div>
+
+          <div id="connectionsBoard" class="connection-board capture-history-empty">No connections loaded yet.</div>
 
           <div class="field-grid">
             <label class="field">
@@ -898,6 +1044,14 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
               <span class="field-label">Allowed path prefixes</span>
               <input id="connPaths" placeholder="/, /auth, /dashboard, /release-notes, /places-the-bot-may-behave" />
             </label>
+            <label class="field checkbox-field">
+              <span class="field-label">Allow base-host subdomains</span>
+              <input id="connAllowSubdomains" type="checkbox" />
+            </label>
+            <label class="field checkbox-field">
+              <span class="field-label">Allow any path on approved hosts</span>
+              <input id="connAllowAnyPath" type="checkbox" />
+            </label>
             <label class="field">
               <span class="field-label">Preferred auth method</span>
               <select id="connAuthMethod">
@@ -914,10 +1068,7 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
                 <option value="disabled">disabled</option>
               </select>
             </label>
-            <label class="field field-span-2">
-              <span class="field-label">Patch connection id</span>
-              <input id="patchConnId" placeholder="Use this to pause or disable an existing connection before it gets ideas" />
-            </label>
+            <input id="patchConnId" type="hidden" />
           </div>
 
           <div class="button-row">
@@ -927,29 +1078,24 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
           </div>
 
           <p class="micro-copy">
-            Approved hosts and path prefixes are the contract the execution layer must satisfy before any secret reference can be resolved, which is the sober sentence hidden inside this entire bit.
+            Approved hosts and path prefixes are the contract the execution layer must satisfy before any secret reference can be resolved. The subdomain and any-path switches loosen that contract deliberately instead of by accident.
           </p>
 
           <div class="output-shell">
             <div class="output-head"><span>Connection policy log</span></div>
             <pre id="connOut">Connections output</pre>
           </div>
-        </section>
 
-        <section class="section-panel" id="secrets-step" data-reveal>
-          <div class="section-head">
-            <div class="section-number">Step 05 · Secret references</div>
-            <h2>Store only what the runtime needs, then verify it does not freelance with credentials.</h2>
+          <div class="section-head" style="margin-top: 34px;">
+            <div class="section-number">Connection-owned access artifacts</div>
+            <h2>Keep secret refs, auth state, and browser capture attached to the same connection boundary.</h2>
             <p>
               Secret values and saved auth states are encrypted at rest and never displayed back after creation. Build a fill plan against an exact URL to confirm the runtime sees only the references it should use and nothing it merely finds interesting.
             </p>
           </div>
 
           <div class="field-grid">
-            <label class="field field-span-2">
-              <span class="field-label">Connection id</span>
-              <input id="secretConnId" placeholder="Select the connection that owns this secret ref" />
-            </label>
+            <input id="secretConnId" type="hidden" />
             <label class="field">
               <span class="field-label">Secret type</span>
               <select id="secretType">
@@ -1034,6 +1180,7 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
           </div>
 
           <div class="button-row">
+            <button class="secondary" id="loadConnArtifacts">Load connection artifacts</button>
             <button id="addSecret">Add secret ref</button>
             <button class="secondary" id="listSecrets">List secret refs</button>
             <button class="danger" id="deleteSecret">Delete secret ref</button>
@@ -1090,7 +1237,7 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
 
         <section class="section-panel" id="runs-step" data-reveal>
           <div class="section-head">
-            <div class="section-number">Step 06 · Runs and privacy</div>
+            <div class="section-number">Step 05 · Runs and privacy</div>
             <h2>Decide what the system remembers, what it forgets, and how suspiciously clean you want the trail.</h2>
             <p>
               Runtime settings stay user-scoped. Retention determines cleanup windows, while ZDR disables event and output persistence so the system keeps only the minimum needed to track run state and avoid becoming a scrapbook.
@@ -1171,8 +1318,16 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
       const captureMarker = $('captureMarker');
       const captureSelectionText = $('captureSelectionText');
       const captureSummary = $('captureSummary');
+      const connectionsBoard = $('connectionsBoard');
+      const selectedConnectionShell = $('selectedConnectionShell');
+      const selectedConnectionName = $('selectedConnectionName');
+      const selectedConnectionMeta = $('selectedConnectionMeta');
       const sections = Array.from(document.querySelectorAll('[data-reveal]'));
       const navLinks = Array.from(document.querySelectorAll('[data-step-link]'));
+      const state = {
+        connections: [],
+        selectedConnectionId: '',
+      };
 
       function setBanner(kind, message) {
         banner.className = 'banner ' + (kind || '');
@@ -1248,6 +1403,128 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
 
       function splitCsv(raw) {
         return String(raw || '').split(',').map(v => v.trim()).filter(Boolean);
+      }
+
+      function setActiveConnectionId(connectionId) {
+        const value = String(connectionId || '').trim();
+        if (!value) return;
+        $('secretConnId').value = value;
+        $('patchConnId').value = value;
+        state.selectedConnectionId = value;
+      }
+
+      function clearConnectionSelection() {
+        $('patchConnId').value = '';
+        $('secretConnId').value = '';
+        state.selectedConnectionId = '';
+        selectedConnectionShell.classList.add('empty');
+        selectedConnectionName.textContent = 'No connection selected';
+        selectedConnectionMeta.innerHTML = '<span class="connection-tag">Create or choose a connection card to manage its policy and hidden refs.</span>';
+      }
+
+      function clearConnectionForm() {
+        $('connName').value = '';
+        $('connBaseHost').value = '';
+        $('connHosts').value = '';
+        $('connPaths').value = '';
+        $('connAllowSubdomains').checked = false;
+        $('connAllowAnyPath').checked = false;
+        $('connAuthMethod').value = 'oauth';
+        $('patchConnStatus').value = 'active';
+        clearConnectionSelection();
+      }
+
+      function getFaviconUrl(baseHost) {
+        const host = String(baseHost || '').trim();
+        if (!host) return '';
+        return 'https://' + host + '/favicon.ico';
+      }
+
+      function renderSelectedConnection(connection) {
+        if (!connection) {
+          clearConnectionSelection();
+          return;
+        }
+
+        selectedConnectionShell.classList.remove('empty');
+        selectedConnectionName.textContent = connection.name || 'Unnamed connection';
+        selectedConnectionMeta.innerHTML = [
+          '<span class="connection-tag">' + escapeHtml(connection.status || 'active') + '</span>',
+          '<span class="connection-tag">' + escapeHtml(connection.authMethod || 'oauth') + '</span>',
+          '<code>' + escapeHtml(connection.baseHost || '') + '</code>',
+          '<span class="connection-tag">subdomains ' + (connection.allowSubdomains ? 'on' : 'off') + '</span>',
+          '<span class="connection-tag">any path ' + (connection.allowAnyPath ? 'on' : 'off') + '</span>'
+        ].join('');
+      }
+
+      function populateConnectionForm(connection) {
+        if (!connection) return;
+        $('connName').value = String(connection.name || '');
+        $('connBaseHost').value = String(connection.baseHost || '');
+        $('connHosts').value = Array.isArray(connection.allowedHosts)
+          ? connection.allowedHosts.filter((host) => host !== connection.baseHost).join(', ')
+          : '';
+        $('connPaths').value = Array.isArray(connection.allowedPathPrefixes)
+          ? connection.allowedPathPrefixes.join(', ')
+          : '';
+        $('connAllowSubdomains').checked = Boolean(connection.allowSubdomains);
+        $('connAllowAnyPath').checked = Boolean(connection.allowAnyPath);
+        $('connAuthMethod').value = String(connection.authMethod || 'oauth');
+        $('patchConnStatus').value = String(connection.status || 'active');
+        setActiveConnectionId(connection.id);
+        renderSelectedConnection(connection);
+      }
+
+      function renderConnectionsBoard(connections) {
+        state.connections = Array.isArray(connections) ? connections : [];
+        if (!state.connections.length) {
+          connectionsBoard.className = 'connection-board capture-history-empty';
+          connectionsBoard.innerHTML = 'No connections yet. Create one below to define a secure host boundary before you capture anything interesting.';
+          if (!state.selectedConnectionId) {
+            renderSelectedConnection(null);
+          }
+          return;
+        }
+
+        connectionsBoard.className = 'connection-board';
+        connectionsBoard.innerHTML = state.connections.map((connection) => {
+          const active = connection.id === state.selectedConnectionId ? ' active' : '';
+          const faviconUrl = getFaviconUrl(connection.baseHost);
+          const initial = escapeHtml((connection.name || connection.baseHost || '?').slice(0, 1).toUpperCase());
+          return '<article class="connection-card' + active + '" data-connection-id="' + escapeHtml(connection.id) + '">' +
+            '<div class="connection-card-head">' +
+              '<div class="connection-favicon">' +
+                (faviconUrl
+                  ? '<img src="' + escapeHtml(faviconUrl) + '" alt="" loading="lazy" onerror="this.remove(); this.parentNode.textContent=\'' + initial + '\';" />'
+                  : initial) +
+              '</div>' +
+              '<span class="connection-tag">' + escapeHtml(connection.status || 'active') + '</span>' +
+            '</div>' +
+            '<div class="connection-card-body">' +
+              '<strong>' + escapeHtml(connection.name || 'Unnamed connection') + '</strong>' +
+              '<code>' + escapeHtml(connection.baseHost || '') + '</code>' +
+              '<div class="connection-card-tags">' +
+                '<span class="connection-tag">' + escapeHtml(connection.authMethod || 'oauth') + '</span>' +
+                '<span class="connection-tag">subdomains ' + (connection.allowSubdomains ? 'on' : 'off') + '</span>' +
+                '<span class="connection-tag">any path ' + (connection.allowAnyPath ? 'on' : 'off') + '</span>' +
+              '</div>' +
+            '</div>' +
+            '<div class="connection-card-actions">' +
+              '<button class="secondary" type="button" data-connection-edit="' + escapeHtml(connection.id) + '">Edit</button>' +
+              '<button class="ghost" type="button" data-connection-manage="' + escapeHtml(connection.id) + '">Manage access</button>' +
+            '</div>' +
+          '</article>';
+        }).join('');
+      }
+
+      function selectConnectionById(connectionId, options = {}) {
+        const connection = state.connections.find((entry) => entry.id === connectionId);
+        if (!connection) return;
+        populateConnectionForm(connection);
+        renderConnectionsBoard(state.connections);
+        if (options.loadArtifacts) {
+          refreshConnectionArtifacts();
+        }
       }
 
       function detectAuthStateType(parsed) {
@@ -1420,6 +1697,8 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
 
         const hosts = Array.isArray(connection?.allowedHosts) ? connection.allowedHosts : [];
         const paths = Array.isArray(connection?.allowedPathPrefixes) ? connection.allowedPathPrefixes : [];
+        const allowSubdomains = connection?.allowSubdomains ? 'enabled' : 'disabled';
+        const allowAnyPath = connection?.allowAnyPath ? 'enabled' : 'disabled';
         captureSummary.className = 'capture-summary';
         captureSummary.innerHTML =
           '<div class="capture-summary-grid">' +
@@ -1431,6 +1710,7 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
             '<li>Saved auth artifact: <strong>' + escapeHtml(authState?.id || 'created') + '</strong></li>' +
             '<li>Allowed hosts now include: <strong>' + escapeHtml(hosts.slice(0, 5).join(', ') || 'none recorded') + '</strong></li>' +
             '<li>Allowed path prefixes now include: <strong>' + escapeHtml(paths.slice(0, 5).join(', ') || 'none recorded') + '</strong></li>' +
+            '<li>Policy toggles: <strong>subdomains ' + escapeHtml(allowSubdomains) + ', any-path ' + escapeHtml(allowAnyPath) + '</strong></li>' +
           '</ol>';
       }
 
@@ -1471,12 +1751,38 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
       async function refreshConnectionArtifacts() {
         const connId = String($('secretConnId')?.value || '').trim();
         if (!connId) return;
-        const [authStates, connections] = await Promise.all([
+        const [secrets, authStates, connections, captures] = await Promise.all([
+          api('/api/connections/' + encodeURIComponent(connId) + '/secrets'),
           api('/api/connections/' + encodeURIComponent(connId) + '/auth-states'),
           api('/api/connections'),
+          api('/api/connections/' + encodeURIComponent(connId) + '/capture-sessions?limit=10'),
         ]);
-        print(out.secret, authStates);
+        if (connections.ok && Array.isArray(connections.body?.connections)) {
+          renderConnectionsBoard(connections.body.connections);
+        }
+        print(out.secret, {
+          secrets: secrets.body,
+          authStates: authStates.body,
+        });
         print(out.conn, connections);
+        renderCaptureHistory(captures);
+      }
+
+      async function loadConnections() {
+        const data = await api('/api/connections');
+        if (data.ok && Array.isArray(data.body?.connections)) {
+          renderConnectionsBoard(data.body.connections);
+          if (state.selectedConnectionId) {
+            const stillExists = data.body.connections.some((entry) => entry.id === state.selectedConnectionId);
+            if (stillExists) {
+              selectConnectionById(state.selectedConnectionId);
+            } else {
+              clearConnectionSelection();
+            }
+          }
+        }
+        print(out.conn, data);
+        return data;
       }
 
       captureImage.addEventListener('click', (event) => {
@@ -1540,8 +1846,20 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
         activateSection(hashTarget || 'session-step', false, false);
       });
 
+      connectionsBoard.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return;
+        const editId = target.getAttribute('data-connection-edit');
+        const manageId = target.getAttribute('data-connection-manage');
+        const cardId = target.closest('[data-connection-id]')?.getAttribute('data-connection-id');
+        const connectionId = editId || manageId || cardId;
+        if (!connectionId) return;
+        selectConnectionById(connectionId, { loadArtifacts: Boolean(manageId) });
+      });
+
       activateSection(decodeURIComponent(window.location.hash.replace(/^#/, '')) || 'session-step', false, false);
       syncRuntimeCheckboxes();
+      loadConnections();
 
       $('requestCode').onclick = async () => {
         const email = requireEmail('email');
@@ -1654,19 +1972,60 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
           baseHost,
           allowedHosts: splitCsv($('connHosts').value),
           allowedPathPrefixes: splitCsv($('connPaths').value),
+          allowSubdomains: $('connAllowSubdomains').checked,
+          allowAnyPath: $('connAllowAnyPath').checked,
           authMethod: $('connAuthMethod').value,
         });
+        if (data.ok) {
+          setActiveConnectionId(data.body?.connection?.id);
+          await loadConnections();
+          selectConnectionById(data.body?.connection?.id, { loadArtifacts: true });
+        }
         print(out.conn, data);
       };
 
-      $('listConn').onclick = async () => print(out.conn, await api('/api/connections'));
+      $('listConn').onclick = loadConnections;
+      $('refreshConnections').onclick = loadConnections;
+      $('newConnection').onclick = () => {
+        clearConnectionForm();
+        renderConnectionsBoard(state.connections);
+        setBanner('ok', 'Connection form reset for a new entry.');
+      };
       $('patchConn').onclick = async () => {
-        const id = requireText('patchConnId', 'Patch connection ID');
+        const id = String($('patchConnId').value || '').trim();
+        if (!id) {
+          setBanner('err', 'Select a connection card before editing it.');
+          return;
+        }
         if (!id) return;
-        const data = await api('/api/connections/' + encodeURIComponent(id), 'PATCH', {
+        const payload = {
+          name: $('connName').value.trim() || undefined,
+          allowSubdomains: $('connAllowSubdomains').checked,
+          allowAnyPath: $('connAllowAnyPath').checked,
           status: $('patchConnStatus').value,
-        });
+        };
+        const allowedHosts = splitCsv($('connHosts').value);
+        const allowedPathPrefixes = splitCsv($('connPaths').value);
+        if (allowedHosts.length > 0) payload.allowedHosts = allowedHosts;
+        if (allowedPathPrefixes.length > 0) payload.allowedPathPrefixes = allowedPathPrefixes;
+        const data = await api('/api/connections/' + encodeURIComponent(id), 'PATCH', payload);
+        if (data.ok) {
+          setActiveConnectionId(id);
+          await loadConnections();
+          selectConnectionById(id, { loadArtifacts: true });
+        }
         print(out.conn, data);
+      };
+
+      $('loadConnArtifacts').onclick = async () => {
+        const connId = String($('secretConnId').value || '').trim();
+        if (!connId) {
+          setBanner('err', 'Choose a connection card before loading its access artifacts.');
+          return;
+        }
+        if (!connId) return;
+        setActiveConnectionId(connId);
+        await refreshConnectionArtifacts();
       };
 
       $('addSecret').onclick = async () => {

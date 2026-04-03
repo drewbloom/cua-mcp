@@ -1,3 +1,5 @@
+import { CUA_MCP_ASCII } from './brandAscii.js';
+
 export const LANDING_PAGE_HTML = `<!doctype html>
 <html lang="en">
   <head>
@@ -54,7 +56,7 @@ export const LANDING_PAGE_HTML = `<!doctype html>
       }
 
       .page {
-        width: min(1100px, calc(100% - 28px));
+        width: min(1280px, calc(100% - 28px));
         margin: 0 auto;
         padding: 20px 0 72px;
         display: grid;
@@ -126,6 +128,10 @@ export const LANDING_PAGE_HTML = `<!doctype html>
         gap: 24px;
       }
 
+      .hero-inner {
+        justify-items: center;
+      }
+
       .eyebrow {
         margin: 0;
         color: var(--cyan);
@@ -143,9 +149,10 @@ export const LANDING_PAGE_HTML = `<!doctype html>
       }
 
       h1 {
-        max-width: 12ch;
+        max-width: 16ch;
         font-size: clamp(3.3rem, 8vw, 6rem);
         line-height: 0.92;
+        text-align: center;
       }
 
       h2 {
@@ -164,13 +171,15 @@ export const LANDING_PAGE_HTML = `<!doctype html>
       }
 
       .lede {
-        max-width: 60ch;
+        max-width: 74ch;
         font-size: 1.06rem;
+        text-align: center;
       }
 
       .ascii {
-        margin: 6px 0 0;
-        padding: 18px;
+        width: min(100%, 1040px);
+        margin: 6px auto 0;
+        padding: 20px 24px;
         border-radius: 22px;
         border: 1px solid rgba(255, 209, 102, 0.16);
         background: rgba(7, 17, 26, 0.72);
@@ -178,19 +187,21 @@ export const LANDING_PAGE_HTML = `<!doctype html>
         overflow: auto;
         white-space: pre;
         font-family: "Cascadia Mono", "Consolas", "Courier New", monospace;
-        font-size: 12px;
-        line-height: 1.25;
+        font-size: clamp(11px, 1.05vw, 13px);
+        line-height: 1.18;
       }
 
       .marquee {
         display: grid;
         gap: 12px;
+        justify-items: center;
       }
 
       .ticker {
         display: flex;
         flex-wrap: wrap;
         gap: 10px;
+        justify-content: center;
       }
 
       .pill {
@@ -216,6 +227,7 @@ export const LANDING_PAGE_HTML = `<!doctype html>
         display: flex;
         flex-wrap: wrap;
         gap: 12px;
+        justify-content: center;
       }
 
       .button {
@@ -278,6 +290,13 @@ export const LANDING_PAGE_HTML = `<!doctype html>
         font-size: 1.02rem;
       }
 
+      .micro,
+      .quote {
+        max-width: 74ch;
+        justify-self: center;
+        text-align: center;
+      }
+
       .cta {
         margin-top: 4px;
       }
@@ -316,25 +335,7 @@ export const LANDING_PAGE_HTML = `<!doctype html>
           <h1>All vibes. Some guardrails. Surprisingly functional.</h1>
           <p class="lede">CUA MCP is the control plane for computer-use automation when the default harness is too polite to touch secure websites. It is user-scoped, key-driven, connection-aware, and held together by the sort of determination normally reserved for bad launches and surprisingly effective internal tools.</p>
           <div class="marquee">
-            <pre class="ascii">   ______   __  __   ___        __  ___   ______   ____
-  / ____/  / / / /  /   |      /  |/  /  / ____/  / __ \
- / /      / / / /  / /| |     / /|_/ /  / /      / /_/ /
-/ /___   / /_/ /  / ___ |    / /  / /  / /___   / ____/
-\____/   \____/  /_/  |_|   /_/  /_/   \____/  /_/
-
-         Computer Use Agent, Missing Common Precautions
-
-   .-----------------------------------------------------------------------.
-   |  secure enough to demo | fast enough to regret | vague enough to sell |
-   '-----------------------------------------------------------------------'
-                              \
-                               \
-                                \  }__{
-                                 \ (oo)
-                                   (__)____
-                                      \\   \__
-                                       ||*--* |
-                                       ||     |</pre>
+            <pre class="ascii">${CUA_MCP_ASCII}</pre>
             <div class="ticker">
               <div class="pill"><strong>OTP</strong> one-time code theatrics</div>
               <div class="pill"><strong>Keys</strong> shown once, regretted forever</div>

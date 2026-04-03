@@ -9,6 +9,8 @@ export type ConnectionPolicy = {
   base_host: string;
   allowed_hosts_json: unknown;
   allowed_path_prefixes_json: unknown;
+  allow_subdomains: boolean;
+  allow_any_path: boolean;
   status: string;
 };
 
@@ -62,6 +64,28 @@ function asStringArray(value: unknown): string[] {
   return value.map((entry) => String(entry || '').trim()).filter(Boolean);
 }
 
+function matchesHostPolicy(host: string, policy: ConnectionPolicy): boolean {
+  const baseHost = normalizeHost(String(policy.base_host || ''));
+  const allowedHosts = Array.from(
+    new Set(
+      [
+        baseHost,
+        ...asStringArray(policy.allowed_hosts_json).map(normalizeHost),
+      ].filter(Boolean),
+    ),
+  );
+
+  if (allowedHosts.includes(host)) {
+    return true;
+  }
+
+  if (!policy.allow_subdomains || !baseHost) {
+    return false;
+  }
+
+  return host.endsWith(`.${baseHost}`);
+}
+
 export function isUrlAllowedByPolicy(targetUrl: string, policy: ConnectionPolicy): boolean {
   let parsed: URL;
   try {
@@ -71,16 +95,16 @@ export function isUrlAllowedByPolicy(targetUrl: string, policy: ConnectionPolicy
   }
 
   const host = normalizeHost(parsed.hostname);
-  const allowedHosts = Array.from(
-    new Set(
-      [
-        normalizeHost(String(policy.base_host || '')),
-        ...asStringArray(policy.allowed_hosts_json).map(normalizeHost),
-      ].filter(Boolean),
-    ),
-  );
-  if (!allowedHosts.includes(host)) {
+  if (!['http:', 'https:'].includes(parsed.protocol)) {
     return false;
+  }
+
+  if (!matchesHostPolicy(host, policy)) {
+    return false;
+  }
+
+  if (policy.allow_any_path) {
+    return true;
   }
 
   const prefixes = asStringArray(policy.allowed_path_prefixes_json)
@@ -94,7 +118,7 @@ export async function getConnectionPolicyForUser(userId: string, connectionId: s
   const db = getPool();
   const res = await db.query(
     `
-    SELECT id, user_id, name, base_host, allowed_hosts_json, allowed_path_prefixes_json, status
+    SELECT id, user_id, name, base_host, allowed_hosts_json, allowed_path_prefixes_json, allow_subdomains, allow_any_path, status
     FROM connections
     WHERE id = $1 AND user_id = $2
     LIMIT 1

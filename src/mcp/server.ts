@@ -60,7 +60,7 @@ export async function startHttpServer(): Promise<void> {
       return;
     }
 
-    if (handleFrontendRequest(request, response, url)) {
+    if (await handleFrontendRequest(request, response, url)) {
       return;
     }
 

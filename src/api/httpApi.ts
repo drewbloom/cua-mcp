@@ -3,7 +3,8 @@ import { randomBytes, randomInt, randomUUID } from 'node:crypto';
 import { URL } from 'node:url';
 import { getPool } from '../db/postgres.js';
 import { config } from '../config.js';
-import { ONBOARDING_APP_HTML } from '../ui/onboardingAppHtml.js';
+import { DASHBOARD_APP_HTML } from '../ui/onboardingAppHtml.js';
+import { PUBLIC_APP_HTML } from '../ui/publicAppHtml.js';
 import { LANDING_PAGE_HTML } from '../ui/landingPageHtml.js';
 import { encryptText, hashValue, isSameHash, requireHex32ByteKey } from '../security/crypto.js';
 import { buildSecretFillPlan, getConnectionPolicyForUser, isUrlAllowedByPolicy, normalizeHost, normalizePathPrefix } from '../security/secretBoundary.js';
@@ -65,6 +66,14 @@ function writeHtml(response: ServerResponse, status: number, html: string): void
     'cache-control': 'no-store',
   });
   response.end(html);
+}
+
+function writeRedirect(response: ServerResponse, location: string): void {
+  response.writeHead(302, {
+    location,
+    'cache-control': 'no-store',
+  });
+  response.end();
 }
 
 function writeApiUnauthorized(response: ServerResponse): void {
@@ -172,6 +181,31 @@ function asStringArray(value: unknown): string[] {
   return value
     .map((entry) => String(entry || '').trim())
     .filter(Boolean);
+}
+
+function asOptionalBoolean(value: unknown): boolean | undefined {
+  if (value === undefined || value === null || value === '') return undefined;
+  if (typeof value === 'boolean') return value;
+  const normalized = String(value).trim().toLowerCase();
+  if (['true', '1', 'yes', 'on'].includes(normalized)) return true;
+  if (['false', '0', 'no', 'off'].includes(normalized)) return false;
+  throw new Error('Boolean value expected');
+}
+
+function serializeConnectionRow(row: any): JsonObject {
+  return {
+    id: String(row.id),
+    name: String(row.name),
+    baseHost: String(row.base_host),
+    allowedHosts: row.allowed_hosts_json || [],
+    allowedPathPrefixes: row.allowed_path_prefixes_json || [],
+    allowSubdomains: Boolean(row.allow_subdomains),
+    allowAnyPath: Boolean(row.allow_any_path),
+    authMethod: String(row.auth_method),
+    status: String(row.status),
+    createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
+    updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : null,
+  };
 }
 
 function toBase64Url(value: Buffer): string {
@@ -729,22 +763,14 @@ async function handleCaptureSessionStart(request: IncomingMessage, response: Ser
   const startUrl = requestedStartUrl || defaultUrl;
 
   try {
-    const parsed = new URL(startUrl);
-    const allowedHosts = Array.from(
-      new Set(
-        [
-          String(policy.base_host || '').trim().toLowerCase(),
-          ...asStringArray(policy.allowed_hosts_json).map((host) => host.trim().toLowerCase()),
-        ].filter(Boolean),
-      ),
-    );
-    const hostAllowed = allowedHosts.includes(parsed.host.toLowerCase());
-    if (!hostAllowed) {
-      writeJson(response, 403, { error: 'Start URL host is not allowed for this connection' });
-      return;
-    }
+    new URL(startUrl);
   } catch {
     writeJson(response, 400, { error: 'startUrl must be a valid URL' });
+    return;
+  }
+
+  if (!isUrlAllowedByPolicy(startUrl, policy)) {
+    writeJson(response, 403, { error: 'Start URL is not allowed for this connection policy' });
     return;
   }
 
@@ -763,6 +789,12 @@ async function handleCaptureSessionStart(request: IncomingMessage, response: Ser
   writeJson(response, 200, {
     success: true,
     capture: snapshot,
+      connection: {
+        id: connectionId,
+        baseHost: String(policy.base_host),
+        allowSubdomains: Boolean(policy.allow_subdomains),
+        allowAnyPath: Boolean(policy.allow_any_path),
+      },
   });
 }
 
@@ -920,8 +952,12 @@ async function handleCaptureSessionFinalize(request: IncomingMessage, response: 
       },
       connection: {
         id: connectionId,
+        name: String(policy.name || ''),
+        baseHost: String(policy.base_host || ''),
         allowedHosts: existingHosts,
         allowedPathPrefixes: existingPaths,
+        allowSubdomains: Boolean(policy.allow_subdomains),
+        allowAnyPath: Boolean(policy.allow_any_path),
       },
       discoveredHosts: snapshot.discoveredHosts,
       discoveredPathPrefixes: snapshot.discoveredPathPrefixes,
@@ -1601,7 +1637,7 @@ async function handleConnectionsList(request: IncomingMessage, response: ServerR
   const db = getPool();
   const res = await db.query(
     `
-    SELECT id, name, base_host, allowed_hosts_json, allowed_path_prefixes_json, auth_method, status, created_at, updated_at
+    SELECT id, name, base_host, allowed_hosts_json, allowed_path_prefixes_json, allow_subdomains, allow_any_path, auth_method, status, created_at, updated_at
     FROM connections
     WHERE user_id = $1
     ORDER BY created_at DESC
@@ -1610,17 +1646,7 @@ async function handleConnectionsList(request: IncomingMessage, response: ServerR
   );
 
   writeJson(response, 200, {
-    connections: res.rows.map((row) => ({
-      id: String(row.id),
-      name: String(row.name),
-      baseHost: String(row.base_host),
-      allowedHosts: row.allowed_hosts_json || [],
-      allowedPathPrefixes: row.allowed_path_prefixes_json || [],
-      authMethod: String(row.auth_method),
-      status: String(row.status),
-      createdAt: new Date(row.created_at).toISOString(),
-      updatedAt: new Date(row.updated_at).toISOString(),
-    })),
+    connections: res.rows.map((row) => serializeConnectionRow(row)),
   });
 }
 
@@ -1630,9 +1656,11 @@ async function handleConnectionsCreate(request: IncomingMessage, response: Serve
 
   const body = await readJsonBody(request);
   const name = requireString(body.name, 'name');
-  const baseHost = requireString(body.baseHost, 'baseHost').toLowerCase();
-  const allowedHosts = asStringArray(body.allowedHosts).map((host) => host.toLowerCase());
-  const allowedPathPrefixes = asStringArray(body.allowedPathPrefixes);
+  const baseHost = normalizeHost(requireString(body.baseHost, 'baseHost'));
+  const allowedHosts = asStringArray(body.allowedHosts).map((host) => normalizeHost(host));
+  const allowedPathPrefixes = asStringArray(body.allowedPathPrefixes).map((path) => normalizePathPrefix(path));
+  const allowSubdomains = asOptionalBoolean(body.allowSubdomains) ?? false;
+  const allowAnyPath = asOptionalBoolean(body.allowAnyPath) ?? false;
   const authMethod = String(body.authMethod || 'oauth').trim().toLowerCase() || 'oauth';
 
   const dedupHosts = Array.from(new Set([baseHost, ...allowedHosts]));
@@ -1643,16 +1671,28 @@ async function handleConnectionsCreate(request: IncomingMessage, response: Serve
   await db.query(
     `
     INSERT INTO connections (
-      id, user_id, name, base_host, allowed_hosts_json, allowed_path_prefixes_json, auth_method, status, created_at, updated_at
+      id, user_id, name, base_host, allowed_hosts_json, allowed_path_prefixes_json, allow_subdomains, allow_any_path, auth_method, status, created_at, updated_at
     )
-    VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7, 'active', NOW(), NOW())
+    VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7, $8, $9, 'active', NOW(), NOW())
     `,
-    [connectionId, auth.userId, name, baseHost, JSON.stringify(dedupHosts), JSON.stringify(dedupPaths), authMethod],
+    [
+      connectionId,
+      auth.userId,
+      name,
+      baseHost,
+      JSON.stringify(dedupHosts),
+      JSON.stringify(dedupPaths),
+      allowSubdomains,
+      allowAnyPath,
+      authMethod,
+    ],
   );
 
   await logSecurityEvent(auth.userId, 'connection_created', 'connection', {
     connectionId,
     baseHost,
+    allowSubdomains,
+    allowAnyPath,
     authMethod,
   });
 
@@ -1664,6 +1704,8 @@ async function handleConnectionsCreate(request: IncomingMessage, response: Serve
       baseHost,
       allowedHosts: dedupHosts,
       allowedPathPrefixes: dedupPaths,
+      allowSubdomains,
+      allowAnyPath,
       authMethod,
       status: 'active',
     },
@@ -1688,12 +1730,20 @@ async function handleConnectionPatch(request: IncomingMessage, response: ServerR
     values.push(requireString(body.name, 'name'));
   }
   if (body.allowedHosts !== undefined) {
-    const hosts = Array.from(new Set(asStringArray(body.allowedHosts).map((host) => host.toLowerCase())));
+    const hosts = Array.from(new Set(asStringArray(body.allowedHosts).map((host) => normalizeHost(host))));
     setJson('allowed_hosts_json', hosts);
   }
   if (body.allowedPathPrefixes !== undefined) {
-    const paths = Array.from(new Set(asStringArray(body.allowedPathPrefixes)));
+    const paths = Array.from(new Set(asStringArray(body.allowedPathPrefixes).map((path) => normalizePathPrefix(path))));
     setJson('allowed_path_prefixes_json', paths);
+  }
+  if (body.allowSubdomains !== undefined) {
+    updates.push(`allow_subdomains = $${values.length + 1}`);
+    values.push(asOptionalBoolean(body.allowSubdomains));
+  }
+  if (body.allowAnyPath !== undefined) {
+    updates.push(`allow_any_path = $${values.length + 1}`);
+    values.push(asOptionalBoolean(body.allowAnyPath));
   }
   if (body.status !== undefined) {
     const status = String(body.status || '').trim().toLowerCase();
@@ -1717,7 +1767,7 @@ async function handleConnectionPatch(request: IncomingMessage, response: ServerR
     UPDATE connections
     SET ${updates.join(', ')}
     WHERE id = $${values.length + 1} AND user_id = $${values.length + 2}
-    RETURNING id, name, base_host, allowed_hosts_json, allowed_path_prefixes_json, auth_method, status, created_at, updated_at
+    RETURNING id, name, base_host, allowed_hosts_json, allowed_path_prefixes_json, allow_subdomains, allow_any_path, auth_method, status, created_at, updated_at
   `;
 
   const res = await db.query(sql, [...values, connectionId, auth.userId]);
@@ -1731,17 +1781,7 @@ async function handleConnectionPatch(request: IncomingMessage, response: ServerR
   const row = res.rows[0];
   writeJson(response, 200, {
     success: true,
-    connection: {
-      id: String(row.id),
-      name: String(row.name),
-      baseHost: String(row.base_host),
-      allowedHosts: row.allowed_hosts_json || [],
-      allowedPathPrefixes: row.allowed_path_prefixes_json || [],
-      authMethod: String(row.auth_method),
-      status: String(row.status),
-      createdAt: new Date(row.created_at).toISOString(),
-      updatedAt: new Date(row.updated_at).toISOString(),
-    },
+    connection: serializeConnectionRow(row),
   });
 }
 
@@ -1964,7 +2004,7 @@ export async function handleApiRequest(request: IncomingMessage, response: Serve
   }
 }
 
-export function handleFrontendRequest(request: IncomingMessage, response: ServerResponse, url: URL): boolean {
+export async function handleFrontendRequest(request: IncomingMessage, response: ServerResponse, url: URL): Promise<boolean> {
   if (request.method !== 'GET') {
     return false;
   }
@@ -1975,7 +2015,24 @@ export function handleFrontendRequest(request: IncomingMessage, response: Server
   }
 
   if (url.pathname === '/app' || url.pathname === '/app/') {
-    writeHtml(response, 200, ONBOARDING_APP_HTML);
+    const auth = await getAuthContext(request);
+    if (auth) {
+      writeRedirect(response, '/dashboard');
+      return true;
+    }
+
+    writeHtml(response, 200, PUBLIC_APP_HTML);
+    return true;
+  }
+
+  if (url.pathname === '/dashboard' || url.pathname === '/dashboard/') {
+    const auth = await getAuthContext(request);
+    if (!auth) {
+      writeRedirect(response, '/app');
+      return true;
+    }
+
+    writeHtml(response, 200, DASHBOARD_APP_HTML);
     return true;
   }
 

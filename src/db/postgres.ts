@@ -115,6 +115,8 @@ export async function initPostgres(): Promise<void> {
       base_host TEXT NOT NULL,
       allowed_hosts_json JSONB NOT NULL,
       allowed_path_prefixes_json JSONB NOT NULL,
+      allow_subdomains BOOLEAN NOT NULL DEFAULT FALSE,
+      allow_any_path BOOLEAN NOT NULL DEFAULT FALSE,
       auth_method TEXT NOT NULL,
       status TEXT NOT NULL,
       created_at TIMESTAMPTZ NOT NULL,
@@ -243,6 +245,8 @@ export async function initPostgres(): Promise<void> {
     ALTER TABLE cua_runs ADD COLUMN IF NOT EXISTS user_id TEXT NULL REFERENCES users(id) ON DELETE CASCADE;
     ALTER TABLE cua_recipes ADD COLUMN IF NOT EXISTS user_id TEXT NULL REFERENCES users(id) ON DELETE CASCADE;
     ALTER TABLE user_sessions ADD COLUMN IF NOT EXISTS absolute_expires_at TIMESTAMPTZ NULL;
+    ALTER TABLE connections ADD COLUMN IF NOT EXISTS allow_subdomains BOOLEAN NOT NULL DEFAULT FALSE;
+    ALTER TABLE connections ADD COLUMN IF NOT EXISTS allow_any_path BOOLEAN NOT NULL DEFAULT FALSE;
   `);
 }
 

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { chromium, type Browser, type BrowserContext, type Page } from 'playwright';
 import { config } from '../config.js';
 import { getPool } from '../db/postgres.js';
+import { getConnectionPolicyForUser, isUrlAllowedByPolicy } from './secretBoundary.js';
 
 type CaptureStatus = 'starting' | 'ready' | 'failed' | 'completed' | 'cancelled';
 
@@ -316,6 +317,14 @@ export async function startCaptureSession(params: {
   connectionId: string;
   startUrl: string;
 }): Promise<CaptureSnapshot> {
+  const policy = await getConnectionPolicyForUser(params.userId, params.connectionId);
+  if (!policy) {
+    throw new Error('Connection not found');
+  }
+  if (!isUrlAllowedByPolicy(params.startUrl, policy)) {
+    throw new Error('Start URL is not allowed for this connection policy');
+  }
+
   const browser = await chromium.launch({
     headless: true,
     args: [
@@ -404,10 +413,17 @@ export async function performCaptureAction(params: {
 }): Promise<CaptureSnapshot> {
   const session = getSession(params.sessionId, params.userId, params.connectionId);
   armExpiry(session);
+  const policy = await getConnectionPolicyForUser(params.userId, params.connectionId);
+  if (!policy) {
+    throw new Error('Connection not found');
+  }
 
   try {
     switch (params.action.actionType) {
       case 'navigate': {
+        if (!isUrlAllowedByPolicy(params.action.url, policy)) {
+          throw new Error('Capture navigation URL is not allowed for this connection policy');
+        }
         await session.page.goto(params.action.url, { waitUntil: 'domcontentloaded', timeout: config.browserNavigationTimeoutMs });
         break;
       }
