@@ -11,7 +11,9 @@ function asString(value: string | undefined): string {
 
 export const config = {
   port: asNumber(process.env.PORT, 8788),
+  nodeEnv: asString(process.env.NODE_ENV || 'development'),
   mcpPath: process.env.MCP_PATH || '/mcp',
+  frontendOrigin: asString(process.env.FRONTEND_ORIGIN || 'http://localhost:5173'),
   persistence: process.env.CUA_PERSISTENCE || 'memory',
   databaseUrl: process.env.DATABASE_URL || '',
   openAiApiKey: process.env.OPENAI_API_KEY || '',
@@ -32,5 +34,12 @@ export const config = {
   cuaLogEvents: asString(process.env.CUA_LOG_EVENTS || 'true').toLowerCase() !== 'false',
   cuaTimeoutHours: asNumber(process.env.CUA_TIMEOUT_HOURS, 1),
   exposeRecipeTools: asString(process.env.CUA_EXPOSE_RECIPE_TOOLS || 'false').toLowerCase() === 'true',
+  enableAccountApi: asString(process.env.CUA_ENABLE_ACCOUNT_API || 'false').toLowerCase() === 'true',
+  enableSecretApi: asString(process.env.CUA_ENABLE_SECRET_API || 'false').toLowerCase() === 'true',
+  sessionCookieName: asString(process.env.SESSION_COOKIE_NAME || 'cua_session'),
+  otpTtlMinutes: asNumber(process.env.OTP_TTL_MINUTES, 10),
+  otpMaxAttempts: asNumber(process.env.OTP_MAX_ATTEMPTS, 5),
+  sessionTtlDays: asNumber(process.env.SESSION_TTL_DAYS, 7),
   mcpAccessApiKey: asString(process.env.MCP_ACCESS_API_KEY),
+  secretMasterKeyHex: asString(process.env.CUA_SECRET_MASTER_KEY),
 };

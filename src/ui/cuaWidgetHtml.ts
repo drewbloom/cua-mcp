@@ -60,7 +60,7 @@ export const CUA_WIDGET_HTML = `<!doctype html>
       }
 
       .status.completed { color: var(--ok); }
-      .status.running, .status.awaiting_approval { color: var(--warn); }
+      .status.running { color: var(--warn); }
       .status.failed, .status.interrupted { color: var(--bad); }
 
       .actions {
@@ -101,11 +101,10 @@ export const CUA_WIDGET_HTML = `<!doctype html>
     <main>
       <article class="card">
         <h2>CUA Run Console</h2>
-        <p class="muted">MCP Apps bridge widget: initializes via ui/initialize and uses tools/call for refresh, approval, and interrupt handoffs.</p>
+        <p class="muted">MCP Apps bridge widget: initializes via ui/initialize and uses tools/call for refresh and interrupt controls.</p>
         <p>Status: <span id="status" class="status">waiting</span></p>
         <div class="actions">
           <button id="refresh-btn" type="button">Refresh Run</button>
-          <button id="approve-btn" type="button" class="primary">Approve + Resume</button>
           <button id="interrupt-btn" type="button">Interrupt</button>
         </div>
         <pre id="output">No run payload yet.</pre>
@@ -116,7 +115,6 @@ export const CUA_WIDGET_HTML = `<!doctype html>
       const statusEl = document.getElementById('status');
       const outputEl = document.getElementById('output');
       const refreshBtn = document.getElementById('refresh-btn');
-      const approveBtn = document.getElementById('approve-btn');
       const interruptBtn = document.getElementById('interrupt-btn');
 
       const inFlight = new Map();
@@ -168,16 +166,6 @@ export const CUA_WIDGET_HTML = `<!doctype html>
         updateFromPayload(result);
       }
 
-      async function approveRun() {
-        if (!currentRunId) return;
-        const result = await callTool('cua_approve_action', {
-          runId: currentRunId,
-          approved: true,
-          note: 'Approved from MCP App widget'
-        });
-        updateFromPayload(result);
-      }
-
       async function interruptRun() {
         if (!currentRunId) return;
         const result = await callTool('cua_interrupt', {
@@ -213,12 +201,6 @@ export const CUA_WIDGET_HTML = `<!doctype html>
       refreshBtn.addEventListener('click', () => {
         refreshRun().catch((error) => {
           outputEl.textContent = 'Refresh failed: ' + (error?.message || JSON.stringify(error));
-        });
-      });
-
-      approveBtn.addEventListener('click', () => {
-        approveRun().catch((error) => {
-          outputEl.textContent = 'Approval failed: ' + (error?.message || JSON.stringify(error));
         });
       });
 

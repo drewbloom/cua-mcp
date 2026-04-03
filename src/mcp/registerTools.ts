@@ -62,7 +62,7 @@ export function registerCuaTools(server: McpServer): void {
     {
       title: 'CUA Run Task',
       description:
-        'Starts a persistent CUA run using the configured engine and returns a run id for orchestration. Environment defaults to web. Recommended sequence: 1) call cua_get_orchestration_guide, 2) call cua_preflight, 3) call cua_run_task, 4) loop on cua_await, 5) respond to handoffs with cua_approve_action or cua_interrupt, 6) when terminal, call cua_get_run once and stop. Prefer search-first discovery when no direct URL is provided, then prioritize task-specific authoritative sources over generic homepage browsing. Keep task instructions concrete: objective, allowed domains, stop condition, and output contract.',
+        'Starts a persistent CUA run using the configured engine and returns a run id for orchestration. Environment defaults to web. Recommended sequence: 1) call cua_get_orchestration_guide, 2) call cua_preflight, 3) call cua_run_task, 4) loop on cua_await, 5) use cua_steer_run to redirect when drift occurs, 6) when clarification or interruption signals appear, either steer or interrupt, 7) when terminal, call cua_get_run once and stop. Prefer search-first discovery when no direct URL is provided, then prioritize task-specific authoritative sources over generic homepage browsing. Keep task instructions concrete: objective, allowed domains, stop condition, and output contract.',
       inputSchema: {
         task: z.string().min(1),
         systemPrompt: z.string().optional(),
@@ -211,7 +211,7 @@ export function registerCuaTools(server: McpServer): void {
     {
       title: 'CUA Await',
       description:
-        'Blocks briefly while monitoring a run, then returns on signal or timeout. Returns early when approval/interrupt/failure signals appear, or when the run reaches a terminal state. Use this as the default orchestration loop primitive instead of tight polling. When reason=terminal, stop awaiting and fetch cua_get_run once.',
+        'Blocks briefly while monitoring a run, then returns on signal or timeout. Returns early when clarification/interrupt/failure signals appear, or when the run reaches a terminal state. Use this as the default orchestration loop primitive instead of tight polling. When reason=terminal, stop awaiting and fetch cua_get_run once.',
       inputSchema: {
         runId: z.string().min(1),
         waitSeconds: z.number().int().min(1).max(300).optional(),
@@ -260,6 +260,57 @@ export function registerCuaTools(server: McpServer): void {
   );
 
   server.registerTool(
+    'cua_steer_run',
+    {
+      title: 'CUA Steer Run',
+      description:
+        'Injects high-priority steering instructions into an active run without hard interruption. Use this when the run drifts, needs refined strategy, or requires user clarification context. Mode append preserves current objective with new guidance; mode replace_goal reframes immediate objective. Steering is rejected for terminal runs.',
+      inputSchema: {
+        runId: z.string().min(1),
+        steeringMessage: z.string().min(1),
+        mode: z.enum(['append', 'replace_goal']).default('append'),
+        source: z.enum(['user', 'agent']).optional(),
+      },
+      annotations: {
+        readOnlyHint: false,
+        openWorldHint: false,
+        destructiveHint: false,
+      },
+    },
+    async (args: any) => {
+      const parsed = z
+        .object({
+          runId: z.string().min(1),
+          steeringMessage: z.string().min(1),
+          mode: z.enum(['append', 'replace_goal']).default('append'),
+          source: z.enum(['user', 'agent']).optional(),
+        })
+        .parse(args);
+
+      const run = await cuaRuntime.steerRun(parsed.runId, parsed.steeringMessage, parsed.mode, parsed.source || 'agent');
+      if (!run) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `Run not found: ${parsed.runId}` }],
+        };
+      }
+
+      const lastEvent = run.events.at(-1);
+      if (lastEvent?.type === 'steering_rejected_terminal') {
+        return {
+          content: [{ type: 'text', text: `Steering rejected: run is already terminal (${run.status}).` }],
+          structuredContent: { run },
+        };
+      }
+
+      return {
+        content: [{ type: 'text', text: `Steering queued for run: ${run.id}` }],
+        structuredContent: { run },
+      };
+    },
+  );
+
+  server.registerTool(
     'cua_interrupt',
     {
       title: 'CUA Interrupt',
@@ -301,46 +352,6 @@ export function registerCuaTools(server: McpServer): void {
 
       return {
         content: [{ type: 'text', text: `Run interrupted: ${run.id}` }],
-        structuredContent: { run },
-      };
-    },
-  );
-
-  server.registerTool(
-    'cua_approve_action',
-    {
-      title: 'CUA Approve Action',
-      description: 'Stores user approval/decline decision for a run during auth or sensitive action checkpoints. Call after approval_handoff_required events from cua_get_run.',
-      inputSchema: {
-        runId: z.string().min(1),
-        approved: z.boolean(),
-        note: z.string().optional(),
-      },
-      annotations: {
-        readOnlyHint: false,
-        openWorldHint: false,
-        destructiveHint: false,
-      },
-    },
-    async (args: any) => {
-      const parsed = z
-        .object({
-          runId: z.string().min(1),
-          approved: z.boolean(),
-          note: z.string().optional(),
-        })
-        .parse(args);
-
-      const run = await cuaRuntime.approveAction(parsed.runId, parsed.approved, parsed.note);
-      if (!run) {
-        return {
-          isError: true,
-          content: [{ type: 'text', text: `Run not found: ${parsed.runId}` }],
-        };
-      }
-
-      return {
-        content: [{ type: 'text', text: `Approval decision recorded for run: ${run.id}` }],
         structuredContent: { run },
       };
     },

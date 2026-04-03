@@ -23,9 +23,10 @@ Included tools:
 - `cua_get_orchestration_guide`: Returns built-in CUA orchestration quickstart and delegation patterns.
 - `cua_preflight`: Checks API/model readiness before starting a run.
 - `cua_run_task`: Starts a persistent CUA run and returns a run id (`environment` defaults to `web`).
+- `cua_await`: Blocks up to a configured wait window and returns early on signal/terminal state.
+- `cua_steer_run`: Injects high-priority midstream steering without hard interruption.
 - `cua_get_run`: Returns run state and captured events.
 - `cua_interrupt`: Marks a run interrupted and logs reason.
-- `cua_approve_action`: Records user approval decisions for run checkpoints.
 
 Optional tools (hidden by default, enable with `CUA_EXPOSE_RECIPE_TOOLS=true`):
 
@@ -34,7 +35,7 @@ Optional tools (hidden by default, enable with `CUA_EXPOSE_RECIPE_TOOLS=true`):
 
 Included app resource:
 
-- `ui://widget/cua-run-v1.html`: MCP Apps bridge-pattern run console with refresh, approve, and interrupt controls.
+- `ui://widget/cua-run-v1.html`: MCP Apps bridge-pattern run console with refresh and interrupt controls.
 
 Included standard MCP resource:
 
@@ -51,6 +52,41 @@ Included standard MCP resource:
 - State: configurable persistence backend.
 	- `CUA_PERSISTENCE=memory` (default local quickstart)
 	- `CUA_PERSISTENCE=postgres` (recommended for Railway)
+
+## Backend API (v1 scaffold)
+
+In addition to MCP tools, the service now exposes a backend HTTP API for user onboarding and policy setup.
+
+Auth/session endpoints:
+
+- `POST /api/auth/request-code` - request OTP login code (dev delivery currently logged server-side)
+- `POST /api/auth/verify-code` - verify OTP and create session cookie
+- `GET /api/session/me` - current authenticated user
+- `POST /api/session/logout` - revoke current session
+
+API key endpoints:
+
+- `GET /api/keys` - list user API keys (without secret values)
+- `POST /api/keys` - create a scoped API key (secret returned once)
+- `DELETE /api/keys/:id` - revoke API key
+
+Connection endpoints:
+
+- `GET /api/connections` - list user connections and allowlist policy
+- `POST /api/connections` - create connection policy
+- `PATCH /api/connections/:id` - update connection policy
+
+Secret endpoints:
+
+- `GET /api/connections/:id/secrets` - list secret references/metadata for a connection
+- `POST /api/connections/:id/secrets` - store encrypted secret value and return a secret reference
+- `DELETE /api/connections/:id/secrets/:secretId` - delete secret
+
+CUA secret execution planning endpoint:
+
+- `POST /api/cua/secret-fill-plan` - validates URL allowlist and returns secret references by requested type (never returns plaintext)
+
+These routes are intended as the first backend slice for frontend onboarding and secret-policy workflows.
 
 ## Setup
 
@@ -75,7 +111,10 @@ copy .env.example .env
 - `CUA_MODEL` (`gpt-5.4` recommended for OpenAI native path)
 - `CUA_PERSISTENCE` (`memory` or `postgres`)
 - `DATABASE_URL` (required when `CUA_PERSISTENCE=postgres`)
+- `CUA_SECRET_MASTER_KEY` (required for encrypted secret storage; 64-char hex)
 - `CUA_EXPOSE_RECIPE_TOOLS` (`false` by default)
+- `CUA_ENABLE_ACCOUNT_API` (`false` by default; enables `/api/auth`, `/api/session`, `/api/keys`, `/api/connections`)
+- `CUA_ENABLE_SECRET_API` (`false` by default; enables secret routes and `/api/cua/secret-fill-plan`)
 
 4. Install Chromium once for Playwright harness.
 
@@ -118,7 +157,7 @@ This repo adds run orchestration around that graph:
 - start and background execution
 - event capture
 - interruption hooks
-- approval signals
+- clarification and steering signals
 - recipe-based replay
 
 ## Model and engine behavior
@@ -192,7 +231,7 @@ Suggested local flow before Railway:
 4. connect an MCP inspector/client to `http://localhost:8788/mcp`
 5. call `cua_get_orchestration_guide`
 6. call `cua_preflight`
-7. call `cua_run_task` with a low-risk prompt and then poll with `cua_get_run`
+7. call `cua_run_task` with a low-risk prompt and then loop on `cua_await`
 
 ### Suggested local hello world sequence (headless inspector)
 
@@ -205,23 +244,28 @@ Suggested local flow before Railway:
 	- `task`: `Open a browser, navigate to https://docs.scrapybara.com, find the quickstart documentation, and summarize the first 5 setup steps in plain text.`
 	- `environment`: `web`
 5. Copy returned `run.id`.
-6. Poll `cua_get_run` every few seconds with that `runId`.
-7. Watch `events` for:
+6. Call `cua_await` with:
+	- `runId`: the same id
+	- `waitSeconds`: `30`
+	- `sinceEventCount`: `0` on first call, then the returned `nextSinceEventCount`
+7. Watch `await.reason` and `events` for:
 	- `run_started`
 	- `response_turn` or `cua_update`
 	- `computer_call_requested`
 	- `computer_actions_executed`
-	- `approval_handoff_required` (if triggered)
+	- `clarification_required` (if triggered)
 	- `interrupt_handoff_required` (if triggered)
 	- `run_completed` or `run_failed`
-8. If approval is requested, call `cua_approve_action`:
+8. If the run drifts, call `cua_steer_run`:
 	- `runId`: the same id
-	- `approved`: true
-	- `note`: `continue`
-9. If you need to stop the run, call `cua_interrupt`:
+	- `steeringMessage`: concise redirect instructions
+	- `mode`: `append` (or `replace_goal` for full pivot)
+9. If clarification is required, call `cua_steer_run` with focused guidance or call `cua_interrupt` to stop.
+10. If you need to stop the run, call `cua_interrupt`:
 	- `runId`: the same id
 	- `reason`: `manual test stop`
 	- `source`: `user`
+11. Once `cua_await` returns `reason=terminal`, call `cua_get_run` once and stop orchestration.
 
 Railway should be phase 2 after local smoke tests pass.
 
@@ -237,7 +281,7 @@ Railway should be phase 2 after local smoke tests pass.
 
 - Never log raw secrets.
 - Keep tokens out of tool responses.
-- Gate high-risk actions with explicit user approval.
+- Use steering and interruption controls for headless orchestration safety.
 - Prefer per-user auth states and scoped credentials.
 
 ### MCP endpoint authentication (recommended now)

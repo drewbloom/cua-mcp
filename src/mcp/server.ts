@@ -3,6 +3,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { config } from '../config.js';
 import { registerCuaTools } from './registerTools.js';
+import { handleApiRequest } from '../api/httpApi.js';
 
 function extractApiKey(request: import('node:http').IncomingMessage): string | null {
   const bearerHeader = String(request.headers.authorization || '').trim();
@@ -55,6 +56,10 @@ export async function startHttpServer(): Promise<void> {
     }
 
     const url = new URL(request.url, `http://${request.headers.host ?? 'localhost'}`);
+
+    if (await handleApiRequest(request, response, url)) {
+      return;
+    }
 
     if (request.method === 'OPTIONS' && url.pathname === config.mcpPath) {
       response.writeHead(204, {

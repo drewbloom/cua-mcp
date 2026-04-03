@@ -19,6 +19,10 @@ function applyTemplate(template: string, variables: Record<string, string>): str
 export class CuaRuntime {
   private runs = new Map<string, CuaRunRecord>();
   private recipes = new Map<string, CuaRecipe>();
+  private steeringQueues = new Map<
+    string,
+    Array<{ message: string; mode: 'append' | 'replace_goal'; source: 'user' | 'agent'; timestamp: string }>
+  >();
 
   private usesPostgres(): boolean {
     return config.persistence === 'postgres';
@@ -44,9 +48,12 @@ export class CuaRuntime {
       'computer_actions_executed',
       'page_diagnostics',
       'possible_render_or_bot_block',
-      'approval_handoff_required',
+      'clarification_required',
       'interrupt_handoff_required',
       'environment_overridden',
+      'steering_queued',
+      'steering_applied',
+      'steering_rejected_terminal',
     ]).has(type);
   }
 
@@ -139,7 +146,7 @@ export class CuaRuntime {
       const newEvents = run.events.slice(sinceEventCount);
       const signalEvent = newEvents.find(
         (event) =>
-          event.type === 'approval_handoff_required' ||
+          event.type === 'clarification_required' ||
           event.type === 'interrupt_handoff_required' ||
           event.type === 'run_failed',
       );
@@ -172,26 +179,12 @@ export class CuaRuntime {
     return this.runs.get(runId)?.status === 'interrupted';
   }
 
-  private async waitForApprovalDecision(runId: string): Promise<'approved' | 'declined' | 'interrupted'> {
-    while (true) {
-      const current = this.runs.get(runId);
-      if (!current) return 'interrupted';
-      if (current.status === 'interrupted') return 'interrupted';
-      if (current.status !== 'awaiting_approval') return 'approved';
-
-      const lastApprovalEvent = [...current.events]
-        .reverse()
-        .find((event) => event.type === 'approval_response');
-
-      if (lastApprovalEvent?.payload?.approved === false) {
-        return 'declined';
-      }
-      if (lastApprovalEvent?.payload?.approved === true) {
-        return 'approved';
-      }
-
-      await this.sleep(300);
-    }
+  private consumeSteering(
+    runId: string,
+  ): Array<{ message: string; mode: 'append' | 'replace_goal'; source: 'user' | 'agent'; timestamp: string }> {
+    const queue = this.steeringQueues.get(runId) || [];
+    this.steeringQueues.set(runId, []);
+    return queue;
   }
 
   private containsApprovalSignal(update: unknown): boolean {
@@ -275,19 +268,54 @@ export class CuaRuntime {
     return run;
   }
 
+  async steerRun(
+    runId: string,
+    steeringMessage: string,
+    mode: 'append' | 'replace_goal' = 'append',
+    source: 'user' | 'agent' = 'agent',
+  ): Promise<CuaRunRecord | undefined> {
+    const run = this.runs.get(runId);
+    if (!run) return undefined;
+
+    const terminalStatuses = new Set(['completed', 'failed', 'interrupted']);
+    if (terminalStatuses.has(run.status)) {
+      this.pushEvent(run, 'steering_rejected_terminal', {
+        source,
+        mode,
+        status: run.status,
+      });
+      await this.persistRun(run);
+      return run;
+    }
+
+    const queue = this.steeringQueues.get(runId) || [];
+    queue.push({
+      message: steeringMessage,
+      mode,
+      source,
+      timestamp: nowIso(),
+    });
+    this.steeringQueues.set(runId, queue);
+
+    this.pushEvent(run, 'steering_queued', {
+      source,
+      mode,
+      queueDepth: queue.length,
+      preview: steeringMessage.slice(0, 300),
+    });
+    await this.persistRun(run);
+    return run;
+  }
+
   async approveAction(runId: string, approved: boolean, note?: string): Promise<CuaRunRecord | undefined> {
     const run = this.runs.get(runId);
     if (!run) return undefined;
 
-    this.pushEvent(run, 'approval_response', { approved, note: note || '' });
-    if (approved && run.status === 'awaiting_approval') {
-      run.status = 'running';
-      this.pushEvent(run, 'approval_resumed', { runId });
-    }
-    if (!approved) {
-      run.status = 'interrupted';
-      this.pushEvent(run, 'approval_declined_interrupt', { runId, note: note || '' });
-    }
+    this.pushEvent(run, 'approval_rejected_disabled', {
+      approved,
+      note: note || '',
+      reason: 'headless_mode_disables_credential_hitl',
+    });
     run.updatedAt = nowIso();
     this.runs.set(run.id, run);
     await this.persistRun(run);
@@ -416,9 +444,21 @@ export class CuaRuntime {
         const result = await runOpenAiComputerLoop(
           run,
           (targetRun, type, payload) => this.pushEvent(targetRun, type, payload),
-          async (id) => this.waitForApprovalDecision(id),
           (id) => this.isInterrupted(id),
+          (id) => this.consumeSteering(id),
         );
+
+        if (result.blockedReason) {
+          run.status = 'interrupted';
+          run.outputSummary = result.finalMessage || `Run blocked: ${result.blockedReason}`;
+          this.pushEvent(run, 'run_blocked', {
+            reason: result.blockedReason,
+            finalMessage: result.finalMessage || null,
+          });
+          this.runs.set(run.id, run);
+          await this.persistRun(run);
+          return;
+        }
 
         if (this.isInterrupted(run.id)) {
           this.pushEvent(run, 'run_stopped_after_interrupt', {});
@@ -479,14 +519,15 @@ export class CuaRuntime {
         }
 
         if (this.containsApprovalSignal(update)) {
-          run.status = 'awaiting_approval';
-          this.pushEvent(run, 'approval_handoff_required', {
+          this.pushEvent(run, 'clarification_required', {
             runId: run.id,
-            action: 'call_cua_approve_action',
-            message: 'Approval required before continuing this run.',
+            action: 'call_cua_steer_run_or_cua_interrupt',
+            message: 'Run needs clarification before continuing. In headless mode, use steering or interrupt; no credential approval handoff is supported.',
+            reason: 'approval_signal_detected_but_disabled_in_headless',
           });
           this.runs.set(run.id, run);
           await this.persistRun(run);
+          continue;
         }
 
         const latest = this.runs.get(run.id);
@@ -496,9 +537,6 @@ export class CuaRuntime {
           return;
         }
 
-        while (this.runs.get(run.id)?.status === 'awaiting_approval') {
-          await this.sleep(350);
-        }
       }
 
       run.status = 'completed';

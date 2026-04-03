@@ -8,6 +8,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "check": "tsc --noEmit",
+    "test:security": "tsx src/scripts/securityTests.ts",
     "keygen": "node scripts/generate-api-key.mjs",
     "db:smoke": "tsx src/scripts/postgresSmoke.ts",
     "db:init": "tsx -e \"import { initPostgres } from './src/db/postgres.js'; await initPostgres(); console.log('postgres init ok');\"",

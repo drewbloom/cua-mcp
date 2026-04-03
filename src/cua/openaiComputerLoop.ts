@@ -433,9 +433,9 @@ async function executeComputerAction(page: Page, action: any): Promise<void> {
 export async function runOpenAiComputerLoop(
   run: CuaRunRecord,
   pushEvent: PushEvent,
-  waitForApprovalDecision: (runId: string) => Promise<'approved' | 'declined' | 'interrupted'>,
   isInterrupted: (runId: string) => boolean,
-): Promise<{ finalMessage?: string }> {
+  consumeSteering: (runId: string) => Array<{ message: string; mode: 'append' | 'replace_goal'; source: 'user' | 'agent'; timestamp: string }>,
+): Promise<{ finalMessage?: string; blockedReason?: string }> {
   if (!config.openAiApiKey) {
     throw new Error('OPENAI_API_KEY is required for openai-responses engine.');
   }
@@ -507,6 +507,42 @@ export async function runOpenAiComputerLoop(
         return {};
       }
 
+      const steeringItems = consumeSteering(run.id);
+      if (steeringItems.length > 0) {
+        const steeringText = steeringItems
+          .map((item, idx) => {
+            const prefix = item.mode === 'replace_goal' ? '[REPLACE GOAL]' : '[APPEND STEERING]';
+            return `${idx + 1}. ${prefix} (${item.source}) ${item.message}`;
+          })
+          .join('\n');
+
+        const steeringPayload = {
+          role: 'user',
+          content: [
+            {
+              type: 'input_text',
+              text:
+                'Operator steering update (high priority):\n' +
+                steeringText +
+                '\n\nApply this steering immediately while preserving safety and policy constraints.',
+            },
+          ],
+        };
+
+        if (Array.isArray(nextInput)) {
+          nextInput = [steeringPayload, ...nextInput];
+        } else {
+          nextInput = [steeringPayload, nextInput as any];
+        }
+
+        pushEvent(run, 'steering_applied', {
+          turn,
+          count: steeringItems.length,
+          modes: steeringItems.map((item) => item.mode),
+          sources: steeringItems.map((item) => item.source),
+        });
+      }
+
       const response = await client.responses.create({
         model: config.cuaModel,
         instructions: systemPrompt,
@@ -553,17 +589,19 @@ export async function runOpenAiComputerLoop(
 
         const checks = Array.isArray(item?.pending_safety_checks) ? item.pending_safety_checks : [];
         if (checks.length > 0) {
-          run.status = 'awaiting_approval';
-          pushEvent(run, 'approval_handoff_required', {
+          pushEvent(run, 'clarification_required', {
             runId: run.id,
-            action: 'call_cua_approve_action',
+            action: 'call_cua_steer_run_or_cua_interrupt',
             checks,
+            reason: 'pending_safety_checks_detected',
+            message:
+              'Safety checks were returned by the model. In headless mode, provide steering to continue safely or interrupt the run. Credential approvals are not supported.',
           });
-
-          const decision = await waitForApprovalDecision(run.id);
-          if (decision !== 'approved') {
-            return {};
-          }
+          return {
+            blockedReason: 'pending_safety_checks',
+            finalMessage:
+              'Run paused for clarification because safety checks were returned. Use cua_steer_run to refine instructions or cua_interrupt to stop.',
+          };
         }
 
         const actions = Array.isArray(item?.actions) ? item.actions : [];

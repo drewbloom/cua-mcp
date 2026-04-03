@@ -36,9 +36,10 @@ Current public tools:
 - `cua_get_orchestration_guide`
 - `cua_preflight`
 - `cua_run_task`
+- `cua_await`
+- `cua_steer_run`
 - `cua_get_run`
 - `cua_interrupt`
-- `cua_approve_action`
 
 Optional tools (hidden unless `CUA_EXPOSE_RECIPE_TOOLS=true`):
 
@@ -51,8 +52,10 @@ Recommended run sequence for agent callers:
 1. Call `cua_get_orchestration_guide` first.
 2. Call `cua_preflight`.
 3. Call `cua_run_task` or `cua_run_recipe`.
-4. Poll `cua_get_run`.
-5. Resolve handoffs with `cua_approve_action` or `cua_interrupt`.
+4. Loop on `cua_await` with an event cursor (`sinceEventCount`).
+5. Use `cua_steer_run` for midstream redirect or clarified intent.
+6. Resolve clarification signals with `cua_steer_run` or `cua_interrupt`.
+7. On terminal, call `cua_get_run` once for the final snapshot and stop.
 
 Environment behavior:
 
@@ -66,7 +69,7 @@ Rules:
 2. Keep tool output deterministic and structured.
 3. Return explicit error messages for missing ids or invalid state.
 4. Avoid embedding secrets in tool outputs or metadata.
-5. Keep write-like tools approval-aware by default.
+5. Keep headless orchestration steering-first; do not introduce credential approval handoffs.
 
 ## MCP Apps guidance
 
@@ -82,7 +85,7 @@ Rules:
 - Redact sensitive fields before writing run events.
 - Validate all tool input via Zod.
 - Add domain allowlists before enabling unrestricted web automation.
-- Add HITL checkpoints for sensitive actions.
+- Keep credential handling out of orchestration surfaces in headless mode.
 
 ## Runtime and deployment guidance
 
@@ -94,6 +97,12 @@ Target path for first production-like deploy:
 Optional edge split:
 
 - Cloudflare Worker only as lightweight facade, not primary CUA executor.
+
+Feature-flag rollout rules:
+
+- Keep `CUA_ENABLE_ACCOUNT_API=false` and `CUA_ENABLE_SECRET_API=false` by default.
+- Enable `CUA_ENABLE_ACCOUNT_API=true` first for onboarding/session/API-key flows.
+- Enable `CUA_ENABLE_SECRET_API=true` only after encryption key and URL policy checks are validated.
 
 ## Development workflow
 

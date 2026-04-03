@@ -1,6 +1,6 @@
 export type CuaEnvironment = 'web' | 'ubuntu' | 'windows';
 
-export type CuaRunStatus = 'queued' | 'running' | 'awaiting_approval' | 'completed' | 'failed' | 'interrupted';
+export type CuaRunStatus = 'queued' | 'running' | 'completed' | 'failed' | 'interrupted';
 
 export interface CuaRunInput {
   task: string;
