@@ -6,6 +6,13 @@ export const LANDING_PAGE_HTML = `<!doctype html>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>CUA MCP</title>
+    <meta name="theme-color" content="#ff8c42" />
+    <meta name="apple-mobile-web-app-title" content="CUA MCP" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/brand/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/brand/favicon-16x16.png" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/brand/apple-touch-icon.png" />
+    <link rel="manifest" href="/assets/brand/site.webmanifest" />
     <style>
       :root {
         --bg: #07111a;

@@ -17,3 +17,10 @@ export const CUA_MCP_ASCII = String.raw`   ______   __  __   ___        __  ___ 
                                       \\   \__
                                        ||*--* |
                                        ||     |`;
+
+export const CUA_SHEEP_ASCII = String.raw`  \  }__{
+   \ (oo)
+     (__)____
+        \\   \__
+         ||*--* |
+         ||     |`;

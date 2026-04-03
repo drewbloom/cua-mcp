@@ -1,4 +1,4 @@
-import { CUA_MCP_ASCII } from './brandAscii.js';
+import { CUA_SHEEP_ASCII } from './brandAscii.js';
 
 export const DASHBOARD_APP_HTML = `<!doctype html>
 <html lang="en">
@@ -6,6 +6,13 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>CUA Control Plane</title>
+    <meta name="theme-color" content="#ff8c42" />
+    <meta name="apple-mobile-web-app-title" content="CUA MCP" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/brand/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/brand/favicon-16x16.png" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/brand/apple-touch-icon.png" />
+    <link rel="manifest" href="/assets/brand/site.webmanifest" />
     <style>
       :root {
         --bg: #050b11;
@@ -766,6 +773,216 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         border-color: rgba(217, 80, 111, 0.24);
       }
 
+      .app-shell {
+        width: min(1380px, calc(100% - 28px));
+        margin: 0 auto;
+        padding: 18px 0 72px;
+        display: grid;
+        grid-template-columns: 280px minmax(0, 1fr);
+        gap: 18px;
+        align-items: start;
+      }
+
+      .workspace-main-shell {
+        display: grid;
+        gap: 18px;
+      }
+
+      .session-rail-inner,
+      .session-card,
+      .composer-card,
+      .card-grid,
+      .key-card,
+      .empty-state-card,
+      .key-card-head,
+      .key-card-meta,
+      .key-card-actions,
+      .title-row {
+        display: grid;
+        gap: 12px;
+      }
+
+      .session-rail-inner {
+        position: sticky;
+        top: 18px;
+        padding: 18px;
+        border-radius: 24px;
+        border: 1px solid var(--line);
+        background: rgba(7, 14, 22, 0.9);
+        backdrop-filter: blur(16px);
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22);
+      }
+
+      .session-brand {
+        gap: 10px;
+      }
+
+      .session-card,
+      .composer-card,
+      .key-card,
+      .empty-state-card {
+        padding: 16px;
+        border-radius: 20px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .session-card strong,
+      .key-card strong {
+        font-size: 1rem;
+      }
+
+      .session-card p,
+      .key-card p,
+      .empty-state-card p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+
+      .session-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .session-link {
+        display: inline-flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 0 12px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+
+      .sheep-logout {
+        padding: 14px 16px;
+        border-radius: 20px;
+        border: 1px solid rgba(255, 209, 102, 0.18);
+        background: rgba(255, 209, 102, 0.06);
+        cursor: pointer;
+        transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease;
+      }
+
+      .sheep-logout:hover,
+      .sheep-logout:focus-visible {
+        transform: translateY(-1px);
+        border-color: rgba(255, 209, 102, 0.34);
+        background: rgba(255, 209, 102, 0.1);
+        outline: none;
+      }
+
+      .sheep-logout span {
+        display: block;
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .session-sheep {
+        margin: 0;
+        color: #ffdca3;
+        font-family: "Cascadia Mono", "Consolas", "Courier New", monospace;
+        font-size: 12px;
+        line-height: 1.18;
+        white-space: pre;
+      }
+
+      .section-stack {
+        display: grid;
+        gap: 18px;
+      }
+
+      .title-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: end;
+      }
+
+      .title-row .button-row {
+        justify-content: flex-end;
+      }
+
+      .card-grid {
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      }
+
+      .empty-state-card {
+        place-items: start;
+      }
+
+      .key-card-head {
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: start;
+      }
+
+      .key-card-meta {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .key-card-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .key-card-actions button {
+        min-height: 38px;
+        padding: 0 12px;
+        font-size: 12px;
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 0 10px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255,255,255,0.05);
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .status-pill.active {
+        color: #08111a;
+        background: rgba(120, 219, 169, 0.92);
+        border-color: transparent;
+      }
+
+      .status-pill.revoked {
+        color: #fff;
+        background: rgba(217, 80, 111, 0.9);
+        border-color: transparent;
+      }
+
+      .status-pill.idle {
+        color: #08111a;
+        background: rgba(255, 209, 102, 0.92);
+        border-color: transparent;
+      }
+
+      @media (max-width: 1100px) {
+        .app-shell {
+          grid-template-columns: 1fr;
+        }
+
+        .session-rail-inner,
+        .workspace-nav {
+          position: static;
+        }
+      }
+
       @media (max-width: 840px) {
         .hero,
         .workspace {
@@ -787,203 +1004,189 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
     </style>
   </head>
   <body>
-    <header class="hero">
-      <div class="hero-inner">
-        <div class="brand-lockup">
-          <div class="brand-badge">CUA</div>
-          <div>Computer Use Agent, Missing Common Precautions</div>
-        </div>
+    <main class="app-shell">
+      <aside class="session-rail">
+        <div class="session-rail-inner">
+          <div class="brand-lockup session-brand">
+            <div class="brand-badge">CUA</div>
+            <div>Control plane</div>
+          </div>
 
-        <div class="hero-copy">
-          <p class="eyebrow">All vibes. Some guardrails. Dark mode by default.</p>
-          <h1>The control panel for doing secure-ish things on secure websites.</h1>
-          <p>
-            The repo works, the hardening effort happened, and this is the part where we admit both statements in the same breath.
-            Users get their own login session, their own model key, their own machine credentials, and enough connection policy to keep the duct tape pointed in a professionally cautious direction.
-          </p>
-          <div class="hero-actions">
-            <a class="hero-button primary" href="#session-step">Start with the session tab</a>
-            <a class="hero-button secondary" href="/">Back to the manifesto</a>
+          <div class="session-card">
+            <span class="field-label">Signed in</span>
+            <strong id="sessionName">Loading account</strong>
+            <p id="sessionEmail">Fetching session details.</p>
+            <p id="sessionMeta">Your OpenAI key, MCP access keys, connections, and run history stay scoped to this account.</p>
+          </div>
+
+          <div class="session-links">
+            <a class="session-link" href="/">Public home</a>
+            <a class="session-link" href="#connections-step">Connections</a>
+          </div>
+
+          <div id="sheepLogout" class="sheep-logout" role="button" tabindex="0" title="Sign out">
+            <pre class="session-sheep">${CUA_SHEEP_ASCII}</pre>
+            <span>Select the sheep to sign out.</span>
           </div>
         </div>
+      </aside>
 
-        <pre class="hero-art">${CUA_MCP_ASCII}</pre>
-
-        <div class="hero-meta">
-          <article class="trust-cell">
-            <span>Posture</span>
-            <h2>Secure enough to demo</h2>
-            <p>OTP auth, scoped keys, encrypted refs, and just enough honesty to warn you what kind of operation you are joining.</p>
-          </article>
-          <article class="trust-cell">
-            <span>Velocity</span>
-            <h2>Fast enough to regret</h2>
-            <p>The interface moves quickly because the runtime expects users to set policy before the automation gets entrepreneurial.</p>
-          </article>
-          <article class="trust-cell">
-            <span>Sales copy</span>
-            <h2>Vague enough to sell</h2>
-            <p>Everything below is real functionality wrapped in the sort of branding that would benefit from adult supervision.</p>
-          </article>
+      <div class="workspace-main-shell">
+        <div class="workspace-nav">
+          <div class="nav-label">Dashboard</div>
+          <nav class="step-list" aria-label="Dashboard tabs">
+            <a class="step-link" href="#llm-step" data-step-link="llm-step" data-tooltip="Store and rotate the OpenAI key this account will use for computer-use runs." title="Store and rotate the OpenAI key this account will use for computer-use runs.">
+              <div class="step-index">01</div>
+              <div class="step-copy">
+                <strong>OpenAI API Key</strong>
+              </div>
+            </a>
+            <a class="step-link" href="#keys-step" data-step-link="keys-step" data-tooltip="Create per-user MCP access keys and scope them to approved connections." title="Create per-user MCP access keys and scope them to approved connections.">
+              <div class="step-index">02</div>
+              <div class="step-copy">
+                <strong>MCP Access Keys</strong>
+              </div>
+            </a>
+            <a class="step-link" href="#connections-step" data-step-link="connections-step" data-tooltip="Define host policy, saved auth artifacts, and capture sessions for each connection." title="Define host policy, saved auth artifacts, and capture sessions for each connection.">
+              <div class="step-index">03</div>
+              <div class="step-copy">
+                <strong>Connections</strong>
+              </div>
+            </a>
+            <a class="step-link" href="#runs-step" data-step-link="runs-step" data-tooltip="Review retention settings and inspect the runs kept for this account." title="Review retention settings and inspect the runs kept for this account.">
+              <div class="step-index">04</div>
+              <div class="step-copy">
+                <strong>Runs and Privacy</strong>
+              </div>
+            </a>
+          </nav>
         </div>
-      </div>
-    </header>
 
-    <main class="workspace">
-      <div class="workspace-nav">
-        <div class="nav-label">Tabs for the brave</div>
-        <nav class="step-list" aria-label="Onboarding steps">
-          <a class="step-link" href="#session-step" data-step-link="session-step" data-tooltip="Start with the human so the automation has someone specific to authenticate before it disappoints them." title="Start with the human so the automation has someone specific to authenticate before it disappoints them.">
-            <div class="step-index">01</div>
-            <div class="step-copy">
-              <strong>Session</strong>
-            </div>
-          </a>
-          <a class="step-link" href="#llm-step" data-step-link="llm-step" data-tooltip="Store a user-owned OpenAI key instead of one shared key to centralize every future regret." title="Store a user-owned OpenAI key instead of one shared key to centralize every future regret.">
-            <div class="step-index">02</div>
-            <div class="step-copy">
-              <strong>Model keys</strong>
-            </div>
-          </a>
-          <a class="step-link" href="#keys-step" data-step-link="keys-step" data-tooltip="Issue machine credentials once and pray nobody screenshots them in Slack or a lunch-and-learn deck." title="Issue machine credentials once and pray nobody screenshots them in Slack or a lunch-and-learn deck.">
-            <div class="step-index">03</div>
-            <div class="step-copy">
-              <strong>API keys</strong>
-            </div>
-          </a>
-          <a class="step-link" href="#connections-step" data-step-link="connections-step" data-tooltip="Decide where the robot is actually allowed to go before it discovers a new and exciting interpretation of scope." title="Decide where the robot is actually allowed to go before it discovers a new and exciting interpretation of scope.">
-            <div class="step-index">04</div>
-            <div class="step-copy">
-              <strong>Connections and access</strong>
-            </div>
-          </a>
-          <a class="step-link" href="#runs-step" data-step-link="runs-step" data-tooltip="Inspect what was retained, delete what should not outlive the bit, and decide how forgetful the machine should act." title="Inspect what was retained, delete what should not outlive the bit, and decide how forgetful the machine should act.">
-            <div class="step-index">05</div>
-            <div class="step-copy">
-              <strong>Runs and privacy</strong>
-            </div>
-          </a>
-        </nav>
-      </div>
-
-      <div class="workspace-main">
-        <section class="section-panel" id="session-step" data-reveal>
-          <div class="section-head">
-            <div class="section-number">Step 01 · Identity</div>
-            <h2>Log the user in before the robot starts making assumptions.</h2>
-            <p>
-              Start with the human trust layer. Request a login code, verify it, and keep the session fresh before you issue keys, map utilities, or otherwise let the automation build character.
-            </p>
-          </div>
-
-          <div class="field-grid">
-            <label class="field">
-              <span class="field-label">Email address</span>
-              <input id="email" placeholder="you@example.com" />
-            </label>
-            <label class="field">
-              <span class="field-label">Display name</span>
-              <input id="displayName" placeholder="Optional, but helpful when the audit trail needs a protagonist" />
-            </label>
-            <label class="field field-span-2">
-              <span class="field-label">Verification code</span>
-              <input id="otpCode" placeholder="Enter the one-time code before the vibes expire" />
-            </label>
-          </div>
-
-          <div class="button-row">
-            <button id="requestCode">Send login code</button>
-            <button class="secondary" id="verifyCode">Verify code</button>
-            <button class="ghost" id="refreshSession">Refresh session</button>
-            <button class="danger" id="logout">End session</button>
-          </div>
-
-          <div class="output-shell">
-            <div class="output-head"><span>Session log</span></div>
-            <pre id="sessionOut">Session output</pre>
-          </div>
-        </section>
-
+        <div class="workspace-main">
         <section class="section-panel" id="llm-step" data-reveal>
           <div class="section-head">
-            <div class="section-number">Step 02 · Model credentials</div>
-            <h2>Use the user’s own OpenAI key so accountability can remain correctly distributed.</h2>
+            <div class="section-number">Step 01 · OpenAI API Key</div>
+            <h2>You'll need an OpenAI API Key to start down this road.</h2>
             <p>
-              Each user can store multiple OpenAI keys, activate one at a time, and rotate without touching anyone else’s runs. The raw key is accepted once, encrypted immediately, and never rendered back into the light.
+              Each account can store multiple OpenAI keys, keep one active at a time, and rotate without affecting anyone else. Raw key material is accepted once, encrypted immediately, and never returned to the browser.
             </p>
           </div>
 
-          <div class="field-grid">
-            <label class="field">
-              <span class="field-label">Provider</span>
-              <select id="llmProvider">
-                <option value="openai">openai</option>
-              </select>
-            </label>
-            <label class="field">
-              <span class="field-label">Key label</span>
-              <input id="llmKeyName" placeholder="Primary OpenAI key, staging budget key, emergency vibes key" />
-            </label>
-            <label class="field field-span-2">
-              <span class="field-label">OpenAI API key</span>
-              <input id="llmApiKey" placeholder="sk-..." type="password" autocomplete="off" />
-            </label>
-            <label class="field">
-              <span class="field-label">Activate key id</span>
-              <input id="activateLlmKeyId" placeholder="Paste an existing model key id to make it the current mistake" />
-            </label>
-            <label class="field">
-              <span class="field-label">Revoke key id</span>
-              <input id="revokeLlmKeyId" placeholder="Revoke a stored model key by id before finance notices" />
-            </label>
-          </div>
+          <div class="section-stack">
+            <div class="title-row">
+              <div>
+                <span class="field-label">Stored keys</span>
+                <p class="micro-copy">The active key is used for new runs. Activate a different key or revoke one directly from its card.</p>
+              </div>
+              <div class="button-row">
+                <button class="secondary" id="listLlmKeys">Refresh</button>
+              </div>
+            </div>
 
-          <div class="button-row">
-            <button id="createLlmKey">Store OpenAI key</button>
-            <button class="secondary" id="listLlmKeys">List model keys</button>
-            <button class="ghost" id="activateLlmKey">Activate key</button>
-            <button class="danger" id="revokeLlmKey">Revoke key</button>
+            <div id="llmCards" class="card-grid">
+              <article class="empty-state-card">
+                <span class="field-label">No OpenAI keys yet</span>
+                <strong>Add your first key</strong>
+                <p>Store an OpenAI API key for this account before starting runs.</p>
+              </article>
+            </div>
+
+            <div class="composer-card">
+              <div class="title-row">
+                <div>
+                  <span class="field-label">Add key</span>
+                  <p class="micro-copy">The key value is accepted once, encrypted at rest, and hidden after submission.</p>
+                </div>
+              </div>
+
+              <div class="field-grid">
+                <label class="field">
+                  <span class="field-label">Provider</span>
+                  <select id="llmProvider">
+                    <option value="openai">openai</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span class="field-label">Label</span>
+                  <input id="llmKeyName" placeholder="Primary OpenAI key" />
+                </label>
+                <label class="field field-span-2">
+                  <span class="field-label">OpenAI API key</span>
+                  <input id="llmApiKey" placeholder="sk-..." type="password" autocomplete="off" />
+                </label>
+              </div>
+
+              <div class="button-row">
+                <button id="createLlmKey">Store OpenAI key</button>
+              </div>
+            </div>
           </div>
 
           <div class="output-shell">
-            <div class="output-head"><span>Model key inventory</span></div>
-            <pre id="llmOut">Model key output</pre>
+            <div class="output-head"><span>OpenAI key activity</span></div>
+            <pre id="llmOut">OpenAI key output</pre>
           </div>
         </section>
 
         <section class="section-panel" id="keys-step" data-reveal>
           <div class="section-head">
-            <div class="section-number">Step 03 · Machine trust</div>
-            <h2>Issue API keys once, then treat screenshots like an adversary.</h2>
+            <div class="section-number">Step 02 · MCP Access Keys</div>
+            <h2>Create access keys for clients and scope them to the connections they are allowed to use.</h2>
             <p>
-              Keys are shown once and then redacted everywhere else. Keep them narrow, map them to approved connections, and revoke them the moment a machine no longer deserves your confidence.
+              MCP access keys are shown once, then redacted. Create them for a specific machine or client, scope them to approved connections, and revoke them directly from the list when they are no longer needed.
             </p>
           </div>
 
-          <div class="field-grid">
-            <label class="field">
-              <span class="field-label">Key label</span>
-              <input id="keyName" placeholder="Primary workstation, internal agent, temporary chaos gremlin" />
-            </label>
-            <label class="field">
-              <span class="field-label">Allowed connection IDs</span>
-              <input id="keyConnIds" placeholder="Comma-separated connection ids this key is allowed to bother" />
-            </label>
-            <label class="field field-span-2">
-              <span class="field-label">Revoke key by id</span>
-              <input id="revokeKeyId" placeholder="Paste an existing key id to revoke it with prejudice" />
-            </label>
-          </div>
+          <div class="section-stack">
+            <div class="title-row">
+              <div>
+                <span class="field-label">Issued keys</span>
+                <p class="micro-copy">Cards show scope, creation time, and last use. Revoke from the card when a client should lose access.</p>
+              </div>
+              <div class="button-row">
+                <button class="secondary" id="listKeys">Refresh</button>
+              </div>
+            </div>
 
-          <div class="button-row">
-            <button id="createKey">Create API key</button>
-            <button class="secondary" id="listKeys">List active keys</button>
-            <button class="danger" id="revokeKey">Revoke key</button>
+            <div id="apiKeyCards" class="card-grid">
+              <article class="empty-state-card">
+                <span class="field-label">No access keys yet</span>
+                <strong>Create your first MCP key</strong>
+                <p>Issue a key for a client and scope it to the connections it should be able to reach.</p>
+              </article>
+            </div>
+
+            <div class="composer-card">
+              <div class="title-row">
+                <div>
+                  <span class="field-label">Issue key</span>
+                  <p class="micro-copy">Use connection IDs to scope access. Leave the field empty to allow all of this user’s connections.</p>
+                </div>
+                <div class="button-row">
+                  <button class="ghost" id="scopeSelectedConnection" type="button">Use selected connection</button>
+                </div>
+              </div>
+
+              <div class="field-grid">
+                <label class="field">
+                  <span class="field-label">Label</span>
+                  <input id="keyName" placeholder="Desktop client" />
+                </label>
+                <label class="field">
+                  <span class="field-label">Allowed connection IDs</span>
+                  <input id="keyConnIds" placeholder="Comma-separated connection ids" />
+                </label>
+              </div>
+
+              <div class="button-row">
+                <button id="createKey">Create access key</button>
+              </div>
+            </div>
           </div>
 
           <div id="oneTimeKeyPanel" class="one-time-key">
-            <strong>One-time API key</strong>
-            <p>Copy this now. It will not be rendered again and it is intentionally hidden from the generic response log, future excuses, and forensic nostalgia.</p>
+            <strong>One-time access key</strong>
+            <p>Copy this now. It is returned once and will not be shown again.</p>
             <label class="field">
               <span class="field-label" style="color: rgba(241,246,255,0.72)">Secret value</span>
               <input id="oneTimeKeyValue" readonly />
@@ -995,14 +1198,14 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
           </div>
 
           <div class="output-shell">
-            <div class="output-head"><span>Key inventory</span></div>
-            <pre id="keysOut">Keys output</pre>
+            <div class="output-head"><span>MCP key activity</span></div>
+            <pre id="keysOut">MCP key output</pre>
           </div>
         </section>
 
         <section class="section-panel" id="connections-step" data-reveal>
           <div class="section-head">
-            <div class="section-number">Step 04 · Utility mapping</div>
+            <div class="section-number">Step 03 · Connections</div>
             <h2>Define the connection, then manage its hidden access artifacts from the same place.</h2>
             <p>
               A connection is the security boundary. You create the host policy here, decide whether the boundary should expand to subdomains or all paths, then manage encrypted secret refs, saved auth state, and interactive browser capture without splitting that work across a second tab.
@@ -1237,7 +1440,7 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
 
         <section class="section-panel" id="runs-step" data-reveal>
           <div class="section-head">
-            <div class="section-number">Step 05 · Runs and privacy</div>
+            <div class="section-number">Step 04 · Runs and privacy</div>
             <h2>Decide what the system remembers, what it forgets, and how suspiciously clean you want the trail.</h2>
             <p>
               Runtime settings stay user-scoped. Retention determines cleanup windows, while ZDR disables event and output persistence so the system keeps only the minimum needed to track run state and avoid becoming a scrapbook.
@@ -1294,6 +1497,7 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
             <pre id="runDetailOut">Run detail output</pre>
           </div>
         </section>
+        </div>
       </div>
     </main>
 
@@ -1322,11 +1526,20 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
       const selectedConnectionShell = $('selectedConnectionShell');
       const selectedConnectionName = $('selectedConnectionName');
       const selectedConnectionMeta = $('selectedConnectionMeta');
+      const sessionName = $('sessionName');
+      const sessionEmail = $('sessionEmail');
+      const sessionMeta = $('sessionMeta');
+      const sheepLogout = $('sheepLogout');
+      const llmCards = $('llmCards');
+      const apiKeyCards = $('apiKeyCards');
       const sections = Array.from(document.querySelectorAll('[data-reveal]'));
       const navLinks = Array.from(document.querySelectorAll('[data-step-link]'));
       const state = {
         connections: [],
         selectedConnectionId: '',
+        llmKeys: [],
+        apiKeys: [],
+        currentUser: null,
       };
 
       function setBanner(kind, message) {
@@ -1568,6 +1781,7 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
       }
 
       function print(target, data) {
+        if (!target) return;
         target.textContent = JSON.stringify(redact(data), null, 2);
       }
 
@@ -1585,6 +1799,152 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         const date = new Date(String(value));
         if (Number.isNaN(date.getTime())) return String(value);
         return date.toLocaleString();
+      }
+
+      function escapeAttr(value) {
+        return escapeHtml(value);
+      }
+
+      async function copyText(value, successMessage) {
+        try {
+          await navigator.clipboard.writeText(String(value || ''));
+          setBanner('ok', successMessage);
+        } catch {
+          setBanner('err', 'Clipboard copy failed. Copy manually.');
+        }
+      }
+
+      function setSessionSummary(user) {
+        state.currentUser = user || null;
+        if (!sessionName || !sessionEmail || !sessionMeta) return;
+        if (!user) {
+          sessionName.textContent = 'Not signed in';
+          sessionEmail.textContent = 'Return to the sign-in flow to continue.';
+          sessionMeta.textContent = 'This dashboard requires an active session.';
+          return;
+        }
+
+        sessionName.textContent = user.displayName || user.email || 'Signed in';
+        sessionEmail.textContent = user.email || 'Authenticated account';
+        sessionMeta.textContent = user.createdAt
+          ? 'Account created ' + formatTimestamp(user.createdAt) + '.'
+          : 'Manage keys, connections, and runs for this account.';
+      }
+
+      async function loadSessionSummary() {
+        const data = await api('/api/session/me');
+        if (data.ok) {
+          setSessionSummary(data.body?.user || null);
+        } else if (data.status === 401) {
+          setSessionSummary(null);
+          window.location.href = '/app';
+        }
+        print(out.session, data);
+        return data;
+      }
+
+      function renderLlmCards(keys) {
+        state.llmKeys = Array.isArray(keys) ? keys : [];
+        if (!llmCards) return;
+        if (!state.llmKeys.length) {
+          llmCards.innerHTML = '<article class="empty-state-card"><span class="field-label">No OpenAI keys yet</span><strong>Add your first key</strong><p>Store an OpenAI API key for this account before starting runs.</p></article>';
+          return;
+        }
+
+        llmCards.innerHTML = state.llmKeys.map((key) => {
+          const statusClass = key.revokedAt ? 'revoked' : (key.isActive ? 'active' : 'idle');
+          const statusLabel = key.revokedAt ? 'revoked' : (key.isActive ? 'active' : 'stored');
+          const actions = [];
+          if (!key.revokedAt && !key.isActive) {
+            actions.push('<button class="secondary" type="button" data-llm-action="activate" data-llm-key-id="' + escapeAttr(key.id) + '">Activate</button>');
+          }
+          if (!key.revokedAt) {
+            actions.push('<button class="danger" type="button" data-llm-action="revoke" data-llm-key-id="' + escapeAttr(key.id) + '">Delete</button>');
+          }
+          return '<article class="key-card">' +
+            '<div class="key-card-head">' +
+              '<div>' +
+                '<span class="field-label">' + escapeHtml(key.provider || 'openai') + '</span>' +
+                '<strong>' + escapeHtml(key.name || 'Unnamed key') + '</strong>' +
+              '</div>' +
+              '<span class="status-pill ' + statusClass + '">' + statusLabel + '</span>' +
+            '</div>' +
+            '<div class="key-card-meta">' +
+              '<div><strong>ID:</strong> ' + escapeHtml(key.id || '') + '</div>' +
+              '<div><strong>Version:</strong> ' + escapeHtml(key.keyVersion || 'unknown') + '</div>' +
+              '<div><strong>Created:</strong> ' + escapeHtml(formatTimestamp(key.createdAt)) + '</div>' +
+              '<div><strong>Last used:</strong> ' + escapeHtml(key.lastUsedAt ? formatTimestamp(key.lastUsedAt) : 'Never') + '</div>' +
+            '</div>' +
+            '<div class="key-card-actions">' + actions.join('') + '</div>' +
+          '</article>';
+        }).join('');
+      }
+
+      async function loadLlmKeys() {
+        const data = await api('/api/llm-keys');
+        if (data.ok) {
+          renderLlmCards(data.body?.llmKeys || []);
+        }
+        print(out.llm, data);
+        return data;
+      }
+
+      function renderApiKeyCards(keys) {
+        state.apiKeys = Array.isArray(keys) ? keys : [];
+        if (!apiKeyCards) return;
+        if (!state.apiKeys.length) {
+          apiKeyCards.innerHTML = '<article class="empty-state-card"><span class="field-label">No access keys yet</span><strong>Create your first MCP key</strong><p>Issue a key for a client and scope it to the connections it should be able to reach.</p></article>';
+          return;
+        }
+
+        apiKeyCards.innerHTML = state.apiKeys.map((key) => {
+          const scopedCount = Array.isArray(key.allowedConnectionIds) ? key.allowedConnectionIds.length : 0;
+          const scopeLabel = scopedCount ? scopedCount + ' scoped connection' + (scopedCount === 1 ? '' : 's') : 'all connections';
+          const statusClass = key.revokedAt ? 'revoked' : 'active';
+          const statusLabel = key.revokedAt ? 'revoked' : 'active';
+          const actions = [];
+          if (!key.revokedAt) {
+            actions.push('<button class="secondary" type="button" data-api-key-action="use-scope" data-api-key-id="' + escapeAttr(key.id) + '">Use scope</button>');
+            actions.push('<button class="danger" type="button" data-api-key-action="revoke" data-api-key-id="' + escapeAttr(key.id) + '">Delete</button>');
+          }
+          return '<article class="key-card">' +
+            '<div class="key-card-head">' +
+              '<div>' +
+                '<span class="field-label">MCP key</span>' +
+                '<strong>' + escapeHtml(key.name || 'Unnamed key') + '</strong>' +
+              '</div>' +
+              '<span class="status-pill ' + statusClass + '">' + statusLabel + '</span>' +
+            '</div>' +
+            '<div class="key-card-meta">' +
+              '<div><strong>ID:</strong> ' + escapeHtml(key.id || '') + '</div>' +
+              '<div><strong>Prefix:</strong> ' + escapeHtml(key.keyPrefix || '') + '</div>' +
+              '<div><strong>Scope:</strong> ' + escapeHtml(scopeLabel) + '</div>' +
+              '<div><strong>Created:</strong> ' + escapeHtml(formatTimestamp(key.createdAt)) + '</div>' +
+              '<div><strong>Last used:</strong> ' + escapeHtml(key.lastUsedAt ? formatTimestamp(key.lastUsedAt) : 'Never') + '</div>' +
+            '</div>' +
+            '<div class="key-card-actions">' + actions.join('') + '</div>' +
+          '</article>';
+        }).join('');
+      }
+
+      async function loadApiKeys() {
+        const data = await api('/api/keys');
+        if (data.ok) {
+          renderApiKeyCards(data.body?.apiKeys || []);
+        }
+        print(out.keys, data);
+        return data;
+      }
+
+      async function confirmAndLogout() {
+        const label = state.currentUser?.email || 'this account';
+        const shouldLogout = window.confirm('Sign out of ' + label + '?');
+        if (!shouldLogout) return;
+        const data = await api('/api/session/logout', 'POST');
+        print(out.session, data);
+        if (data.ok) {
+          window.location.href = '/app';
+        }
       }
 
       function renderCaptureHistory(data) {
@@ -1837,14 +2197,81 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
       navLinks.forEach((link) => {
         link.addEventListener('click', (event) => {
           event.preventDefault();
-          activateSection(link.getAttribute('data-step-link') || 'session-step');
+          activateSection(link.getAttribute('data-step-link') || 'llm-step');
         });
       });
 
       window.addEventListener('hashchange', () => {
         const hashTarget = decodeURIComponent(window.location.hash.replace(/^#/, ''));
-        activateSection(hashTarget || 'session-step', false, false);
+        activateSection(hashTarget || 'llm-step', false, false);
       });
+
+      if (sheepLogout) {
+        sheepLogout.addEventListener('click', () => {
+          confirmAndLogout();
+        });
+        sheepLogout.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            confirmAndLogout();
+          }
+        });
+      }
+
+      if (llmCards) {
+        llmCards.addEventListener('click', async (event) => {
+          const target = event.target;
+          if (!(target instanceof HTMLElement)) return;
+          const action = target.getAttribute('data-llm-action');
+          const keyId = target.getAttribute('data-llm-key-id');
+          if (!action || !keyId) return;
+          if (action === 'activate') {
+            const data = await api('/api/llm-keys/' + encodeURIComponent(keyId), 'PATCH', { isActive: true });
+            print(out.llm, data);
+            if (data.ok) {
+              await loadLlmKeys();
+            }
+            return;
+          }
+          if (action === 'revoke') {
+            const approved = window.confirm('Delete this stored OpenAI key?');
+            if (!approved) return;
+            const data = await api('/api/llm-keys/' + encodeURIComponent(keyId), 'DELETE');
+            print(out.llm, data);
+            if (data.ok) {
+              await loadLlmKeys();
+            }
+          }
+        });
+      }
+
+      if (apiKeyCards) {
+        apiKeyCards.addEventListener('click', async (event) => {
+          const target = event.target;
+          if (!(target instanceof HTMLElement)) return;
+          const action = target.getAttribute('data-api-key-action');
+          const keyId = target.getAttribute('data-api-key-id');
+          if (!action || !keyId) return;
+          const key = state.apiKeys.find((entry) => entry.id === keyId);
+          if (!key) return;
+          if (action === 'use-scope') {
+            $('keyConnIds').value = Array.isArray(key.allowedConnectionIds) ? key.allowedConnectionIds.join(', ') : '';
+            $('keyName').value = key.name ? key.name + ' copy' : '';
+            activateSection('keys-step');
+            setBanner('ok', 'Copied key scope into the form. Create a new key to replace or narrow it.');
+            return;
+          }
+          if (action === 'revoke') {
+            const approved = window.confirm('Delete this MCP access key?');
+            if (!approved) return;
+            const data = await api('/api/keys/' + encodeURIComponent(keyId), 'DELETE');
+            print(out.keys, data);
+            if (data.ok) {
+              await loadApiKeys();
+            }
+          }
+        });
+      }
 
       connectionsBoard.addEventListener('click', (event) => {
         const target = event.target;
@@ -1857,34 +2284,12 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         selectConnectionById(connectionId, { loadArtifacts: Boolean(manageId) });
       });
 
-      activateSection(decodeURIComponent(window.location.hash.replace(/^#/, '')) || 'session-step', false, false);
+      activateSection(decodeURIComponent(window.location.hash.replace(/^#/, '')) || 'llm-step', false, false);
       syncRuntimeCheckboxes();
+      loadSessionSummary();
+      loadLlmKeys();
+      loadApiKeys();
       loadConnections();
-
-      $('requestCode').onclick = async () => {
-        const email = requireEmail('email');
-        if (!email) return;
-        const data = await api('/api/auth/request-code', 'POST', {
-          email,
-          displayName: $('displayName').value,
-        });
-        print(out.session, data);
-      };
-
-      $('verifyCode').onclick = async () => {
-        const email = requireEmail('email');
-        if (!email) return;
-        const code = requireText('otpCode', 'Code');
-        if (!code) return;
-        const data = await api('/api/auth/verify-code', 'POST', {
-          email,
-          code,
-        });
-        print(out.session, data);
-      };
-
-      $('refreshSession').onclick = async () => print(out.session, await api('/api/session/me'));
-      $('logout').onclick = async () => print(out.session, await api('/api/session/logout', 'POST'));
 
       $('createLlmKey').onclick = async () => {
         const name = requireText('llmKeyName', 'Key label');
@@ -1898,21 +2303,14 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
           activate: true,
         });
         $('llmApiKey').value = '';
+        $('llmKeyName').value = '';
         print(out.llm, data);
+        if (data.ok) {
+          await loadLlmKeys();
+        }
       };
 
-      $('listLlmKeys').onclick = async () => print(out.llm, await api('/api/llm-keys'));
-      $('activateLlmKey').onclick = async () => {
-        const id = requireText('activateLlmKeyId', 'Activate key ID');
-        if (!id) return;
-        print(out.llm, await api('/api/llm-keys/' + encodeURIComponent(id), 'PATCH', { isActive: true }));
-      };
-
-      $('revokeLlmKey').onclick = async () => {
-        const id = requireText('revokeLlmKeyId', 'Revoke key ID');
-        if (!id) return;
-        print(out.llm, await api('/api/llm-keys/' + encodeURIComponent(id), 'DELETE'));
-      };
+      $('listLlmKeys').onclick = loadLlmKeys;
 
       $('createKey').onclick = async () => {
         const name = requireText('keyName', 'Key label');
@@ -1929,6 +2327,8 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
           delete safe.body.secret;
           print(out.keys, safe);
           setBanner('ok', 'API key created. Copy and store the one-time key now.');
+          $('keyName').value = '';
+          await loadApiKeys();
           return;
         }
 
@@ -1955,11 +2355,15 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         setBanner('ok', 'One-time key cleared from screen.');
       };
 
-      $('listKeys').onclick = async () => print(out.keys, await api('/api/keys'));
-      $('revokeKey').onclick = async () => {
-        const id = requireText('revokeKeyId', 'Revoke key ID');
-        if (!id) return;
-        print(out.keys, await api('/api/keys/' + encodeURIComponent(id), 'DELETE'));
+      $('listKeys').onclick = loadApiKeys;
+      $('scopeSelectedConnection').onclick = () => {
+        const connectionId = String(state.selectedConnectionId || '').trim();
+        if (!connectionId) {
+          setBanner('err', 'Select a connection in the Connections tab first.');
+          return;
+        }
+        $('keyConnIds').value = connectionId;
+        setBanner('ok', 'Copied the selected connection into the access-key scope field.');
       };
 
       $('createConn').onclick = async () => {

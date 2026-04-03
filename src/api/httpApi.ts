@@ -1,6 +1,8 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { readFile } from 'node:fs/promises';
 import { randomBytes, randomInt, randomUUID } from 'node:crypto';
 import { URL } from 'node:url';
+import path from 'node:path';
 import { getPool } from '../db/postgres.js';
 import { config } from '../config.js';
 import { DASHBOARD_APP_HTML } from '../ui/onboardingAppHtml.js';
@@ -66,6 +68,15 @@ function writeHtml(response: ServerResponse, status: number, html: string): void
     'cache-control': 'no-store',
   });
   response.end(html);
+}
+
+async function writeStaticFile(response: ServerResponse, filePath: string, contentType: string): Promise<void> {
+  const body = await readFile(filePath);
+  response.writeHead(200, {
+    'content-type': contentType,
+    'cache-control': 'public, max-age=86400',
+  });
+  response.end(body);
 }
 
 function writeRedirect(response: ServerResponse, location: string): void {
@@ -368,25 +379,19 @@ function getOtpEmailHtml(code: string): string {
   const brandName = config.resendFromName || 'CUA MCP';
   return `<!doctype html>
   <html>
-    <body style="margin:0;padding:0;background:#050b11;color:#eff6ff;font-family:Avenir Next,Segoe UI,sans-serif;">
-      <div style="max-width:680px;margin:0 auto;padding:32px 18px;">
-        <div style="border-radius:30px;overflow:hidden;background:#07111a;border:1px solid rgba(173,205,236,0.14);box-shadow:0 28px 80px rgba(0,0,0,0.36);">
-          <div style="padding:28px 28px 20px;background:radial-gradient(circle at top left, rgba(255,140,66,0.18), transparent 28%),radial-gradient(circle at 85% 12%, rgba(115,210,222,0.16), transparent 24%),linear-gradient(180deg,#050b11 0%,#07111a 38%,#0b1724 100%);color:#eff6ff;">
-            <div style="display:inline-flex;align-items:center;gap:12px;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#73d2de;">
-              <span style="display:inline-grid;place-items:center;width:42px;height:42px;border-radius:14px;background:linear-gradient(135deg,#ff8c42,#ffd166);color:#07111a;font-weight:900;box-shadow:0 18px 30px rgba(255,140,66,0.22);">CUA</span>
-              ${brandName}
-            </div>
-            <h1 style="margin:18px 0 10px;font-family:Iowan Old Style,Palatino Linotype,serif;font-size:38px;line-height:1;letter-spacing:-0.04em;color:#eff6ff;">Your sign-in code</h1>
-            <p style="margin:0;max-width:34ch;font-size:15px;line-height:1.7;color:#8da0b6;">Use this one-time code to access your control plane and manage keys, connections, and automation settings.</p>
+    <body style="margin:0;padding:0;background:#f4f7fb;color:#102033;font-family:'Segoe UI',Avenir Next,sans-serif;">
+      <div style="max-width:560px;margin:0 auto;padding:32px 18px;">
+        <div style="border-radius:24px;overflow:hidden;background:#ffffff;border:1px solid #d9e2ec;box-shadow:0 18px 48px rgba(16,32,51,0.08);">
+          <div style="padding:28px 28px 12px;">
+            <div style="font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#5e738a;">${brandName}</div>
+            <h1 style="margin:14px 0 8px;font-size:32px;line-height:1.1;letter-spacing:-0.03em;color:#102033;">Your sign-in code</h1>
+            <p style="margin:0;font-size:15px;line-height:1.6;color:#496176;">Use this one-time code to sign in to your dashboard.</p>
           </div>
-          <div style="padding:30px 28px 32px;background:linear-gradient(180deg, rgba(14,28,43,0.88), rgba(8,17,27,0.92));">
-            <div style="margin-bottom:16px;padding:10px 14px;border-radius:999px;background:rgba(255,255,255,0.04);border:1px solid rgba(173,205,236,0.14);color:#eff6ff;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;">
-              Secure enough to verify. Fast enough to get back to work.
-            </div>
-            <div style="font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#73d2de;margin-bottom:12px;">One-time code</div>
-            <div style="font-size:40px;font-weight:800;letter-spacing:0.18em;color:#ffd166;padding:18px 20px;border-radius:20px;background:rgba(255,255,255,0.04);border:1px solid rgba(173,205,236,0.14);text-align:center;">${code}</div>
-            <p style="margin:18px 0 0;font-size:14px;line-height:1.7;color:#8da0b6;">This code expires in ${config.otpTtlMinutes} minutes and can be used once. If you did not request access, you can ignore this email.</p>
-            <p style="margin:18px 0 0;font-size:12px;line-height:1.7;color:#6f8298;">Sent by ${brandName}. For production delivery, make sure this sender address is verified in Resend before you deploy.</p>
+          <div style="padding:12px 28px 28px;">
+            <div style="font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:#5e738a;margin-bottom:10px;">Verification code</div>
+            <div style="font-size:36px;font-weight:700;letter-spacing:0.18em;color:#102033;padding:18px 20px;border-radius:18px;background:#f4f7fb;border:1px solid #d9e2ec;text-align:center;">${code}</div>
+            <p style="margin:18px 0 0;font-size:14px;line-height:1.7;color:#496176;">This code expires in ${config.otpTtlMinutes} minutes and can only be used once.</p>
+            <p style="margin:12px 0 0;font-size:14px;line-height:1.7;color:#496176;">If you did not request this code, you can ignore this email.</p>
           </div>
         </div>
       </div>
@@ -2007,6 +2012,22 @@ export async function handleApiRequest(request: IncomingMessage, response: Serve
 export async function handleFrontendRequest(request: IncomingMessage, response: ServerResponse, url: URL): Promise<boolean> {
   if (request.method !== 'GET') {
     return false;
+  }
+
+  const staticAssets: Record<string, { filePath: string; contentType: string }> = {
+    '/favicon.ico': { filePath: 'favicon.ico', contentType: 'image/x-icon' },
+    '/assets/brand/favicon-16x16.png': { filePath: 'public/brand/favicon-16x16.png', contentType: 'image/png' },
+    '/assets/brand/favicon-32x32.png': { filePath: 'public/brand/favicon-32x32.png', contentType: 'image/png' },
+    '/assets/brand/apple-touch-icon.png': { filePath: 'public/brand/apple-touch-icon.png', contentType: 'image/png' },
+    '/assets/brand/android-chrome-192x192.png': { filePath: 'public/brand/android-chrome-192x192.png', contentType: 'image/png' },
+    '/assets/brand/android-chrome-512x512.png': { filePath: 'public/brand/android-chrome-512x512.png', contentType: 'image/png' },
+    '/assets/brand/site.webmanifest': { filePath: 'public/brand/site.webmanifest', contentType: 'application/manifest+json' },
+  };
+
+  const asset = staticAssets[url.pathname];
+  if (asset) {
+    await writeStaticFile(response, path.join(process.cwd(), asset.filePath), asset.contentType);
+    return true;
   }
 
   if (url.pathname === '/' || url.pathname === '') {
