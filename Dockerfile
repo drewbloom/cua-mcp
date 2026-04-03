@@ -22,6 +22,8 @@ RUN npm ci --omit=dev
 RUN npx playwright install --with-deps chromium
 
 COPY --from=build /app/dist ./dist
+COPY public ./public
+COPY favicon.ico ./favicon.ico
 
 EXPOSE 8788
 CMD ["node", "dist/index.js"]
