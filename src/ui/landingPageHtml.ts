@@ -6,244 +6,369 @@ export const LANDING_PAGE_HTML = `<!doctype html>
     <title>CUA MCP</title>
     <style>
       :root {
-        --bg: #f5f1e8;
-        --ink: #0f2233;
-        --muted: #647487;
-        --accent: #0d6d67;
-        --accent-2: #114f74;
-        --line: rgba(15, 34, 51, 0.12);
-        --panel: rgba(255,255,255,0.74);
-        --shadow: 0 30px 80px rgba(15,34,51,0.14);
+        --bg: #07111a;
+        --bg-2: #0b1724;
+        --panel: rgba(11, 23, 36, 0.84);
+        --panel-strong: rgba(14, 28, 43, 0.95);
+        --ink: #eff6ff;
+        --muted: #8da0b6;
+        --accent: #ff8c42;
+        --accent-2: #ffd166;
+        --cyan: #73d2de;
+        --line: rgba(173, 205, 236, 0.14);
+        --shadow: 0 28px 80px rgba(0, 0, 0, 0.36);
       }
 
       * { box-sizing: border-box; }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
       body {
         margin: 0;
-        font-family: "Avenir Next", "Segoe UI", sans-serif;
         color: var(--ink);
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
         background:
-          radial-gradient(circle at 12% 0%, rgba(230, 200, 145, 0.4), transparent 26%),
-          radial-gradient(circle at 88% 12%, rgba(17, 79, 116, 0.16), transparent 22%),
-          linear-gradient(180deg, #eee4d4 0%, #f6f3ed 42%, #edf1f4 100%);
+          radial-gradient(circle at top left, rgba(255, 140, 66, 0.18), transparent 28%),
+          radial-gradient(circle at 85% 12%, rgba(115, 210, 222, 0.16), transparent 24%),
+          linear-gradient(180deg, #050b11 0%, var(--bg) 38%, var(--bg-2) 100%);
       }
 
-      .hero {
-        min-height: 100svh;
-        display: grid;
-        grid-template-columns: minmax(300px, 0.95fr) minmax(0, 1.05fr);
-        gap: 24px;
-        width: min(1380px, calc(100% - 32px));
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background:
+          linear-gradient(rgba(255,255,255,0.015), rgba(255,255,255,0.015)),
+          linear-gradient(90deg, rgba(141, 160, 182, 0.05) 1px, transparent 1px),
+          linear-gradient(rgba(141, 160, 182, 0.04) 1px, transparent 1px);
+        background-size: auto, 42px 42px, 42px 42px;
+        mask-image: radial-gradient(circle at center, black 46%, transparent 92%);
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .page {
+        width: min(1100px, calc(100% - 28px));
         margin: 0 auto;
-        padding: 24px 0 28px;
-        align-items: stretch;
+        padding: 20px 0 72px;
+        display: grid;
+        gap: 22px;
       }
 
-      .left {
+      .topbar {
         display: flex;
-        flex-direction: column;
         justify-content: space-between;
-        min-height: calc(100svh - 52px);
-        padding: 22px 0;
+        align-items: center;
+        gap: 14px;
+        padding: 10px 2px;
+        color: var(--muted);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
       }
 
       .brand {
-        display: flex;
+        display: inline-flex;
         align-items: center;
-        gap: 14px;
-        text-transform: uppercase;
-        letter-spacing: 0.16em;
-        font-size: 12px;
-        color: rgba(15,34,51,0.72);
+        gap: 12px;
       }
 
       .badge {
-        width: 42px;
-        height: 42px;
-        border-radius: 14px;
+        width: 46px;
+        height: 46px;
+        border-radius: 16px;
         display: grid;
         place-items: center;
-        color: white;
-        font-weight: 800;
         background: linear-gradient(135deg, var(--accent), var(--accent-2));
-        box-shadow: 0 16px 28px rgba(13,109,103,0.24);
+        color: #07111a;
+        font-weight: 900;
+        box-shadow: 0 18px 30px rgba(255, 140, 66, 0.22);
+      }
+
+      .hero,
+      .section,
+      .cta {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 30px;
+        background: linear-gradient(180deg, rgba(14, 28, 43, 0.88), rgba(8, 17, 27, 0.92));
+        box-shadow: var(--shadow);
+      }
+
+      .hero {
+        padding: 38px clamp(20px, 4vw, 42px);
+      }
+
+      .hero::before,
+      .section::before,
+      .cta::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+          radial-gradient(circle at 14% 0%, rgba(255, 140, 66, 0.2), transparent 26%),
+          radial-gradient(circle at 88% 8%, rgba(115, 210, 222, 0.16), transparent 24%);
+      }
+
+      .hero-inner,
+      .section-inner,
+      .cta-inner {
+        position: relative;
+        display: grid;
+        gap: 24px;
+      }
+
+      .eyebrow {
+        margin: 0;
+        color: var(--cyan);
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      h1,
+      h2 {
+        margin: 0;
+        font-family: "Iowan Old Style", "Palatino Linotype", serif;
+        letter-spacing: -0.05em;
       }
 
       h1 {
-        margin: 0;
-        font-family: "Iowan Old Style", "Palatino Linotype", serif;
-        font-size: clamp(3rem, 6vw, 5.6rem);
-        line-height: 0.94;
-        letter-spacing: -0.05em;
-        max-width: 8.5ch;
+        max-width: 12ch;
+        font-size: clamp(3.3rem, 8vw, 6rem);
+        line-height: 0.92;
       }
 
-      .copy {
-        max-width: 30rem;
+      h2 {
+        font-size: clamp(1.8rem, 3vw, 2.5rem);
+        line-height: 1;
+      }
+
+      .lede,
+      .micro,
+      .card p,
+      .quote,
+      .list-item span {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.65;
+      }
+
+      .lede {
+        max-width: 60ch;
+        font-size: 1.06rem;
+      }
+
+      .ascii {
+        margin: 6px 0 0;
+        padding: 18px;
+        border-radius: 22px;
+        border: 1px solid rgba(255, 209, 102, 0.16);
+        background: rgba(7, 17, 26, 0.72);
+        color: #ffdca3;
+        overflow: auto;
+        font-size: 12px;
+        line-height: 1.25;
+      }
+
+      .marquee {
         display: grid;
-        gap: 18px;
+        gap: 12px;
       }
 
-      .copy p {
-        margin: 0;
-        font-size: 1.05rem;
-        line-height: 1.6;
-        color: rgba(15,34,51,0.78);
+      .ticker {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid var(--line);
+        color: var(--ink);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+      }
+
+      .pill strong {
+        color: var(--accent-2);
+        font-weight: 800;
       }
 
       .actions {
         display: flex;
-        gap: 10px;
         flex-wrap: wrap;
+        gap: 12px;
       }
 
       .button {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        padding: 14px 18px;
+        min-height: 48px;
+        padding: 0 18px;
         border-radius: 999px;
-        font-size: 13px;
-        font-weight: 700;
         border: 1px solid transparent;
-        transition: transform 180ms ease, opacity 180ms ease;
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.03em;
+        transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease;
+      }
+
+      .button:hover {
+        transform: translateY(-1px);
       }
 
       .button.primary {
         background: linear-gradient(135deg, var(--accent), var(--accent-2));
-        color: white;
+        color: #07111a;
       }
 
       .button.secondary {
-        background: rgba(255,255,255,0.58);
-        color: var(--ink);
+        background: rgba(255,255,255,0.05);
         border-color: var(--line);
       }
 
-      .button:hover { transform: translateY(-1px); }
-
-      .panel {
-        position: relative;
-        min-height: calc(100svh - 52px);
-        border-radius: 34px;
-        background:
-          linear-gradient(155deg, rgba(255,255,255,0.86), rgba(255,252,247,0.65)),
-          linear-gradient(140deg, rgba(13,109,103,0.08), rgba(17,79,116,0.08));
-        border: 1px solid rgba(255,255,255,0.62);
-        box-shadow: var(--shadow);
-        overflow: hidden;
+      .section,
+      .cta {
+        padding: 28px clamp(20px, 4vw, 34px);
       }
 
-      .panel-inner {
-        position: relative;
+      .cards,
+      .list {
         display: grid;
-        grid-template-rows: auto auto 1fr;
-        gap: 18px;
-        padding: 24px;
-        min-height: 100%;
+        gap: 14px;
       }
 
-      .panel h2 {
-        margin: 0 0 8px;
-        font-size: 1.15rem;
-      }
-
-      .grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px;
-      }
-
-      .cell {
-        padding: 18px;
+      .card,
+      .list-item,
+      .quote {
         border-radius: 22px;
-        background: rgba(255,255,255,0.54);
-        border: 1px solid rgba(15,34,51,0.08);
+        border: 1px solid var(--line);
+        background: rgba(255,255,255,0.03);
+        padding: 18px;
       }
 
-      .cell strong {
+      .card strong,
+      .list-item strong {
         display: block;
         margin-bottom: 8px;
         font-size: 1rem;
       }
 
-      .cell p, .micro {
-        margin: 0;
-        font-size: 0.94rem;
-        line-height: 1.55;
-        color: rgba(15,34,51,0.72);
+      .quote {
+        color: #d9e4f1;
+        font-size: 1.02rem;
       }
 
-      .list {
-        display: grid;
-        gap: 12px;
-        align-self: end;
+      .cta {
+        margin-top: 4px;
       }
 
-      .list-item {
-        display: grid;
-        grid-template-columns: auto 1fr;
+      .cta-inner {
         gap: 14px;
-        padding: 16px 18px;
-        border-top: 1px solid rgba(15,34,51,0.08);
       }
 
-      .list-item:first-child { border-top: 0; }
+      @media (max-width: 720px) {
+        .page {
+          width: min(100%, calc(100% - 20px));
+          padding-top: 14px;
+        }
 
-      .num {
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        display: grid;
-        place-items: center;
-        background: rgba(13,109,103,0.1);
-        color: var(--accent);
-        font-size: 12px;
-        font-weight: 800;
-      }
+        .topbar {
+          align-items: flex-start;
+          flex-direction: column;
+        }
 
-      .list-item strong {
-        display: block;
-        margin-bottom: 4px;
-      }
-
-      @media (max-width: 980px) {
-        .hero { grid-template-columns: 1fr; }
-        .left, .panel { min-height: auto; }
-        .grid { grid-template-columns: 1fr; }
+        .ascii {
+          font-size: 11px;
+        }
       }
     </style>
   </head>
   <body>
-    <main class="hero">
-      <section class="left">
-        <div class="brand"><div class="badge">CUA</div><span>Computer Use Control Plane</span></div>
-        <div class="copy">
-          <p style="text-transform:uppercase; letter-spacing:.18em; font-size:12px; color:var(--muted); margin:0;">MCP for secure browser automation</p>
-          <h1>Run computer-use workflows with user-scoped access.</h1>
-          <p>Onboard with email auth, issue your own MCP API keys, connect approved web utilities, and let CUA operate only within the boundaries you define.</p>
+    <main class="page">
+      <div class="topbar">
+        <div class="brand"><div class="badge">CUA</div><span>Computer Use Agent, Missing Common Precautions</span></div>
+        <div>Working product. Dubious serenity.</div>
+      </div>
+
+      <section class="hero">
+        <div class="hero-inner">
+          <p class="eyebrow">Secure enough to demo. Fast enough to regret.</p>
+          <h1>All vibes. Some guardrails. Surprisingly functional.</h1>
+          <p class="lede">CUA MCP is the control plane for computer-use automation when the default harness is too polite to touch secure websites. It is user-scoped, key-driven, connection-aware, and held together by the sort of determination normally reserved for bad launches and surprisingly effective internal tools.</p>
+          <div class="marquee">
+            <pre class="ascii">   ______   __  __   ___        __  ___   ______   ____
+  / ____/  / / / /  /   |      /  |/  /  / ____/  / __ \
+ / /      / / / /  / /| |     / /|_/ /  / /      / /_/ /
+/ /___   / /_/ /  / ___ |    / /  / /  / /___   / ____/
+\____/   \____/  /_/  |_|   /_/  /_/   \____/  /_/
+
+Computer Use Agent, Missing Common Precautions</pre>
+            <div class="ticker">
+              <div class="pill"><strong>OTP</strong> one-time code theatrics</div>
+              <div class="pill"><strong>Keys</strong> shown once, regretted forever</div>
+              <div class="pill"><strong>Policies</strong> clear enough to sound intentional</div>
+              <div class="pill"><strong>Secrets</strong> encrypted before anyone gets ideas</div>
+            </div>
+          </div>
           <div class="actions">
-            <a class="button primary" href="/app">Get started</a>
-            <a class="button secondary" href="/health">Health check</a>
+            <a class="button primary" href="/app">Enter the control panel</a>
+            <a class="button secondary" href="/health">Ask if it is alive</a>
+          </div>
+          <p class="micro">Conversion to multi-user, UI, and the security spiral were finished by GPT-5.4 after repeated exposure to the phrase “make it more secure.” The current result is best described as enterprise-grade buffoonery with audit logs and a firm belief that another pass will finally fix everything.</p>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-inner">
+          <p class="eyebrow">Why this exists</p>
+          <h2>Because headless CUAs are bad at the things users actually want.</h2>
+          <p class="lede">Working on secure websites requires a little more than blind optimism. This UI gives each user their own login session, model key, machine keys, trusted connection boundaries, encrypted secret refs, and enough runtime controls to make the duct tape feel deliberate.</p>
+          <div class="cards">
+            <article class="card"><strong>Email-auth sign in</strong><p>Get the human into the system first, then let everything else inherit that context instead of sharing one cursed credential forever.</p></article>
+            <article class="card"><strong>Per-user OpenAI keys</strong><p>Every user can store and rotate their own model key, which is both more correct and far easier to explain when the bill arrives.</p></article>
+            <article class="card"><strong>Scoped MCP machine keys</strong><p>Issue one-time secrets, constrain them to specific connections, and revoke them before someone gets brave on a Friday afternoon.</p></article>
+            <article class="card"><strong>Secret and auth-state handling</strong><p>Secrets stay encrypted, auth artifacts stay mapped to approved hosts, and fill plans do not get to improvise jazz on production logins.</p></article>
           </div>
         </div>
-        <p class="micro">Designed for developer operators and security-conscious end users. Secrets stay encrypted, connections stay scoped, and machine keys stay revocable.</p>
       </section>
-      <section class="panel">
-        <div class="panel-inner">
-          <div>
-            <h2>What you can do here</h2>
-            <p class="micro">The public app lets new users onboard and existing users manage the exact CUA access they want to grant.</p>
-          </div>
-          <div class="grid">
-            <article class="cell"><strong>Email-auth sign in</strong><p>Request a one-time code, verify your session, and manage your account without shared credentials.</p></article>
-            <article class="cell"><strong>Per-user model keys</strong><p>Store your own OpenAI key, switch active keys when needed, and keep model usage isolated to your account.</p></article>
-            <article class="cell"><strong>Scoped MCP API keys</strong><p>Issue machine keys once, restrict them to approved connections, and revoke them the moment they are no longer needed.</p></article>
-            <article class="cell"><strong>Connection-aware secrets</strong><p>Map allowed hosts and path prefixes before any secret reference can be resolved for a run.</p></article>
-          </div>
+
+      <section class="section">
+        <div class="section-inner">
+          <p class="eyebrow">Operating Principles</p>
           <div class="list">
-            <div class="list-item"><div class="num">1</div><div><strong>Create your session</strong><span class="micro">Sign in, add your model key, and verify the app can operate on your behalf.</span></div></div>
-            <div class="list-item"><div class="num">2</div><div><strong>Map trusted utilities</strong><span class="micro">Add the domains, subdomains, and path prefixes where automation is allowed to authenticate and operate.</span></div></div>
-            <div class="list-item"><div class="num">3</div><div><strong>Connect CUA to your workflow</strong><span class="micro">Use your own MCP key in clients and let CUA run with your own model configuration and approved access only.</span></div></div>
+            <div class="list-item"><strong>We traded polish for momentum.</strong><span>The system works, the posture is better than it started, and the remaining confidence is still doing a lot of branding work.</span></div>
+            <div class="list-item"><strong>We do have boundaries.</strong><span>Allowed hosts, path prefixes, encrypted refs, and runtime privacy settings are the part where the joke stops being completely true and starts being real policy.</span></div>
+            <div class="list-item"><strong>We would still like you to believe in the mission.</strong><span>Preferably before anyone asks what exactly is inside the private GitHub Action or why the roadmap looks like a live-fire exercise.</span></div>
+          </div>
+          <div class="quote">“Necessity is not the mother of invention. Ethical abrogation of responsibility and delegating risk to tech tools is.”</div>
+        </div>
+      </section>
+
+      <section class="cta">
+        <div class="cta-inner">
+          <p class="eyebrow">Next move</p>
+          <h2>Open the app, click a tab, and try not to ask for fries and a drink.</h2>
+          <div class="actions">
+            <a class="button primary" href="/app">Launch /app</a>
+            <a class="button secondary" href="https://www.youtube.com/watch?v=dQw4w9WgXcQ&pp=ygUXbmV2ZXIgZ29ubmEgZ2l2ZSB5b3UgdXA%3D">Review SOC II posture</a>
           </div>
         </div>
       </section>

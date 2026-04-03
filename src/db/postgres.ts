@@ -82,6 +82,16 @@ export async function initPostgres(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_auth_rate_limit_action_scope_created
       ON auth_rate_limit_events(action_name, scope_key, created_at DESC);
 
+    CREATE TABLE IF NOT EXISTS user_cua_settings (
+      user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      run_retention_days INTEGER NOT NULL DEFAULT 30,
+      zdr_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+      persist_run_events BOOLEAN NOT NULL DEFAULT TRUE,
+      persist_run_output BOOLEAN NOT NULL DEFAULT TRUE,
+      created_at TIMESTAMPTZ NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS user_sessions (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

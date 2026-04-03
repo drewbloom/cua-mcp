@@ -36,3 +36,11 @@ export interface CuaRecipe {
   promptTemplate: string;
   createdAt: string;
 }
+
+export interface CuaUserSettings {
+  userId: string;
+  runRetentionDays: number;
+  zdrEnabled: boolean;
+  persistRunEvents: boolean;
+  persistRunOutput: boolean;
+}

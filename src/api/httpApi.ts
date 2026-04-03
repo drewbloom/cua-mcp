@@ -8,6 +8,8 @@ import { LANDING_PAGE_HTML } from '../ui/landingPageHtml.js';
 import { encryptText, hashValue, isSameHash, requireHex32ByteKey } from '../security/crypto.js';
 import { buildSecretFillPlan, getConnectionPolicyForUser, isUrlAllowedByPolicy, normalizeHost, normalizePathPrefix } from '../security/secretBoundary.js';
 import { cancelCaptureSession, finalizeCaptureSession, getCaptureSnapshot, listCaptureSnapshots, performCaptureAction, startCaptureSession } from '../security/authCapture.js';
+import { cuaRuntime } from '../cua/runtime.js';
+import { getUserCuaSettings, updateUserCuaSettings } from '../cua/userSettings.js';
 
 type JsonObject = Record<string, unknown>;
 
@@ -222,8 +224,10 @@ const accountApiPaths = [
   '/api/auth/verify-code',
   '/api/session/me',
   '/api/session/logout',
+  '/api/settings/runtime',
   '/api/keys',
   '/api/llm-keys',
+  '/api/runs',
   '/api/connections',
 ];
 
@@ -231,6 +235,7 @@ function accountApiPathAllowed(pathname: string): boolean {
   if (accountApiPaths.includes(pathname)) return true;
   if (/^\/api\/keys\/[^/]+$/.test(pathname)) return true;
   if (/^\/api\/llm-keys\/[^/]+$/.test(pathname)) return true;
+  if (/^\/api\/runs\/[^/]+$/.test(pathname)) return true;
   if (/^\/api\/connections\/[^/]+$/.test(pathname)) return true;
   if (/^\/api\/connections\/[^/]+\/secrets$/.test(pathname)) return true;
   if (/^\/api\/connections\/[^/]+\/secrets\/[^/]+$/.test(pathname)) return true;
@@ -1207,6 +1212,97 @@ async function requireAuth(request: IncomingMessage, response: ServerResponse): 
   return auth;
 }
 
+async function handleRuntimeSettingsGet(request: IncomingMessage, response: ServerResponse): Promise<void> {
+  const auth = await requireAuth(request, response);
+  if (!auth) return;
+
+  const settings = await getUserCuaSettings(auth.userId);
+  writeJson(response, 200, { settings });
+}
+
+async function handleRuntimeSettingsPatch(request: IncomingMessage, response: ServerResponse): Promise<void> {
+  const auth = await requireAuth(request, response);
+  if (!auth) return;
+
+  const body = await readJsonBody(request);
+  const input: {
+    runRetentionDays?: number;
+    zdrEnabled?: boolean;
+    persistRunEvents?: boolean;
+    persistRunOutput?: boolean;
+  } = {};
+
+  if (body.runRetentionDays !== undefined) {
+    const runRetentionDays = Number(body.runRetentionDays);
+    if (!Number.isFinite(runRetentionDays)) {
+      writeJson(response, 400, { error: 'runRetentionDays must be a number' });
+      return;
+    }
+    input.runRetentionDays = runRetentionDays;
+  }
+  if (body.zdrEnabled !== undefined) {
+    input.zdrEnabled = Boolean(body.zdrEnabled);
+  }
+  if (body.persistRunEvents !== undefined) {
+    input.persistRunEvents = Boolean(body.persistRunEvents);
+  }
+  if (body.persistRunOutput !== undefined) {
+    input.persistRunOutput = Boolean(body.persistRunOutput);
+  }
+
+  if (Object.keys(input).length === 0) {
+    writeJson(response, 400, { error: 'No updatable fields provided' });
+    return;
+  }
+
+  const settings = await updateUserCuaSettings(auth.userId, input);
+  cuaRuntime.invalidateUserSettings(auth.userId);
+  await logSecurityEvent(auth.userId, 'runtime_settings_updated', 'runtime', {
+    fields: Object.keys(input),
+    zdrEnabled: settings.zdrEnabled,
+    runRetentionDays: settings.runRetentionDays,
+    persistRunEvents: settings.persistRunEvents,
+    persistRunOutput: settings.persistRunOutput,
+  });
+
+  writeJson(response, 200, { success: true, settings });
+}
+
+async function handleRunsList(request: IncomingMessage, response: ServerResponse): Promise<void> {
+  const auth = await requireAuth(request, response);
+  if (!auth) return;
+
+  const runs = await cuaRuntime.listRuns(auth.userId);
+  writeJson(response, 200, { runs });
+}
+
+async function handleRunGet(request: IncomingMessage, response: ServerResponse, runId: string): Promise<void> {
+  const auth = await requireAuth(request, response);
+  if (!auth) return;
+
+  const run = await cuaRuntime.getRun(runId, auth.userId);
+  if (!run) {
+    writeJson(response, 404, { error: 'Run not found' });
+    return;
+  }
+
+  writeJson(response, 200, { run });
+}
+
+async function handleRunDelete(request: IncomingMessage, response: ServerResponse, runId: string): Promise<void> {
+  const auth = await requireAuth(request, response);
+  if (!auth) return;
+
+  const deleted = await cuaRuntime.deleteRun(runId, auth.userId);
+  if (!deleted) {
+    writeJson(response, 404, { error: 'Run not found' });
+    return;
+  }
+
+  await logSecurityEvent(auth.userId, 'run_deleted', 'runtime', { runId });
+  writeJson(response, 200, { success: true, runId });
+}
+
 async function handleApiKeysList(request: IncomingMessage, response: ServerResponse): Promise<void> {
   const auth = await requireAuth(request, response);
   if (!auth) return;
@@ -1703,6 +1799,30 @@ export async function handleApiRequest(request: IncomingMessage, response: Serve
     }
     if (request.method === 'POST' && url.pathname === '/api/session/logout') {
       await handleSessionLogout(request, response);
+      return true;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/settings/runtime') {
+      await handleRuntimeSettingsGet(request, response);
+      return true;
+    }
+    if (request.method === 'PATCH' && url.pathname === '/api/settings/runtime') {
+      await handleRuntimeSettingsPatch(request, response);
+      return true;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/runs') {
+      await handleRunsList(request, response);
+      return true;
+    }
+
+    const runMatch = url.pathname.match(/^\/api\/runs\/([^/]+)$/);
+    if (runMatch && request.method === 'GET') {
+      await handleRunGet(request, response, runMatch[1]);
+      return true;
+    }
+    if (runMatch && request.method === 'DELETE') {
+      await handleRunDelete(request, response, runMatch[1]);
       return true;
     }
 

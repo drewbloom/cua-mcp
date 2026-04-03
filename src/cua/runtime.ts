@@ -7,6 +7,8 @@ import OpenAI from 'openai';
 import { cuaRepository } from '../db/cuaRepository.js';
 import { getActiveOpenAiApiKeyForUser } from '../auth/userLlmKeys.js';
 import { getConnectionPolicyForUser } from '../security/secretBoundary.js';
+import { getUserCuaSettings } from './userSettings.js';
+import type { CuaUserSettings } from './types.js';
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -21,6 +23,7 @@ function applyTemplate(template: string, variables: Record<string, string>): str
 export class CuaRuntime {
   private runs = new Map<string, CuaRunRecord>();
   private recipes = new Map<string, CuaRecipe>();
+  private settingsCache = new Map<string, { settings: CuaUserSettings; loadedAt: number }>();
   private steeringQueues = new Map<
     string,
     Array<{ message: string; mode: 'append' | 'replace_goal'; source: 'user' | 'agent'; timestamp: string }>
@@ -30,9 +33,48 @@ export class CuaRuntime {
     return config.persistence === 'postgres';
   }
 
+  private async getPersistenceSettings(userId: string): Promise<CuaUserSettings> {
+    const cached = this.settingsCache.get(userId);
+    if (cached && Date.now() - cached.loadedAt < 60_000) {
+      return cached.settings;
+    }
+
+    const settings = await getUserCuaSettings(userId);
+    this.settingsCache.set(userId, { settings, loadedAt: Date.now() });
+    return settings;
+  }
+
+  invalidateUserSettings(userId: string): void {
+    this.settingsCache.delete(userId);
+  }
+
+  private async cleanupExpiredRunsForUser(userId: string): Promise<void> {
+    if (!this.usesPostgres()) return;
+    const settings = await this.getPersistenceSettings(userId);
+    if (settings.runRetentionDays < 1) return;
+    await cuaRepository.cleanupExpiredRuns(userId, settings.runRetentionDays);
+  }
+
   private async persistRun(run: CuaRunRecord): Promise<void> {
     if (!this.usesPostgres()) return;
-    await cuaRepository.upsertRun(run);
+    const settings = await this.getPersistenceSettings(run.userId);
+    const persistedRun: CuaRunRecord = {
+      ...run,
+      input: settings.zdrEnabled
+        ? {
+            task: '[REDACTED_BY_ZDR]',
+            environment: run.input.environment,
+            connectionId: run.input.connectionId,
+          }
+        : run.input,
+      outputSummary: settings.persistRunOutput ? run.outputSummary : undefined,
+      error: settings.persistRunOutput ? run.error : undefined,
+      events: run.events,
+    };
+    await cuaRepository.upsertRun(persistedRun);
+    if (new Set(['completed', 'failed', 'interrupted']).has(run.status)) {
+      await this.cleanupExpiredRunsForUser(run.userId);
+    }
   }
 
   private async persistRecipe(recipe: CuaRecipe): Promise<void> {
@@ -254,6 +296,7 @@ export class CuaRuntime {
 
   async listRuns(userId: string): Promise<CuaRunRecord[]> {
     if (this.usesPostgres()) {
+      await this.cleanupExpiredRunsForUser(userId);
       const runs = await cuaRepository.listRuns(userId);
       for (const run of runs) {
         this.runs.set(run.id, run);
@@ -345,6 +388,23 @@ export class CuaRuntime {
     this.runs.set(run.id, run);
     await this.persistRun(run);
     return run;
+  }
+
+  async deleteRun(runId: string, userId: string): Promise<boolean> {
+    const deleted = this.usesPostgres()
+      ? await cuaRepository.deleteRun(runId, userId)
+      : (() => {
+          const run = this.runs.get(runId);
+          if (!run || run.userId !== userId) return false;
+          this.runs.delete(runId);
+          return true;
+        })();
+
+    if (deleted) {
+      this.runs.delete(runId);
+      this.steeringQueues.delete(runId);
+    }
+    return deleted;
   }
 
   async saveRecipe(userId: string, name: string, promptTemplate: string, description?: string): Promise<CuaRecipe> {
@@ -623,7 +683,10 @@ export class CuaRuntime {
     }
 
     if (this.usesPostgres()) {
-      void cuaRepository.appendEvent(run.id, event);
+      void this.getPersistenceSettings(run.userId).then((settings) => {
+        if (!settings.persistRunEvents) return;
+        return cuaRepository.appendEvent(run.id, event);
+      });
     }
   }
 }

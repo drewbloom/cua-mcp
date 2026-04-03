@@ -116,6 +116,25 @@ export const cuaRepository = {
     return runs;
   },
 
+  async deleteRun(runId: string, userId: string): Promise<boolean> {
+    const db = getPool();
+    const result = await db.query('DELETE FROM cua_runs WHERE id = $1 AND user_id = $2', [runId, userId]);
+    return (result.rowCount ?? 0) > 0;
+  },
+
+  async cleanupExpiredRuns(userId: string, retentionDays: number): Promise<number> {
+    const db = getPool();
+    const result = await db.query(
+      `
+      DELETE FROM cua_runs
+      WHERE user_id = $1
+        AND created_at < NOW() - ($2 || ' days')::interval
+      `,
+      [userId, String(retentionDays)],
+    );
+    return Number(result.rowCount || 0);
+  },
+
   async saveRecipe(recipe: CuaRecipe): Promise<void> {
     const db = getPool();
     await db.query(

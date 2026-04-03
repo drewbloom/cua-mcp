@@ -6,25 +6,27 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
     <title>CUA Control Plane</title>
     <style>
       :root {
-        --paper: #f3efe6;
-        --mist: rgba(255, 255, 255, 0.76);
-        --panel: rgba(255, 252, 247, 0.86);
-        --ink: #10202f;
-        --muted: #617388;
-        --line: rgba(16, 32, 47, 0.12);
-        --line-strong: rgba(16, 32, 47, 0.22);
-        --accent: #0d6d67;
-        --accent-strong: #0b5854;
-        --accent-wash: rgba(13, 109, 103, 0.1);
-        --warning: #9c6a22;
-        --danger: #9b3551;
-        --output: #0d1823;
-        --output-ink: #d7e9fb;
-        --shadow: 0 24px 60px rgba(16, 32, 47, 0.12);
+        --bg: #050b11;
+        --bg-2: #09121b;
+        --panel: rgba(10, 19, 29, 0.88);
+        --panel-soft: rgba(255, 255, 255, 0.04);
+        --panel-soft-2: rgba(255, 255, 255, 0.06);
+        --ink: #eef5ff;
+        --muted: #92a5ba;
+        --line: rgba(161, 191, 220, 0.14);
+        --line-strong: rgba(255, 255, 255, 0.16);
+        --accent: #ff8c42;
+        --accent-strong: #e56b20;
+        --accent-alt: #73d2de;
+        --danger: #d9506f;
+        --success: #78dba9;
+        --warning: #ffd166;
+        --output-ink: #d9e9fb;
+        --shadow: 0 28px 80px rgba(0, 0, 0, 0.36);
         --radius-lg: 28px;
         --radius-md: 18px;
         --radius-sm: 12px;
-        --hero-max: 1380px;
+        --hero-max: 1120px;
       }
 
       * { box-sizing: border-box; }
@@ -39,9 +41,9 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
         color: var(--ink);
         font-family: "Avenir Next", "Segoe UI", sans-serif;
         background:
-          radial-gradient(circle at 10% 0%, rgba(237, 211, 162, 0.45), transparent 28%),
-          radial-gradient(circle at 88% 18%, rgba(109, 171, 167, 0.23), transparent 24%),
-          linear-gradient(180deg, #efe6d7 0%, #f7f3eb 28%, #f2efe8 52%, #eef3f5 100%);
+          radial-gradient(circle at 12% 0%, rgba(255, 140, 66, 0.18), transparent 28%),
+          radial-gradient(circle at 88% 14%, rgba(115, 210, 222, 0.16), transparent 26%),
+          linear-gradient(180deg, var(--bg) 0%, #08111a 42%, var(--bg-2) 100%);
       }
 
       body::before {
@@ -50,11 +52,11 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
         inset: 0;
         pointer-events: none;
         background:
-          linear-gradient(rgba(255,255,255,0.18), rgba(255,255,255,0.18)),
-          linear-gradient(90deg, rgba(16,32,47,0.035) 1px, transparent 1px),
-          linear-gradient(rgba(16,32,47,0.035) 1px, transparent 1px);
-        background-size: auto, 48px 48px, 48px 48px;
-        mask-image: radial-gradient(circle at center, black 45%, transparent 92%);
+          linear-gradient(rgba(255,255,255,0.016), rgba(255,255,255,0.016)),
+          linear-gradient(90deg, rgba(146, 165, 186, 0.05) 1px, transparent 1px),
+          linear-gradient(rgba(146, 165, 186, 0.04) 1px, transparent 1px);
+        background-size: auto, 40px 40px, 40px 40px;
+        mask-image: radial-gradient(circle at center, black 48%, transparent 92%);
       }
 
       a {
@@ -62,313 +64,300 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
         text-decoration: none;
       }
 
-      .hero {
+      .hero,
+      .workspace,
+      .section-panel,
+      .banner {
         position: relative;
-        overflow: clip;
-        min-height: 100svh;
-        display: flex;
-        align-items: stretch;
       }
 
-      .hero::after {
-        content: "";
-        position: absolute;
-        inset: auto 0 0;
-        height: 140px;
-        background: linear-gradient(180deg, transparent, rgba(242, 239, 232, 0.96));
-        pointer-events: none;
+      .hero,
+      .workspace {
+        width: min(var(--hero-max), calc(100% - 28px));
+        margin: 0 auto;
+      }
+
+      .hero {
+        padding: 20px 0 18px;
       }
 
       .hero-inner {
-        width: min(var(--hero-max), calc(100% - 32px));
-        margin: 0 auto;
         display: grid;
-        grid-template-columns: minmax(280px, 0.95fr) minmax(0, 1.25fr);
-        gap: 28px;
-        align-items: end;
-        padding: 24px 0 28px;
+        gap: 18px;
+        padding: 26px clamp(18px, 4vw, 34px) 30px;
+        border-radius: 32px;
+        border: 1px solid var(--line);
+        background: linear-gradient(180deg, rgba(11, 20, 31, 0.9), rgba(8, 16, 25, 0.96));
+        box-shadow: var(--shadow);
+        overflow: hidden;
       }
 
-      .brand-rail {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        min-height: calc(100svh - 52px);
-        padding: 24px 0 18px;
+      .hero-inner::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+          radial-gradient(circle at 10% 0%, rgba(255, 140, 66, 0.2), transparent 26%),
+          radial-gradient(circle at 90% 10%, rgba(115, 210, 222, 0.16), transparent 24%);
+      }
+
+      .brand-lockup,
+      .hero-copy,
+      .hero-meta,
+      .workspace-nav,
+      .workspace-main,
+      .section-head,
+      .field,
+      .output-shell,
+      .capture-preview,
+      .capture-summary,
+      .capture-history-list,
+      .trust-list,
+      .status-strip,
+      .summary-strip {
+        position: relative;
+        display: grid;
+        gap: 12px;
       }
 
       .brand-lockup {
-        display: flex;
-        align-items: center;
         gap: 14px;
-        font-size: 13px;
+        justify-items: start;
+        color: var(--muted);
+        font-size: 12px;
         text-transform: uppercase;
-        letter-spacing: 0.16em;
-        color: rgba(16, 32, 47, 0.7);
+        letter-spacing: 0.18em;
       }
 
       .brand-badge {
-        width: 42px;
-        height: 42px;
-        border-radius: 14px;
+        width: 48px;
+        height: 48px;
+        border-radius: 16px;
         display: grid;
         place-items: center;
-        color: #fff;
-        font-weight: 800;
+        color: #08111a;
+        font-weight: 900;
         letter-spacing: 0.06em;
-        background: linear-gradient(145deg, #0d6d67, #124f74);
-        box-shadow: 0 16px 28px rgba(13, 109, 103, 0.25);
+        background: linear-gradient(135deg, var(--accent), var(--warning));
+        box-shadow: 0 18px 30px rgba(255, 140, 66, 0.22);
+      }
+
+      .eyebrow,
+      .section-number,
+      .nav-label,
+      .field-label,
+      .output-head span,
+      .status-kicker,
+      .trust-cell span,
+      .summary-block span,
+      .capture-summary-card span {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        color: var(--muted);
       }
 
       .hero-copy {
-        max-width: 430px;
-        display: grid;
         gap: 18px;
+        max-width: 72ch;
       }
 
-      .eyebrow {
+      .hero-copy h1,
+      .section-head h2 {
         margin: 0;
-        color: var(--muted);
-        text-transform: uppercase;
-        letter-spacing: 0.18em;
-        font-size: 12px;
-        font-weight: 700;
+        font-family: "Iowan Old Style", "Palatino Linotype", serif;
+        letter-spacing: -0.045em;
       }
 
       .hero-copy h1 {
+        max-width: 12ch;
+        font-size: clamp(3.2rem, 8vw, 5.7rem);
+        line-height: 0.92;
+      }
+
+      .hero-copy p,
+      .section-head p,
+      .trust-item span,
+      .micro-copy,
+      .capture-meta,
+      .capture-selection,
+      .capture-history-empty,
+      .capture-summary-list {
         margin: 0;
-        font-family: "Iowan Old Style", "Palatino Linotype", serif;
-        font-size: clamp(3rem, 6vw, 5.4rem);
-        line-height: 0.94;
-        letter-spacing: -0.05em;
-        max-width: 9ch;
+        color: var(--muted);
+        line-height: 1.6;
       }
 
       .hero-copy p {
-        margin: 0;
-        max-width: 32ch;
-        font-size: clamp(1rem, 1.2vw, 1.14rem);
-        line-height: 1.55;
-        color: rgba(16, 32, 47, 0.78);
+        max-width: 62ch;
+        font-size: 1.03rem;
       }
 
-      .hero-actions {
+      .hero-actions,
+      .button-row {
         display: flex;
         gap: 10px;
         flex-wrap: wrap;
       }
 
-      .hero-button {
+      .hero-button,
+      button {
+        appearance: none;
         display: inline-flex;
         align-items: center;
-        gap: 8px;
+        justify-content: center;
+        min-height: 46px;
+        padding: 0 16px;
         border-radius: 999px;
-        padding: 13px 18px;
+        font: inherit;
         font-size: 13px;
-        font-weight: 700;
+        font-weight: 800;
         letter-spacing: 0.02em;
+        cursor: pointer;
+        transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease;
+      }
+
+      .hero-button,
+      button {
+        color: #08111a;
         border: 1px solid transparent;
-        transition: transform 180ms ease, background-color 180ms ease, border-color 180ms ease;
+        background: linear-gradient(135deg, var(--accent), var(--warning));
+        box-shadow: 0 14px 24px rgba(255, 140, 66, 0.2);
       }
 
-      .hero-button.primary {
-        color: #fff;
-        background: linear-gradient(135deg, var(--accent), #0c5879);
-        box-shadow: 0 14px 28px rgba(12, 88, 121, 0.2);
-      }
-
-      .hero-button.secondary {
-        color: var(--ink);
-        background: rgba(255,255,255,0.62);
-        border-color: rgba(16, 32, 47, 0.1);
-      }
-
-      .hero-button:hover {
+      .hero-button:hover,
+      button:hover {
         transform: translateY(-1px);
       }
 
-      .hero-panel {
-        align-self: stretch;
-        position: relative;
-        border: 1px solid rgba(255,255,255,0.58);
-        border-radius: 34px;
-        background:
-          linear-gradient(155deg, rgba(255,255,255,0.82), rgba(255,252,247,0.6)),
-          linear-gradient(145deg, rgba(13,109,103,0.08), rgba(12,88,121,0.08));
-        box-shadow: var(--shadow);
-        backdrop-filter: blur(18px);
-        overflow: hidden;
-        min-height: calc(100svh - 52px);
+      .hero-button.secondary,
+      button.secondary,
+      button.ghost {
+        color: var(--ink);
+        background: rgba(255,255,255,0.05);
+        border-color: var(--line);
+        box-shadow: none;
       }
 
-      .hero-panel::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background:
-          radial-gradient(circle at 80% 18%, rgba(12,88,121,0.15), transparent 24%),
-          radial-gradient(circle at 22% 12%, rgba(13,109,103,0.12), transparent 20%);
-        pointer-events: none;
+      button.danger {
+        color: #fff;
+        background: linear-gradient(135deg, var(--danger), #ae3b58);
+        box-shadow: 0 14px 24px rgba(217, 80, 111, 0.16);
       }
 
-      .hero-panel-inner {
-        position: relative;
-        display: grid;
-        grid-template-rows: auto auto 1fr;
-        gap: 18px;
-        padding: 24px 24px 22px;
-        min-height: 100%;
-      }
-
-      .status-strip {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 16px;
-        padding-bottom: 14px;
-        border-bottom: 1px solid rgba(16,32,47,0.08);
-      }
-
-      .status-kicker {
-        font-size: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.16em;
-        color: var(--muted);
-        margin-bottom: 6px;
-      }
-
-      .status-strip strong {
-        font-size: 20px;
-      }
-
-      .trust-grid {
-        display: grid;
+      .hero-meta {
         grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .trust-cell,
+      .summary-block,
+      .capture-summary-card,
+      .capture-history-item,
+      .capture-history-empty,
+      .one-time-key,
+      .capture-summary,
+      .step-link,
+      .section-panel {
+        border: 1px solid var(--line);
+        background: rgba(255,255,255,0.04);
+      }
+
+      .trust-grid,
+      .summary-strip,
+      .capture-summary-grid,
+      .field-grid {
+        display: grid;
+        grid-template-columns: 1fr;
         gap: 12px;
       }
 
-      .trust-cell {
-        min-height: 132px;
+      .trust-cell,
+      .summary-block,
+      .capture-summary-card,
+      .capture-history-item,
+      .capture-history-empty {
         padding: 16px;
-        border-radius: 22px;
-        background: rgba(255, 255, 255, 0.5);
-        border: 1px solid rgba(16, 32, 47, 0.08);
+        border-radius: 20px;
       }
 
-      .trust-cell span {
-        display: inline-block;
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 0.16em;
-        color: var(--muted);
-      }
-
-      .trust-cell h2 {
-        margin: 10px 0 6px;
-        font-size: 17px;
-        line-height: 1.2;
+      .trust-cell h2,
+      .summary-block strong,
+      .capture-summary-card strong {
+        margin: 8px 0 0;
+        font-size: 1rem;
       }
 
       .trust-cell p {
-        margin: 0;
-        color: rgba(16, 32, 47, 0.7);
-        font-size: 13px;
-        line-height: 1.5;
-      }
-
-      .rail-panel {
-        border-top: 1px solid rgba(16,32,47,0.08);
-        padding-top: 18px;
-      }
-
-      .trust-list {
-        display: grid;
-        gap: 10px;
-      }
-
-      .trust-item {
-        display: grid;
-        gap: 4px;
-      }
-
-      .trust-item strong {
-        font-size: 13px;
-      }
-
-      .trust-item span {
+        margin: 8px 0 0;
         color: var(--muted);
-        font-size: 12px;
-        line-height: 1.45;
+        line-height: 1.55;
       }
 
       .workspace {
-        width: min(var(--hero-max), calc(100% - 32px));
-        margin: 0 auto;
-        padding: 28px 0 64px;
+        padding: 0 0 72px;
         display: grid;
-        grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
-        gap: 30px;
+        gap: 18px;
       }
 
       .workspace-nav {
         position: sticky;
-        top: 22px;
-        align-self: start;
-        padding: 18px 0 12px;
-      }
-
-      .nav-label {
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 0.16em;
-        text-transform: uppercase;
-        color: var(--muted);
-        margin-bottom: 12px;
+        top: 12px;
+        z-index: 10;
+        padding: 14px;
+        border-radius: 24px;
+        border: 1px solid var(--line);
+        background: rgba(7, 14, 22, 0.9);
+        backdrop-filter: blur(16px);
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22);
       }
 
       .step-list {
-        display: grid;
-        gap: 8px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
       }
 
       .step-link {
         display: grid;
-        grid-template-columns: 36px 1fr;
+        grid-template-columns: auto 1fr;
         gap: 10px;
-        align-items: start;
+        align-items: center;
         padding: 10px 12px;
         border-radius: 18px;
-        border: 1px solid transparent;
-        transition: background-color 180ms ease, border-color 180ms ease, transform 180ms ease;
+        min-width: min(100%, 230px);
+        transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease;
       }
 
       .step-link:hover,
       .step-link.active {
-        background: rgba(255,255,255,0.66);
-        border-color: rgba(16,32,47,0.08);
-        transform: translateX(2px);
+        transform: translateY(-1px);
+        border-color: rgba(255, 209, 102, 0.22);
+        background: rgba(255, 209, 102, 0.1);
       }
 
       .step-index {
-        width: 36px;
-        height: 36px;
+        width: 34px;
+        height: 34px;
         border-radius: 12px;
         display: grid;
         place-items: center;
-        background: rgba(16,32,47,0.07);
+        background: rgba(255,255,255,0.06);
+        color: var(--muted);
         font-size: 12px;
-        font-weight: 700;
+        font-weight: 800;
       }
 
       .step-link.active .step-index {
-        background: linear-gradient(135deg, var(--accent), #0c5879);
-        color: #fff;
+        background: linear-gradient(135deg, var(--accent), var(--warning));
+        color: #08111a;
       }
 
       .step-copy strong {
         display: block;
         font-size: 13px;
-        margin-bottom: 3px;
+        margin-bottom: 2px;
       }
 
       .step-copy span {
@@ -380,88 +369,60 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
 
       .workspace-main {
         display: grid;
-        gap: 24px;
       }
 
       .section-panel {
-        position: relative;
         padding: 24px;
         border-radius: var(--radius-lg);
-        border: 1px solid rgba(255,255,255,0.6);
-        background: linear-gradient(180deg, rgba(255,255,255,0.68), rgba(255,252,247,0.8));
-        box-shadow: 0 18px 42px rgba(16, 32, 47, 0.08);
+        box-shadow: 0 18px 42px rgba(0, 0, 0, 0.18);
         backdrop-filter: blur(12px);
-        opacity: 0;
-        transform: translateY(24px);
-        transition: opacity 440ms ease, transform 440ms ease;
       }
 
-      .section-panel.in-view {
-        opacity: 1;
-        transform: translateY(0);
+      .section-panel[hidden] {
+        display: none;
       }
 
-      .section-head {
-        display: grid;
-        gap: 8px;
-        margin-bottom: 18px;
-      }
-
-      .section-number {
-        font-size: 12px;
-        letter-spacing: 0.16em;
-        text-transform: uppercase;
-        color: var(--muted);
+      .section-panel.active-panel {
+        display: block;
       }
 
       .section-head h2 {
-        margin: 0;
-        font-family: "Iowan Old Style", "Palatino Linotype", serif;
-        font-size: clamp(1.7rem, 2vw, 2.2rem);
-        letter-spacing: -0.035em;
-      }
-
-      .section-head p {
-        margin: 0;
-        max-width: 60ch;
-        color: rgba(16,32,47,0.72);
-        line-height: 1.55;
-      }
-
-      .field-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 14px 16px;
-      }
-
-      .field-grid.single {
-        grid-template-columns: 1fr;
-      }
-
-      .field-span-2 {
-        grid-column: 1 / -1;
+        font-size: clamp(1.8rem, 4vw, 2.35rem);
       }
 
       .field {
-        display: grid;
-        gap: 6px;
+        gap: 7px;
       }
 
-      .field-label {
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 0.16em;
-        color: var(--muted);
-        font-weight: 700;
+      .field-span-2 {
+        grid-column: auto;
+      }
+
+      .checkbox-field {
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 12px 14px;
+        background: rgba(255,255,255,0.03);
+      }
+
+      .checkbox-field .field-label {
+        margin: 0;
+      }
+
+      .checkbox-field input {
+        width: 20px;
+        height: 20px;
       }
 
       input,
       textarea,
       select {
         width: 100%;
-        border: 1px solid rgba(16,32,47,0.12);
+        border: 1px solid var(--line);
         border-radius: 16px;
-        background: rgba(255,255,255,0.82);
+        background: rgba(255,255,255,0.05);
         color: var(--ink);
         font: inherit;
         padding: 13px 14px;
@@ -472,9 +433,14 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
       textarea:focus,
       select:focus {
         outline: none;
-        border-color: rgba(13,109,103,0.48);
-        box-shadow: 0 0 0 4px rgba(13,109,103,0.11);
-        background: rgba(255,255,255,0.95);
+        border-color: rgba(255, 209, 102, 0.36);
+        box-shadow: 0 0 0 4px rgba(255, 209, 102, 0.08);
+        background: rgba(255,255,255,0.08);
+      }
+
+      input::placeholder,
+      textarea::placeholder {
+        color: #6f8195;
       }
 
       textarea {
@@ -482,55 +448,8 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
         resize: vertical;
       }
 
-      .button-row {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        margin-top: 18px;
-      }
-
-      button {
-        appearance: none;
-        border: 0;
-        border-radius: 999px;
-        padding: 12px 16px;
-        min-height: 44px;
-        font: inherit;
-        font-size: 13px;
-        font-weight: 700;
-        letter-spacing: 0.01em;
-        cursor: pointer;
-        color: #fff;
-        background: linear-gradient(135deg, var(--accent), #0c5879);
-        transition: transform 180ms ease, opacity 180ms ease, box-shadow 180ms ease;
-        box-shadow: 0 12px 22px rgba(12, 88, 121, 0.16);
-      }
-
-      button:hover {
-        transform: translateY(-1px);
-      }
-
-      button.secondary {
-        background: rgba(16,32,47,0.8);
-        box-shadow: none;
-      }
-
-      button.danger {
-        background: linear-gradient(135deg, var(--danger), #842645);
-        box-shadow: 0 12px 22px rgba(155,53,81,0.18);
-      }
-
-      button.ghost {
-        background: rgba(255,255,255,0.78);
-        color: var(--ink);
-        border: 1px solid rgba(16,32,47,0.12);
-        box-shadow: none;
-      }
-
       .output-shell {
         margin-top: 18px;
-        display: grid;
-        gap: 10px;
       }
 
       .output-head {
@@ -540,21 +459,14 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
         gap: 12px;
       }
 
-      .output-head span {
-        font-size: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.16em;
-        color: var(--muted);
-      }
-
       pre {
         margin: 0;
         padding: 16px;
         border-radius: 20px;
         border: 1px solid rgba(255,255,255,0.08);
         background:
-          radial-gradient(circle at 90% 8%, rgba(89, 168, 202, 0.18), transparent 26%),
-          linear-gradient(180deg, #101925, #0a121b);
+          radial-gradient(circle at 90% 8%, rgba(115, 210, 222, 0.14), transparent 26%),
+          linear-gradient(180deg, #0d1823, #08111a);
         color: var(--output-ink);
         min-height: 190px;
         max-height: 360px;
@@ -562,33 +474,6 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
         font-size: 12px;
         line-height: 1.55;
         box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
-      }
-
-      .summary-strip {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 12px;
-        margin-top: 18px;
-      }
-
-      .summary-block {
-        padding: 14px 16px;
-        border-radius: 18px;
-        background: rgba(255,255,255,0.54);
-        border: 1px solid rgba(16,32,47,0.08);
-      }
-
-      .summary-block strong {
-        display: block;
-        margin-top: 6px;
-        font-size: 17px;
-      }
-
-      .summary-block span {
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 0.16em;
-        color: var(--muted);
       }
 
       .one-time-key {
@@ -614,17 +499,17 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
         color: rgba(241,246,255,0.8);
       }
 
-      .capture-preview {
-        display: grid;
-        gap: 12px;
-        margin-top: 18px;
+      .one-time-key input {
+        background: rgba(255,255,255,0.08);
+        color: #fff;
+        border-color: rgba(255,255,255,0.12);
       }
 
       .capture-frame {
         position: relative;
         overflow: hidden;
         border-radius: 22px;
-        border: 1px solid rgba(16, 32, 47, 0.1);
+        border: 1px solid var(--line);
         background: rgba(16, 24, 35, 0.92);
         min-height: 280px;
       }
@@ -635,7 +520,6 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
         padding: 24px;
         color: rgba(215, 233, 251, 0.72);
         font-size: 13px;
-        line-height: 1.5;
       }
 
       .capture-frame img {
@@ -651,63 +535,11 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
         height: 16px;
         border-radius: 999px;
         border: 2px solid #fff;
-        background: rgba(13, 109, 103, 0.9);
-        box-shadow: 0 0 0 4px rgba(13, 109, 103, 0.22);
+        background: rgba(255, 140, 66, 0.92);
+        box-shadow: 0 0 0 4px rgba(255, 140, 66, 0.2);
         transform: translate(-50%, -50%);
         pointer-events: none;
         display: none;
-      }
-
-      .capture-selection {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 12px;
-        color: var(--muted);
-        font-size: 12px;
-        line-height: 1.5;
-      }
-
-      .capture-summary {
-        display: grid;
-        gap: 12px;
-        margin-top: 18px;
-        padding: 16px 18px;
-        border-radius: 22px;
-        border: 1px solid rgba(16,32,47,0.08);
-        background: rgba(255,255,255,0.6);
-      }
-
-      .capture-summary.empty {
-        color: var(--muted);
-      }
-
-      .capture-summary-grid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 12px;
-      }
-
-      .capture-summary-card {
-        padding: 14px;
-        border-radius: 18px;
-        background: rgba(255,255,255,0.72);
-        border: 1px solid rgba(16,32,47,0.08);
-      }
-
-      .capture-summary-card span {
-        display: block;
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 0.16em;
-        color: var(--muted);
-      }
-
-      .capture-summary-card strong {
-        display: block;
-        margin-top: 8px;
-        font-size: 15px;
-        line-height: 1.35;
       }
 
       .capture-summary-list {
@@ -715,36 +547,7 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
         gap: 8px;
         margin: 0;
         padding-left: 18px;
-        color: rgba(16, 32, 47, 0.76);
         font-size: 13px;
-        line-height: 1.5;
-      }
-
-      .capture-history-list {
-        display: grid;
-        gap: 10px;
-      }
-
-      .capture-history-item {
-        padding: 14px 16px;
-        border-radius: 18px;
-        border: 1px solid rgba(16,32,47,0.08);
-        background: rgba(255,255,255,0.68);
-      }
-
-      .capture-history-head {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 12px;
-        margin-bottom: 8px;
-      }
-
-      .capture-history-id {
-        font-size: 12px;
-        font-weight: 700;
-        color: var(--ink);
-        word-break: break-all;
       }
 
       .capture-badge {
@@ -757,64 +560,36 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.12em;
-        border: 1px solid rgba(16,32,47,0.08);
+        border: 1px solid var(--line);
       }
 
       .capture-badge.ready,
       .capture-badge.completed {
-        color: #0b5b49;
-        background: rgba(224, 247, 237, 0.88);
+        color: #08111a;
+        background: rgba(120, 219, 169, 0.9);
       }
 
       .capture-badge.cancelled {
-        color: #8a5a1e;
-        background: rgba(255, 243, 223, 0.92);
+        color: #08111a;
+        background: rgba(255, 209, 102, 0.92);
       }
 
-      .capture-badge.failed {
-        color: #862b45;
-        background: rgba(255, 239, 244, 0.94);
-      }
-
-      .capture-meta {
-        display: grid;
-        gap: 4px;
-        color: var(--muted);
-        font-size: 12px;
-        line-height: 1.45;
-      }
-
-      .capture-history-empty {
-        padding: 16px;
-        border-radius: 18px;
-        background: rgba(255,255,255,0.54);
-        color: var(--muted);
-        font-size: 13px;
-      }
-
-      .one-time-key input {
-        background: rgba(255,255,255,0.08);
+      .capture-badge.failed,
+      .capture-badge.interrupted {
         color: #fff;
-        border-color: rgba(255,255,255,0.12);
-      }
-
-      .micro-copy {
-        margin-top: 12px;
-        color: var(--muted);
-        font-size: 12px;
-        line-height: 1.5;
+        background: rgba(217, 80, 111, 0.92);
       }
 
       .banner {
         position: fixed;
-        right: 20px;
-        bottom: 20px;
-        max-width: min(520px, calc(100% - 32px));
+        right: 18px;
+        bottom: 18px;
+        max-width: min(560px, calc(100% - 24px));
         padding: 14px 16px;
         border-radius: 18px;
-        border: 1px solid rgba(16,32,47,0.08);
-        background: rgba(255,255,255,0.88);
-        box-shadow: 0 24px 50px rgba(16, 32, 47, 0.12);
+        border: 1px solid var(--line);
+        background: rgba(10, 18, 28, 0.92);
+        box-shadow: 0 24px 50px rgba(0, 0, 0, 0.24);
         font-size: 13px;
         line-height: 1.45;
         backdrop-filter: blur(14px);
@@ -822,66 +597,37 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
       }
 
       .banner.ok {
-        color: #0b5b49;
-        border-color: rgba(11, 91, 73, 0.18);
-        background: rgba(236, 250, 244, 0.95);
+        color: var(--success);
+        border-color: rgba(120, 219, 169, 0.22);
       }
 
       .banner.err {
-        color: #862b45;
-        border-color: rgba(134, 43, 69, 0.18);
-        background: rgba(255, 242, 246, 0.95);
-      }
-
-      .mobile-jump {
-        display: none;
-      }
-
-      @media (max-width: 1080px) {
-        .hero-inner,
-        .workspace {
-          grid-template-columns: 1fr;
-        }
-
-        .brand-rail,
-        .hero-panel {
-          min-height: auto;
-        }
-
-        .workspace-nav {
-          position: static;
-          padding-top: 0;
-        }
+        color: #ffb6c7;
+        border-color: rgba(217, 80, 111, 0.24);
       }
 
       @media (max-width: 840px) {
-        .trust-grid,
-        .summary-strip,
-        .field-grid,
-        .capture-summary-grid {
-          grid-template-columns: 1fr;
-        }
-
-        .hero-inner {
-          width: min(100%, calc(100% - 24px));
-          padding-top: 16px;
-        }
-
+        .hero,
         .workspace {
-          width: min(100%, calc(100% - 24px));
-          padding-top: 22px;
-        }
-
-        .brand-rail {
-          gap: 20px;
+          width: min(100%, calc(100% - 20px));
         }
 
         .hero-copy h1 {
           max-width: 10ch;
         }
 
-        .mobile-jump {
-          display: inline-flex;
+        .step-list {
+          flex-wrap: nowrap;
+          overflow-x: auto;
+          padding-bottom: 4px;
+        }
+
+        .step-link {
+          min-width: 220px;
+        }
+
+        .hero-meta {
+          grid-template-columns: 1fr;
         }
       }
     </style>
@@ -889,139 +635,100 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
   <body>
     <header class="hero">
       <div class="hero-inner">
-        <aside class="brand-rail">
-          <div class="brand-lockup">
-            <div class="brand-badge">CUA</div>
-            <div>Control Plane</div>
+        <div class="brand-lockup">
+          <div class="brand-badge">CUA</div>
+          <div>Computer Use Agent, Missing Common Precautions</div>
+        </div>
+
+        <div class="hero-copy">
+          <p class="eyebrow">All vibes. Some guardrails. Dark mode by default.</p>
+          <h1>The control panel for doing secure-ish things on secure websites.</h1>
+          <p>
+            The repo works, the hardening effort happened, and this is the part where we admit both statements in the same breath.
+            Users get their own login session, their own model key, their own machine credentials, and enough connection policy to keep the duct tape pointed in a professionally cautious direction.
+          </p>
+          <div class="hero-actions">
+            <a class="hero-button primary" href="#session-step">Start with the session tab</a>
+            <a class="hero-button secondary" href="/">Back to the manifesto</a>
           </div>
+        </div>
 
-          <div class="hero-copy">
-            <p class="eyebrow">Secure onboarding for autonomous browser work</p>
-            <h1>Connect users, issue keys, and scope trust.</h1>
-            <p>
-              This console turns browser automation into a deliberate access layer: one-time login, scoped
-              machine keys, connection policies, and secret references that stay encrypted end to end.
-            </p>
-            <div class="hero-actions">
-              <a class="hero-button primary" href="#session-step">Start with email login</a>
-              <a class="hero-button secondary mobile-jump" href="#keys-step">Jump to keys</a>
-            </div>
-          </div>
-
-          <div class="rail-panel trust-list">
-            <div class="trust-item">
-              <strong>Least-privilege by default</strong>
-              <span>Connections and secret refs are constrained to the hosts and paths a user actually approves.</span>
-            </div>
-            <div class="trust-item">
-              <strong>Secrets never become prompt text</strong>
-              <span>Operators and orchestrators work with refs, policy, and audit outcomes rather than raw values.</span>
-            </div>
-            <div class="trust-item">
-              <strong>Built for developers, readable for everyone</strong>
-              <span>Every step is explicit enough for implementation teams and simple enough for customer onboarding.</span>
-            </div>
-          </div>
-        </aside>
-
-        <section class="hero-panel" aria-label="Trust overview">
-          <div class="hero-panel-inner">
-            <div class="status-strip">
-              <div>
-                <div class="status-kicker">Current workspace</div>
-                <strong>Developer-first onboarding</strong>
-              </div>
-              <div class="hero-actions">
-                <a class="hero-button secondary" href="#connections-step">Map a connection</a>
-              </div>
-            </div>
-
-            <div class="trust-grid">
-              <article class="trust-cell">
-                <span>Identity</span>
-                <h2>OTP login and session refresh</h2>
-                <p>Users authenticate with a code flow first, then everything else inherits that verified context.</p>
-              </article>
-              <article class="trust-cell">
-                <span>Machine access</span>
-                <h2>Issue API keys with narrow scope</h2>
-                <p>Provision keys once, then bind them to the exact connections the user wants available to MCP clients.</p>
-              </article>
-              <article class="trust-cell">
-                <span>Execution trust</span>
-                <h2>Secrets stay encrypted and referenced</h2>
-                <p>Approved hosts, path prefixes, and fill plans define where credentials can be used and nowhere else.</p>
-              </article>
-            </div>
-
-            <div class="summary-strip">
-              <div class="summary-block">
-                <span>1</span>
-                <strong>Verify the user</strong>
-              </div>
-              <div class="summary-block">
-                <span>2</span>
-                <strong>Provision machine trust</strong>
-              </div>
-              <div class="summary-block">
-                <span>3</span>
-                <strong>Map utility access</strong>
-              </div>
-            </div>
-          </div>
-        </section>
+        <div class="hero-meta">
+          <article class="trust-cell">
+            <span>Posture</span>
+            <h2>Secure enough to demo</h2>
+            <p>OTP auth, scoped keys, encrypted refs, and just enough honesty to warn you what kind of operation you are joining.</p>
+          </article>
+          <article class="trust-cell">
+            <span>Velocity</span>
+            <h2>Fast enough to regret</h2>
+            <p>The interface moves quickly because the runtime expects users to set policy before the automation gets entrepreneurial.</p>
+          </article>
+          <article class="trust-cell">
+            <span>Sales copy</span>
+            <h2>Vague enough to sell</h2>
+            <p>Everything below is real functionality wrapped in the sort of branding that would benefit from adult supervision.</p>
+          </article>
+        </div>
       </div>
     </header>
 
     <main class="workspace">
-      <aside class="workspace-nav">
-        <div class="nav-label">Workflow</div>
+      <div class="workspace-nav">
+        <div class="nav-label">Tabs for the brave</div>
         <nav class="step-list" aria-label="Onboarding steps">
           <a class="step-link" href="#session-step" data-step-link="session-step">
             <div class="step-index">01</div>
             <div class="step-copy">
               <strong>Session</strong>
-              <span>Verify email, establish the browser session, and inspect the active auth context.</span>
+              <span>Start with the human so the automation has someone specific to authenticate before it disappoints them.</span>
             </div>
           </a>
           <a class="step-link" href="#llm-step" data-step-link="llm-step">
             <div class="step-index">02</div>
             <div class="step-copy">
               <strong>Model keys</strong>
-              <span>Store each user's OpenAI key privately and mark exactly one active key for CUA execution.</span>
+              <span>Store a user-owned OpenAI key instead of one shared key to centralize every future regret.</span>
             </div>
           </a>
           <a class="step-link" href="#keys-step" data-step-link="keys-step">
             <div class="step-index">03</div>
             <div class="step-copy">
               <strong>API keys</strong>
-              <span>Issue one-time machine keys and bind them to exactly the connections they should reach.</span>
+              <span>Issue machine credentials once and pray nobody screenshots them in Slack or a lunch-and-learn deck.</span>
             </div>
           </a>
           <a class="step-link" href="#connections-step" data-step-link="connections-step">
             <div class="step-index">04</div>
             <div class="step-copy">
               <strong>Connections</strong>
-              <span>Declare the base host, approved subdomains, and path prefixes that define the safe boundary.</span>
+              <span>Decide where the robot is actually allowed to go before it discovers a new and exciting interpretation of scope.</span>
             </div>
           </a>
           <a class="step-link" href="#secrets-step" data-step-link="secrets-step">
             <div class="step-index">05</div>
             <div class="step-copy">
               <strong>Secret refs</strong>
-              <span>Store encrypted refs, preview fill plans, and prove the execution layer only reaches allowed URLs.</span>
+              <span>Keep the actual secrets encrypted and let the fill plans do the dangerous flirting on your behalf.</span>
+            </div>
+          </a>
+          <a class="step-link" href="#runs-step" data-step-link="runs-step">
+            <div class="step-index">06</div>
+            <div class="step-copy">
+              <strong>Runs and privacy</strong>
+              <span>Inspect what was retained, delete what should not outlive the bit, and decide how forgetful the machine should act.</span>
             </div>
           </a>
         </nav>
-      </aside>
+      </div>
 
       <div class="workspace-main">
         <section class="section-panel" id="session-step" data-reveal>
           <div class="section-head">
             <div class="section-number">Step 01 · Identity</div>
-            <h2>Log the user in without making the flow feel like infrastructure.</h2>
+            <h2>Log the user in before the robot starts making assumptions.</h2>
             <p>
-              Start with the human trust layer. Request a login code, verify it, and keep the session fresh before you issue keys or map any utility access.
+              Start with the human trust layer. Request a login code, verify it, and keep the session fresh before you issue keys, map utilities, or otherwise let the automation build character.
             </p>
           </div>
 
@@ -1032,11 +739,11 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
             </label>
             <label class="field">
               <span class="field-label">Display name</span>
-              <input id="displayName" placeholder="Optional but helpful for audit trails" />
+              <input id="displayName" placeholder="Optional, but helpful when the audit trail needs a protagonist" />
             </label>
             <label class="field field-span-2">
               <span class="field-label">Verification code</span>
-              <input id="otpCode" placeholder="Enter the one-time code you received" />
+              <input id="otpCode" placeholder="Enter the one-time code before the vibes expire" />
             </label>
           </div>
 
@@ -1056,9 +763,9 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
         <section class="section-panel" id="llm-step" data-reveal>
           <div class="section-head">
             <div class="section-number">Step 02 · Model credentials</div>
-            <h2>Bind browser execution to the user’s own OpenAI key instead of any shared server credential.</h2>
+            <h2>Use the user’s own OpenAI key so accountability can remain correctly distributed.</h2>
             <p>
-              Each user can store multiple OpenAI keys, activate one at a time, and rotate without touching anyone else’s runs. The raw key is accepted once, encrypted immediately, and never rendered back.
+              Each user can store multiple OpenAI keys, activate one at a time, and rotate without touching anyone else’s runs. The raw key is accepted once, encrypted immediately, and never rendered back into the light.
             </p>
           </div>
 
@@ -1071,7 +778,7 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
             </label>
             <label class="field">
               <span class="field-label">Key label</span>
-              <input id="llmKeyName" placeholder="Primary OpenAI key, staging budget key, personal sandbox" />
+              <input id="llmKeyName" placeholder="Primary OpenAI key, staging budget key, emergency vibes key" />
             </label>
             <label class="field field-span-2">
               <span class="field-label">OpenAI API key</span>
@@ -1079,11 +786,11 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
             </label>
             <label class="field">
               <span class="field-label">Activate key id</span>
-              <input id="activateLlmKeyId" placeholder="Paste an existing model key id to make it active" />
+              <input id="activateLlmKeyId" placeholder="Paste an existing model key id to make it the current mistake" />
             </label>
             <label class="field">
               <span class="field-label">Revoke key id</span>
-              <input id="revokeLlmKeyId" placeholder="Revoke a stored model key by id" />
+              <input id="revokeLlmKeyId" placeholder="Revoke a stored model key by id before finance notices" />
             </label>
           </div>
 
@@ -1103,24 +810,24 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
         <section class="section-panel" id="keys-step" data-reveal>
           <div class="section-head">
             <div class="section-number">Step 03 · Machine trust</div>
-            <h2>Issue API keys once, then let machines carry only the access they should.</h2>
+            <h2>Issue API keys once, then treat screenshots like an adversary.</h2>
             <p>
-              Keys are shown once and then redacted everywhere else. Keep them narrow, map them to approved connections, and revoke them the moment you no longer need them.
+              Keys are shown once and then redacted everywhere else. Keep them narrow, map them to approved connections, and revoke them the moment a machine no longer deserves your confidence.
             </p>
           </div>
 
           <div class="field-grid">
             <label class="field">
               <span class="field-label">Key label</span>
-              <input id="keyName" placeholder="Primary workstation, internal agent, staging automation" />
+              <input id="keyName" placeholder="Primary workstation, internal agent, temporary chaos gremlin" />
             </label>
             <label class="field">
               <span class="field-label">Allowed connection IDs</span>
-              <input id="keyConnIds" placeholder="Comma-separated connection ids to scope this key" />
+              <input id="keyConnIds" placeholder="Comma-separated connection ids this key is allowed to bother" />
             </label>
             <label class="field field-span-2">
               <span class="field-label">Revoke key by id</span>
-              <input id="revokeKeyId" placeholder="Paste an existing key id to revoke it" />
+              <input id="revokeKeyId" placeholder="Paste an existing key id to revoke it with prejudice" />
             </label>
           </div>
 
@@ -1132,7 +839,7 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
 
           <div id="oneTimeKeyPanel" class="one-time-key">
             <strong>One-time API key</strong>
-            <p>Copy this now. It will not be rendered again and it is intentionally hidden from the generic response log below.</p>
+            <p>Copy this now. It will not be rendered again and it is intentionally hidden from the generic response log, future excuses, and forensic nostalgia.</p>
             <label class="field">
               <span class="field-label" style="color: rgba(241,246,255,0.72)">Secret value</span>
               <input id="oneTimeKeyValue" readonly />
@@ -1152,16 +859,16 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
         <section class="section-panel" id="connections-step" data-reveal>
           <div class="section-head">
             <div class="section-number">Step 04 · Utility mapping</div>
-            <h2>Define where automation is trusted to go before it ever touches a credential.</h2>
+            <h2>Define where automation may roam before it discovers a new frontier.</h2>
             <p>
-              A connection is a policy boundary: primary host, approved subdomains, permissive path prefixes, and the auth method you expect the CUA runtime to prefer first.
+              A connection is a policy boundary: primary host, approved subdomains, permissive path prefixes, and the auth method you expect the CUA runtime to prefer before it gets any creative ideas.
             </p>
           </div>
 
           <div class="field-grid">
             <label class="field">
               <span class="field-label">Connection name</span>
-              <input id="connName" placeholder="Name the utility the way a user would recognize it" />
+              <input id="connName" placeholder="Name the utility the way a user, auditor, or future you would recognize it" />
             </label>
             <label class="field">
               <span class="field-label">Base host</span>
@@ -1169,11 +876,11 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
             </label>
             <label class="field field-span-2">
               <span class="field-label">Allowed hosts</span>
-              <input id="connHosts" placeholder="Add approved subdomains or partner hosts separated by commas" />
+              <input id="connHosts" placeholder="Add approved subdomains or partner hosts, comma by comma, like you mean it" />
             </label>
             <label class="field field-span-2">
               <span class="field-label">Allowed path prefixes</span>
-              <input id="connPaths" placeholder="/, /auth, /dashboard, /release-notes" />
+              <input id="connPaths" placeholder="/, /auth, /dashboard, /release-notes, /places-the-bot-may-behave" />
             </label>
             <label class="field">
               <span class="field-label">Preferred auth method</span>
@@ -1193,7 +900,7 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
             </label>
             <label class="field field-span-2">
               <span class="field-label">Patch connection id</span>
-              <input id="patchConnId" placeholder="Use this to pause or disable an existing connection" />
+              <input id="patchConnId" placeholder="Use this to pause or disable an existing connection before it gets ideas" />
             </label>
           </div>
 
@@ -1204,7 +911,7 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
           </div>
 
           <p class="micro-copy">
-            Approved hosts and path prefixes are the contract the execution layer must satisfy before any secret reference can be resolved.
+            Approved hosts and path prefixes are the contract the execution layer must satisfy before any secret reference can be resolved, which is the sober sentence hidden inside this entire bit.
           </p>
 
           <div class="output-shell">
@@ -1216,9 +923,9 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
         <section class="section-panel" id="secrets-step" data-reveal>
           <div class="section-head">
             <div class="section-number">Step 05 · Secret references</div>
-            <h2>Store only what the runtime needs, then prove it can be applied safely.</h2>
+            <h2>Store only what the runtime needs, then verify it does not freelance with credentials.</h2>
             <p>
-              Secret values and saved auth states are encrypted at rest and never displayed back after creation. Build a fill plan against an exact URL to confirm the runtime sees only the references it should use.
+              Secret values and saved auth states are encrypted at rest and never displayed back after creation. Build a fill plan against an exact URL to confirm the runtime sees only the references it should use and nothing it merely finds interesting.
             </p>
           </div>
 
@@ -1239,7 +946,7 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
             </label>
             <label class="field field-span-2">
               <span class="field-label">Secret value</span>
-              <textarea id="secretValue" placeholder="Paste the value once. It will be encrypted and cleared from this form after submission."></textarea>
+              <textarea id="secretValue" placeholder="Paste the value once. It will be encrypted and cleared from this form after submission like this never happened."></textarea>
             </label>
             <label class="field">
               <span class="field-label">Delete secret id</span>
@@ -1270,7 +977,7 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
             </label>
             <label class="field field-span-2">
               <span class="field-label">Auth state payload</span>
-              <textarea id="authStatePayload" placeholder='Paste Playwright storageState JSON or a cookie bundle JSON object.'></textarea>
+              <textarea id="authStatePayload" placeholder='Paste Playwright storageState JSON or a cookie bundle JSON object, preferably the one you meant to use.'></textarea>
             </label>
             <label class="field">
               <span class="field-label">Delete auth state id</span>
@@ -1278,7 +985,7 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
             </label>
             <label class="field field-span-2">
               <span class="field-label">Capture session id</span>
-              <input id="captureSessionId" placeholder="Start a capture session to populate this automatically" />
+              <input id="captureSessionId" placeholder="Start a capture session to populate this automatically and spare your wrists" />
             </label>
             <label class="field field-span-2">
               <span class="field-label">Capture start URL</span>
@@ -1290,15 +997,15 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
             </label>
             <label class="field">
               <span class="field-label">Type text</span>
-              <input id="captureTypeText" placeholder="Text to type into the controlled browser" />
+              <input id="captureTypeText" placeholder="Text to type into the controlled browser without editorializing" />
             </label>
             <label class="field">
               <span class="field-label">Keypress combo</span>
-              <input id="captureKeypress" placeholder="Tab or Control+L" />
+              <input id="captureKeypress" placeholder="Tab or Control+L or some other carefully chosen impulse" />
             </label>
             <label class="field">
               <span class="field-label">Click position</span>
-              <input id="captureClick" placeholder="x,y" />
+              <input id="captureClick" placeholder="x,y coordinates for the next bad but authorized idea" />
             </label>
             <label class="field">
               <span class="field-label">Scroll delta Y</span>
@@ -1306,7 +1013,7 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
             </label>
             <label class="field">
               <span class="field-label">Wait milliseconds</span>
-              <input id="captureWaitMs" placeholder="1000" />
+              <input id="captureWaitMs" placeholder="1000 milliseconds of reflection" />
             </label>
           </div>
 
@@ -1336,10 +1043,10 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
             <div id="captureFrame" class="capture-frame empty">
               <img id="captureImage" alt="Live capture session preview" style="display:none" />
               <div id="captureMarker" class="capture-marker" aria-hidden="true"></div>
-              <div id="captureEmptyText">Start an auth capture session to control an isolated browser and save auth state directly from the flow.</div>
+              <div id="captureEmptyText">Start an auth capture session to control an isolated browser and save auth state directly from the flow without improvising around login screens.</div>
             </div>
             <div class="capture-selection">
-              <span>Click inside the screenshot to populate the click position for the next action.</span>
+              <span>Click inside the screenshot to populate the click position for the next action and reduce coordinate-based fiction.</span>
               <strong id="captureSelectionText">No coordinate selected</strong>
             </div>
           </div>
@@ -1364,6 +1071,66 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
             <div id="captureHistoryOut" class="capture-history-empty">No capture history loaded yet.</div>
           </div>
         </section>
+
+        <section class="section-panel" id="runs-step" data-reveal>
+          <div class="section-head">
+            <div class="section-number">Step 06 · Runs and privacy</div>
+            <h2>Decide what the system remembers, what it forgets, and how suspiciously clean you want the trail.</h2>
+            <p>
+              Runtime settings stay user-scoped. Retention determines cleanup windows, while ZDR disables event and output persistence so the system keeps only the minimum needed to track run state and avoid becoming a scrapbook.
+            </p>
+          </div>
+
+          <div class="field-grid">
+            <label class="field">
+              <span class="field-label">Run retention days</span>
+              <input id="runtimeRetentionDays" type="number" min="1" max="365" placeholder="30" />
+            </label>
+            <label class="field">
+              <span class="field-label">Run detail id</span>
+              <input id="runDetailId" placeholder="Paste a run id to inspect the full stored aftermath" />
+            </label>
+            <label class="field field-span-2">
+              <span class="field-label">Delete run id</span>
+              <input id="deleteRunId" placeholder="Delete a specific run by id if history no longer deserves rights" />
+            </label>
+            <label class="field checkbox-field">
+              <span class="field-label">Zero-data retention</span>
+              <input id="runtimeZdrEnabled" type="checkbox" />
+            </label>
+            <label class="field checkbox-field">
+              <span class="field-label">Persist run events</span>
+              <input id="runtimePersistEvents" type="checkbox" checked />
+            </label>
+            <label class="field checkbox-field">
+              <span class="field-label">Persist run output</span>
+              <input id="runtimePersistOutput" type="checkbox" checked />
+            </label>
+          </div>
+
+          <div class="button-row">
+            <button id="loadRuntimeSettings">Load settings</button>
+            <button class="secondary" id="saveRuntimeSettings">Save settings</button>
+            <button class="secondary" id="listRuns">List runs</button>
+            <button class="ghost" id="getRun">Inspect run</button>
+            <button class="danger" id="deleteRun">Delete run</button>
+          </div>
+
+          <div class="output-shell">
+            <div class="output-head"><span>Run history</span></div>
+            <div id="runsHistoryOut" class="capture-history-empty">No runs loaded yet.</div>
+          </div>
+
+          <div class="output-shell">
+            <div class="output-head"><span>Runtime settings log</span></div>
+            <pre id="runtimeSettingsOut">Runtime settings output</pre>
+          </div>
+
+          <div class="output-shell">
+            <div class="output-head"><span>Run detail</span></div>
+            <pre id="runDetailOut">Run detail output</pre>
+          </div>
+        </section>
       </div>
     </main>
 
@@ -1379,6 +1146,9 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
         secret: $('secretOut'),
         capture: $('captureOut'),
         captureHistory: $('captureHistoryOut'),
+        runtimeSettings: $('runtimeSettingsOut'),
+        runsHistory: $('runsHistoryOut'),
+        runDetail: $('runDetailOut'),
       };
       const banner = $('banner');
       const captureImage = $('captureImage');
@@ -1556,6 +1326,70 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
         }).join('');
       }
 
+      function applyRuntimeSettings(settings) {
+        $('runtimeRetentionDays').value = settings?.runRetentionDays ?? 30;
+        $('runtimeZdrEnabled').checked = Boolean(settings?.zdrEnabled);
+        $('runtimePersistEvents').checked = Boolean(settings?.persistRunEvents);
+        $('runtimePersistOutput').checked = Boolean(settings?.persistRunOutput);
+      }
+
+      function syncRuntimeCheckboxes() {
+        const zdrEnabled = $('runtimeZdrEnabled').checked;
+        $('runtimePersistEvents').disabled = zdrEnabled;
+        $('runtimePersistOutput').disabled = zdrEnabled;
+        if (zdrEnabled) {
+          $('runtimePersistEvents').checked = false;
+          $('runtimePersistOutput').checked = false;
+        }
+      }
+
+      function renderRuns(data) {
+        const body = data?.body || {};
+        const runs = Array.isArray(body.runs) ? body.runs : [];
+        if (!runs.length) {
+          out.runsHistory.className = 'capture-history-empty';
+          out.runsHistory.innerHTML = 'No runs stored for this user.';
+          return;
+        }
+
+        out.runsHistory.className = 'capture-history-list';
+        out.runsHistory.innerHTML = runs.map((run) => {
+          const status = escapeHtml(run.status || 'unknown').toLowerCase();
+          const task = escapeHtml(run.input?.task || 'No task persisted');
+          const connectionId = escapeHtml(run.input?.connectionId || 'none');
+          const summary = escapeHtml(run.outputSummary || run.error || 'No summary persisted');
+          return '<article class="capture-history-item">' +
+            '<div class="capture-history-head">' +
+              '<div class="capture-history-id">' + escapeHtml(run.id || '') + '</div>' +
+              '<span class="capture-badge ' + status + '">' + status + '</span>' +
+            '</div>' +
+            '<div class="capture-meta">' +
+              '<div><strong>Created:</strong> ' + escapeHtml(formatTimestamp(run.createdAt)) + '</div>' +
+              '<div><strong>Updated:</strong> ' + escapeHtml(formatTimestamp(run.updatedAt)) + '</div>' +
+              '<div><strong>Connection:</strong> ' + connectionId + '</div>' +
+              '<div><strong>Task:</strong> ' + task + '</div>' +
+              '<div><strong>Summary:</strong> ' + summary + '</div>' +
+            '</div>' +
+          '</article>';
+        }).join('');
+      }
+
+      async function loadRuntimeSettings() {
+        const data = await api('/api/settings/runtime');
+        if (data.ok) {
+          applyRuntimeSettings(data.body?.settings || {});
+          syncRuntimeCheckboxes();
+        }
+        print(out.runtimeSettings, data);
+        return data;
+      }
+
+      async function loadRuns() {
+        const data = await api('/api/runs');
+        renderRuns(data);
+        return data;
+      }
+
       function renderCaptureSummary(data) {
         const body = data?.body || {};
         const authState = body.authState || null;
@@ -1655,20 +1489,43 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
         });
       }
 
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('in-view');
-            updateActiveSection(entry.target.id);
-          }
+      function activateSection(activeId, syncHash = true, shouldScroll = true) {
+        const fallback = sections[0];
+        const section = sections.find((entry) => entry.id === activeId) || fallback;
+        const resolvedId = section?.id || '';
+
+        sections.forEach((entry) => {
+          const isActive = entry.id === resolvedId;
+          entry.hidden = !isActive;
+          entry.classList.toggle('active-panel', isActive);
+          entry.classList.toggle('in-view', isActive);
         });
-      }, {
-        threshold: 0.24,
-        rootMargin: '-10% 0px -32% 0px',
+
+        updateActiveSection(resolvedId);
+
+        if (syncHash && resolvedId && window.location.hash !== '#' + resolvedId) {
+          history.replaceState(null, '', '#' + resolvedId);
+        }
+
+        if (shouldScroll && section) {
+          section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+
+      navLinks.forEach((link) => {
+        link.addEventListener('click', (event) => {
+          event.preventDefault();
+          activateSection(link.getAttribute('data-step-link') || 'session-step');
+        });
       });
 
-      sections.forEach((section) => observer.observe(section));
-      updateActiveSection('session-step');
+      window.addEventListener('hashchange', () => {
+        const hashTarget = decodeURIComponent(window.location.hash.replace(/^#/, ''));
+        activateSection(hashTarget || 'session-step', false, false);
+      });
+
+      activateSection(decodeURIComponent(window.location.hash.replace(/^#/, '')) || 'session-step', false, false);
+      syncRuntimeCheckboxes();
 
       $('requestCode').onclick = async () => {
         const email = requireEmail('email');
@@ -1996,6 +1853,60 @@ export const ONBOARDING_APP_HTML = `<!doctype html>
           requiredSecretTypes: splitCsv($('planTypes').value),
         });
         print(out.secret, data);
+      };
+
+      $('runtimeZdrEnabled').onchange = () => {
+        syncRuntimeCheckboxes();
+      };
+
+      $('loadRuntimeSettings').onclick = async () => {
+        await loadRuntimeSettings();
+      };
+
+      $('saveRuntimeSettings').onclick = async () => {
+        const runRetentionDays = Number($('runtimeRetentionDays').value || 30);
+        if (!Number.isFinite(runRetentionDays) || runRetentionDays < 1 || runRetentionDays > 365) {
+          setBanner('err', 'Run retention days must be between 1 and 365.');
+          $('runtimeRetentionDays').focus();
+          return;
+        }
+
+        const data = await api('/api/settings/runtime', 'PATCH', {
+          runRetentionDays,
+          zdrEnabled: $('runtimeZdrEnabled').checked,
+          persistRunEvents: $('runtimePersistEvents').checked,
+          persistRunOutput: $('runtimePersistOutput').checked,
+        });
+        if (data.ok) {
+          applyRuntimeSettings(data.body?.settings || {});
+          syncRuntimeCheckboxes();
+        }
+        print(out.runtimeSettings, data);
+      };
+
+      $('listRuns').onclick = async () => {
+        await loadRuns();
+      };
+
+      $('getRun').onclick = async () => {
+        const runId = requireText('runDetailId', 'Run detail ID');
+        if (!runId) return;
+        const data = await api('/api/runs/' + encodeURIComponent(runId));
+        print(out.runDetail, data);
+      };
+
+      $('deleteRun').onclick = async () => {
+        const runId = requireText('deleteRunId', 'Delete run ID');
+        if (!runId) return;
+        const data = await api('/api/runs/' + encodeURIComponent(runId), 'DELETE');
+        print(out.runDetail, data);
+        if (data.ok) {
+          $('deleteRunId').value = '';
+          if ($('runDetailId').value === runId) {
+            $('runDetailId').value = '';
+          }
+          await loadRuns();
+        }
       };
     </script>
   </body>
