@@ -335,7 +335,7 @@ export const LANDING_PAGE_HTML = `<!doctype html>
         <div class="brand"><div class="badge">CUA</div><span>Computer Use Agent, Missing Common Precautions</span></div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
           <span>Working product. Dubious serenity.</span>
-          <a class="button secondary" href="/sign-in" style="min-height:38px;padding:0 14px;">Sign in</a>
+          <a class="button primary" href="/sign-in" style="min-height:38px;padding:0 14px;">Sign in</a>
         </div>
       </div>
 

@@ -1941,6 +1941,34 @@ async function handleConnectionPatch(request: IncomingMessage, response: ServerR
   });
 }
 
+async function handleConnectionDelete(request: IncomingMessage, response: ServerResponse, connectionId: string): Promise<void> {
+  const auth = await requireAuth(request, response);
+  if (!auth) return;
+
+  const db = getPool();
+  const res = await db.query(
+    `
+    DELETE FROM connections
+    WHERE id = $1 AND user_id = $2
+    RETURNING id, name, base_host
+    `,
+    [connectionId, auth.userId],
+  );
+
+  if ((res.rowCount ?? 0) === 0) {
+    writeJson(response, 404, { error: 'Connection not found' });
+    return;
+  }
+
+  await logSecurityEvent(auth.userId, 'connection_deleted', 'connection', {
+    connectionId,
+    name: String(res.rows[0].name || ''),
+    baseHost: String(res.rows[0].base_host || ''),
+  });
+
+  writeJson(response, 200, { success: true });
+}
+
 export async function handleApiRequest(request: IncomingMessage, response: ServerResponse, url: URL): Promise<boolean> {
   if (!url.pathname.startsWith('/api/')) {
     return false;
@@ -2095,6 +2123,11 @@ export async function handleApiRequest(request: IncomingMessage, response: Serve
       return true;
     }
 
+    if (connectionMatch && request.method === 'DELETE') {
+      await handleConnectionDelete(request, response, connectionMatch[1]);
+      return true;
+    }
+
     const connectionSecretsMatch = url.pathname.match(/^\/api\/connections\/([^/]+)\/secrets$/);
     if (connectionSecretsMatch && request.method === 'GET') {
       await handleConnectionSecretsList(request, response, connectionSecretsMatch[1]);
@@ -2227,7 +2260,7 @@ export async function handleFrontendRequest(request: IncomingMessage, response: 
     return true;
   }
 
-  if (url.pathname === '/dashboard' || url.pathname === '/dashboard/') {
+  if (url.pathname === '/dashboard' || url.pathname === '/dashboard/' || url.pathname.startsWith('/dashboard/')) {
     const auth = await getAuthContext(request);
     if (!auth) {
       writeRedirect(response, '/sign-in');

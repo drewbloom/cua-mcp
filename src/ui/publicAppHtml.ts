@@ -5,7 +5,7 @@ export const PUBLIC_APP_HTML = `<!doctype html>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>CUA MCP Onboarding</title>
+    <title>CUA MCP Access</title>
     <meta name="theme-color" content="#ff8c42" />
     <meta name="apple-mobile-web-app-title" content="CUA MCP" />
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/brand/favicon-32x32.png" />
@@ -15,16 +15,18 @@ export const PUBLIC_APP_HTML = `<!doctype html>
     <link rel="manifest" href="/assets/brand/site.webmanifest" />
     <style>
       :root {
-        --bg: #050b11;
-        --bg-2: #09121b;
-        --ink: #eef5ff;
-        --muted: #92a5ba;
-        --line: rgba(161, 191, 220, 0.14);
-        --accent: #ff8c42;
-        --warning: #ffd166;
-        --success: #78dba9;
-        --danger: #d9506f;
-        --shadow: 0 28px 80px rgba(0, 0, 0, 0.36);
+        --bg: #f4efe6;
+        --bg-strong: #e8dcc7;
+        --panel: rgba(255, 251, 245, 0.9);
+        --panel-strong: #fffaf1;
+        --ink: #20160e;
+        --muted: #69584b;
+        --line: rgba(61, 42, 28, 0.14);
+        --accent: #df6f24;
+        --accent-strong: #b85618;
+        --success: #2d8c64;
+        --danger: #c34a42;
+        --shadow: 0 30px 90px rgba(77, 50, 28, 0.16);
       }
 
       * { box-sizing: border-box; }
@@ -33,11 +35,17 @@ export const PUBLIC_APP_HTML = `<!doctype html>
         margin: 0;
         min-height: 100vh;
         color: var(--ink);
-        font-family: "Avenir Next", "Segoe UI", sans-serif;
+        font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
         background:
-          radial-gradient(circle at 12% 0%, rgba(255, 140, 66, 0.18), transparent 28%),
-          radial-gradient(circle at 88% 14%, rgba(115, 210, 222, 0.16), transparent 26%),
-          linear-gradient(180deg, var(--bg) 0%, #08111a 42%, var(--bg-2) 100%);
+          radial-gradient(circle at top left, rgba(223, 111, 36, 0.16), transparent 26%),
+          radial-gradient(circle at bottom right, rgba(113, 156, 130, 0.16), transparent 24%),
+          linear-gradient(180deg, #f8f3ea 0%, var(--bg) 48%, var(--bg-strong) 100%);
+      }
+
+      body.signin-mode {
+        background:
+          radial-gradient(circle at top left, rgba(223, 111, 36, 0.1), transparent 22%),
+          linear-gradient(180deg, #f8f3ea 0%, #efe4d3 100%);
       }
 
       body::before {
@@ -46,11 +54,10 @@ export const PUBLIC_APP_HTML = `<!doctype html>
         inset: 0;
         pointer-events: none;
         background:
-          linear-gradient(rgba(255,255,255,0.016), rgba(255,255,255,0.016)),
-          linear-gradient(90deg, rgba(146, 165, 186, 0.05) 1px, transparent 1px),
-          linear-gradient(rgba(146, 165, 186, 0.04) 1px, transparent 1px);
-        background-size: auto, 40px 40px, 40px 40px;
-        mask-image: radial-gradient(circle at center, black 48%, transparent 92%);
+          linear-gradient(rgba(255,255,255,0.22), rgba(255,255,255,0.04)),
+          repeating-linear-gradient(90deg, rgba(61, 42, 28, 0.03) 0, rgba(61, 42, 28, 0.03) 1px, transparent 1px, transparent 40px),
+          repeating-linear-gradient(rgba(61, 42, 28, 0.025) 0, rgba(61, 42, 28, 0.025) 1px, transparent 1px, transparent 40px);
+        mask-image: radial-gradient(circle at center, black 58%, transparent 96%);
       }
 
       a {
@@ -58,322 +65,474 @@ export const PUBLIC_APP_HTML = `<!doctype html>
         text-decoration: none;
       }
 
+      button,
+      input {
+        font: inherit;
+      }
+
       .page {
-        width: min(1280px, calc(100% - 28px));
+        position: relative;
+        z-index: 1;
+        width: min(1120px, calc(100% - 32px));
         margin: 0 auto;
-        padding: 20px 0 72px;
-        display: grid;
-        gap: 18px;
+        padding: 20px 0 48px;
       }
 
-      .hero,
-      .panel,
-      .banner {
-        position: relative;
-        border: 1px solid var(--line);
-        border-radius: 30px;
-        background: linear-gradient(180deg, rgba(11, 20, 31, 0.9), rgba(8, 16, 25, 0.96));
-        box-shadow: var(--shadow);
-        overflow: hidden;
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 26px;
       }
 
-      .hero {
-        padding: 30px clamp(20px, 4vw, 40px) 34px;
-      }
-
-      .hero::before,
-      .panel::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        background:
-          radial-gradient(circle at 10% 0%, rgba(255, 140, 66, 0.2), transparent 26%),
-          radial-gradient(circle at 90% 10%, rgba(115, 210, 222, 0.16), transparent 24%);
-      }
-
-      .hero-inner,
-      .panel-inner {
-        position: relative;
-        display: grid;
-        gap: 20px;
-        justify-items: center;
-      }
-
-      .brand {
-        display: grid;
-        gap: 14px;
-        justify-items: center;
-        color: var(--muted);
-        font-size: 12px;
+      .brand-lockup {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 0.84rem;
+        letter-spacing: 0.14em;
         text-transform: uppercase;
-        letter-spacing: 0.18em;
+        color: var(--muted);
       }
 
       .brand-badge {
-        width: 48px;
-        height: 48px;
-        border-radius: 16px;
         display: grid;
         place-items: center;
-        color: #08111a;
-        font-weight: 900;
-        background: linear-gradient(135deg, var(--accent), var(--warning));
-        box-shadow: 0 18px 30px rgba(255, 140, 66, 0.22);
-      }
-
-      .eyebrow,
-      .nav-label,
-      .field-label,
-      .output-head {
-        font-size: 11px;
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, var(--accent) 0%, #f2a559 100%);
+        color: #fffaf4;
         font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.16em;
-        color: var(--muted);
+        letter-spacing: 0.08em;
       }
 
-      h1,
-      h2 {
-        margin: 0;
-        font-family: "Iowan Old Style", "Palatino Linotype", serif;
-        letter-spacing: -0.045em;
-      }
-
-      h1 {
-        max-width: 16ch;
-        font-size: clamp(3.2rem, 8vw, 5.7rem);
-        line-height: 0.92;
-        text-align: center;
-      }
-
-      h2 {
-        font-size: clamp(1.8rem, 4vw, 2.35rem);
-        text-align: center;
-      }
-
-      .lede,
-      .step-copy,
-      .status-copy,
-      .output {
-        margin: 0;
-        color: var(--muted);
-        line-height: 1.6;
-      }
-
-      .lede,
-      .step-copy,
-      .status-copy {
-        max-width: 76ch;
-        text-align: center;
-      }
-
-      .hero-art {
-        width: min(100%, 1100px);
-        margin: 4px auto 0;
-        padding: 20px 24px;
-        border-radius: 22px;
-        border: 1px solid rgba(255, 209, 102, 0.16);
-        background: rgba(7, 17, 26, 0.72);
-        color: #ffdca3;
-        overflow: auto;
-        white-space: pre;
-        font-family: "Cascadia Mono", "Consolas", "Courier New", monospace;
-        font-size: clamp(11px, 1vw, 13px);
-        line-height: 1.18;
-      }
-
-      .hero-actions,
-      .step-list,
-      .button-row {
+      .topbar-actions {
         display: flex;
         gap: 10px;
-        flex-wrap: wrap;
-        justify-content: center;
+        align-items: center;
       }
 
-      .hero-button,
-      .step-link,
-      button {
-        appearance: none;
+      .topbar-link,
+      .topbar-action,
+      .button,
+      .button-secondary,
+      .button-ghost {
         display: inline-flex;
         align-items: center;
         justify-content: center;
         min-height: 46px;
-        padding: 0 16px;
+        padding: 0 18px;
         border-radius: 999px;
-        font: inherit;
-        font-size: 13px;
-        font-weight: 800;
-        letter-spacing: 0.02em;
-        cursor: pointer;
-        transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease;
-      }
-
-      .hero-button,
-      button.primary {
-        color: #08111a;
         border: 1px solid transparent;
-        background: linear-gradient(135deg, var(--accent), var(--warning));
-        box-shadow: 0 14px 24px rgba(255, 140, 66, 0.2);
+        cursor: pointer;
+        transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, background-color 160ms ease;
       }
 
-      .hero-button.secondary,
-      .step-link,
-      button.secondary {
+      .topbar-link,
+      .button-secondary,
+      .button-ghost {
+        background: rgba(255, 250, 241, 0.7);
+        border-color: var(--line);
         color: var(--ink);
-        background: rgba(255,255,255,0.05);
-        border: 1px solid var(--line);
-        box-shadow: none;
       }
 
-      button:hover,
-      .hero-button:hover,
-      .step-link:hover,
-      .step-link.active {
+      .topbar-action,
+      .button {
+        background: linear-gradient(135deg, var(--accent) 0%, #f29a53 100%);
+        color: #fffaf1;
+        box-shadow: 0 14px 30px rgba(223, 111, 36, 0.24);
+      }
+
+      .topbar-link:hover,
+      .topbar-action:hover,
+      .button:hover,
+      .button-secondary:hover,
+      .button-ghost:hover,
+      .topbar-link:focus-visible,
+      .topbar-action:focus-visible,
+      .button:focus-visible,
+      .button-secondary:focus-visible,
+      .button-ghost:focus-visible {
         transform: translateY(-1px);
+        outline: none;
       }
 
-      .step-link.active {
-        border-color: rgba(255, 209, 102, 0.22);
-        background: rgba(255, 209, 102, 0.1);
-      }
-
-      .nav-shell {
-        position: sticky;
-        top: 12px;
-        z-index: 10;
-        padding: 14px;
-        border-radius: 24px;
-        border: 1px solid var(--line);
-        background: rgba(7, 14, 22, 0.9);
-        backdrop-filter: blur(16px);
-        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22);
-      }
-
-      .panel {
-        padding: 18px;
-      }
-
-      .panel-inner,
-      .section-shell,
-      .field-grid,
-      .field,
-      .status-card,
-      .output-shell {
+      .layout {
         display: grid;
-        gap: 12px;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 22px;
       }
 
-      .section-shell {
-        padding: 24px;
-        border-radius: 28px;
+      .info-panel,
+      .auth-panel,
+      .banner,
+      .status-card {
         border: 1px solid var(--line);
-        background: rgba(255,255,255,0.04);
+        border-radius: 30px;
+        background: linear-gradient(180deg, rgba(255, 250, 241, 0.94), rgba(255, 246, 235, 0.86));
+        box-shadow: var(--shadow);
       }
 
-      .section-shell[hidden] {
+      .info-panel {
+        padding: 30px;
+        display: grid;
+        align-content: space-between;
+        gap: 28px;
+        min-height: 660px;
+      }
+
+      .info-panel.signin-mode {
         display: none;
+      }
+
+      .eyebrow {
+        margin: 0;
+        color: var(--accent-strong);
+        font-size: 0.78rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .info-panel h1,
+      .auth-panel h2 {
+        margin: 0;
+        font-size: clamp(2.4rem, 4.8vw, 4.8rem);
+        line-height: 0.94;
+        letter-spacing: -0.05em;
+        font-weight: 600;
+      }
+
+      .auth-panel h2 {
+        font-size: clamp(2rem, 3.8vw, 3.1rem);
+      }
+
+      .lede,
+      .muted-copy,
+      .status-copy {
+        margin: 0;
+        font-size: 1rem;
+        line-height: 1.7;
+        color: var(--muted);
+      }
+
+      .art-card {
+        padding: 22px;
+        border-radius: 24px;
+        border: 1px solid rgba(61, 42, 28, 0.12);
+        background: rgba(255, 255, 255, 0.42);
+      }
+
+      .hero-art {
+        margin: 0;
+        overflow: auto;
+        color: #5e4a39;
+        font-size: 11px;
+        line-height: 1.12;
+        font-family: "Cascadia Mono", Consolas, monospace;
+      }
+
+      .info-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .info-cell {
+        padding: 16px 18px;
+        border-radius: 22px;
+        border: 1px solid rgba(61, 42, 28, 0.1);
+        background: rgba(255,255,255,0.45);
+      }
+
+      .info-cell span {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 0.78rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .info-cell strong {
+        font-size: 1.04rem;
+      }
+
+      .auth-panel {
+        padding: 28px;
+        display: grid;
+        gap: 18px;
+        align-content: start;
+      }
+
+      .signin-shell {
+        max-width: 540px;
+        margin: 74px auto 0;
+      }
+
+      body.signin-mode .page {
+        width: min(560px, calc(100% - 24px));
+        padding-top: 40px;
+      }
+
+      body.signin-mode .topbar {
+        margin-bottom: 18px;
+      }
+
+      body.signin-mode #layout {
+        display: block;
+      }
+
+      body.signin-mode #displayNameField {
+        display: none !important;
+      }
+
+      .flow-pills {
+        display: inline-flex;
+        gap: 8px;
+        padding: 6px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.55);
+        border: 1px solid rgba(61, 42, 28, 0.08);
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 38px;
+        padding: 0 14px;
+        border-radius: 999px;
+        font-size: 0.84rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .pill.active {
+        background: rgba(223, 111, 36, 0.12);
+        color: var(--accent-strong);
+      }
+
+      .form-card {
+        display: grid;
+        gap: 18px;
+        padding: 22px;
+        border-radius: 26px;
+        border: 1px solid rgba(61, 42, 28, 0.08);
+        background: rgba(255,255,255,0.55);
+      }
+
+      .field-grid {
+        display: grid;
+        gap: 14px;
+      }
+
+      .field {
+        display: grid;
+        gap: 8px;
+      }
+
+      .field-label {
+        font-size: 0.8rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
       }
 
       input {
         width: 100%;
-        min-height: 48px;
-        padding: 13px 15px;
-        border-radius: 16px;
-        border: 1px solid var(--line);
-        background: rgba(255, 255, 255, 0.04);
+        min-height: 54px;
+        padding: 0 16px;
+        border-radius: 18px;
+        border: 1px solid rgba(61, 42, 28, 0.14);
+        background: rgba(255,255,255,0.9);
         color: var(--ink);
-        font: inherit;
       }
 
-      input:focus {
-        outline: 2px solid rgba(115, 210, 222, 0.28);
-        outline-offset: 1px;
-        border-color: rgba(115, 210, 222, 0.36);
+      input:focus-visible {
+        outline: 2px solid rgba(223, 111, 36, 0.2);
+        border-color: rgba(223, 111, 36, 0.5);
       }
 
-      .status-card,
-      .output-shell {
-        padding: 16px;
-        border-radius: 20px;
-        border: 1px solid var(--line);
-        background: rgba(255,255,255,0.04);
+      .button-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
       }
 
-      .output {
-        white-space: pre-wrap;
-        word-break: break-word;
-        font-family: "Cascadia Mono", "Consolas", monospace;
+      .button-row .button,
+      .button-row .button-secondary,
+      .button-row .button-ghost {
+        flex: 1 1 180px;
+      }
+
+      .inline-note {
+        padding: 14px 16px;
+        border-radius: 18px;
+        background: rgba(255,255,255,0.5);
+        border: 1px solid rgba(61, 42, 28, 0.08);
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .status-card {
+        padding: 18px 20px;
+      }
+
+      .status-card strong {
+        display: block;
+        margin-bottom: 6px;
       }
 
       .banner {
         position: fixed;
-        right: 16px;
-        bottom: 16px;
-        max-width: min(420px, calc(100vw - 32px));
-        padding: 14px 16px;
-        border-radius: 18px;
-        background: rgba(9, 17, 27, 0.95);
-        border: 1px solid var(--line);
-        box-shadow: 0 24px 50px rgba(0, 0, 0, 0.24);
-        font-size: 13px;
-        line-height: 1.45;
-        backdrop-filter: blur(14px);
+        left: 50%;
+        bottom: 18px;
+        transform: translateX(-50%);
+        min-width: min(520px, calc(100% - 24px));
+        padding: 14px 18px;
+        color: #fffaf1;
+        background: rgba(32, 22, 14, 0.92);
+        border-color: rgba(32, 22, 14, 0.18);
+        z-index: 20;
       }
 
-      .banner.ok { color: var(--success); }
-      .banner.err { color: #ffb6c7; border-color: rgba(217, 80, 111, 0.24); }
+      .banner.ok { background: rgba(45, 140, 100, 0.92); }
+      .banner.err { background: rgba(195, 74, 66, 0.94); }
 
-      @media (max-width: 840px) {
-        .page {
-          width: min(100%, calc(100% - 20px));
+      .toast-stack {
+        position: fixed;
+        right: 18px;
+        bottom: 18px;
+        z-index: 21;
+        display: grid;
+        gap: 10px;
+      }
+
+      .toast {
+        min-width: 240px;
+        max-width: 360px;
+        padding: 14px 16px;
+        border-radius: 18px;
+        color: #fffaf1;
+        background: rgba(32, 22, 14, 0.92);
+        box-shadow: 0 18px 36px rgba(32, 22, 14, 0.2);
+        opacity: 0;
+        transform: translateY(10px);
+        transition: opacity 160ms ease, transform 160ms ease;
+      }
+
+      .toast.show {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .toast.ok { background: rgba(45, 140, 100, 0.94); }
+      .toast.err { background: rgba(195, 74, 66, 0.96); }
+
+      .dev-output {
+        display: none !important;
+      }
+
+      @media (max-width: 920px) {
+        .layout {
+          grid-template-columns: 1fr;
         }
 
-        h1 {
-          max-width: 12ch;
+        .info-panel {
+          min-height: auto;
+        }
+
+        .signin-shell {
+          margin-top: 24px;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .page {
+          width: min(100%, calc(100% - 18px));
+        }
+
+        .topbar {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .topbar-actions,
+        .button-row {
+          flex-direction: column;
+        }
+
+        .info-grid {
+          grid-template-columns: 1fr;
         }
       }
     </style>
   </head>
   <body>
     <main class="page">
-      <section class="hero">
-        <div class="hero-inner">
-          <div class="brand">
-            <div class="brand-badge">CUA</div>
-            <div>Computer Use Agent, Missing Common Precautions</div>
-          </div>
-          <p id="heroEyebrow" class="eyebrow">Public onboarding. Private dashboard. Same vibes.</p>
-          <h1 id="heroTitle">Join the operation before the control plane hands you the sharp objects.</h1>
-          <p id="heroLede" class="lede">/app is now the clean part of the funnel: enter a name and email, get a login code, verify it, and then move into the authenticated dashboard where the keys, secrets, and other regrettably powerful controls actually live.</p>
-          <pre class="hero-art">${CUA_MCP_ASCII}</pre>
-          <div class="hero-actions">
-            <a id="primaryHeroAction" class="hero-button" href="#signup-step">Start onboarding</a>
-            <a class="hero-button secondary" href="/">Back to the manifesto</a>
-          </div>
-          <p id="heroStatus" class="status-copy">If you already have a live session, this page should redirect you to the dashboard instead of making you repeat the ceremony.</p>
+      <div class="topbar">
+        <div class="brand-lockup">
+          <div class="brand-badge">CUA</div>
+          <div>Computer Use Access</div>
         </div>
-      </section>
-
-      <div class="nav-shell">
-        <div id="flowLabel" class="nav-label">Onboarding flow</div>
-        <nav class="step-list" aria-label="Onboarding steps">
-          <a id="signupStepLink" class="step-link" href="#signup-step" data-public-step-link="signup-step">01 Join</a>
-          <a class="step-link" href="#verify-step" data-public-step-link="verify-step">02 Verify</a>
-        </nav>
+        <div class="topbar-actions">
+          <a class="topbar-link" href="/">Public home</a>
+          <a id="topbarAction" class="topbar-action" href="/sign-in">Sign in</a>
+        </div>
       </div>
 
-      <section class="panel">
-        <div class="panel-inner">
-          <section class="section-shell" id="signup-step">
-            <p class="eyebrow">Step 01</p>
-            <h2 id="signupTitle">Tell us who is about to inherit this security posture.</h2>
-            <p id="signupCopy" class="step-copy">Enter a name and email so we can send the one-time code to an actual person before the software starts doing software things.</p>
+      <div id="layout" class="layout">
+        <aside id="infoPanel" class="info-panel">
+          <div>
+            <p id="heroEyebrow" class="eyebrow">Registration</p>
+            <h1 id="heroTitle">Create the account once. Run the control plane after.</h1>
+            <p id="heroLede" class="lede">/app exists to register an account and verify the email. Everything with actual consequence stays behind the authenticated dashboard.</p>
+          </div>
+
+          <div class="art-card">
+            <pre class="hero-art">${CUA_MCP_ASCII}</pre>
+          </div>
+
+          <div class="info-grid" aria-label="What happens next">
+            <div class="info-cell">
+              <span>Step 01</span>
+              <strong>Register with name and email</strong>
+            </div>
+            <div class="info-cell">
+              <span>Step 02</span>
+              <strong>Verify the one-time code</strong>
+            </div>
+            <div class="info-cell">
+              <span>Step 03</span>
+              <strong>Land in the private dashboard</strong>
+            </div>
+            <div class="info-cell">
+              <span>Scope</span>
+              <strong>Keys, connections, and runs stay user-scoped</strong>
+            </div>
+          </div>
+        </aside>
+
+        <section id="authPanel" class="auth-panel">
+          <div class="flow-pills" aria-label="Access flow">
+            <div id="pillRequest" class="pill active">Request code</div>
+            <div id="pillVerify" class="pill">Verify</div>
+          </div>
+
+          <div>
+            <p id="panelEyebrow" class="eyebrow">Start</p>
+            <h2 id="panelTitle">Create your account.</h2>
+            <p id="panelCopy" class="muted-copy">Enter the details for the account owner. We will send a short-lived code and then move you into the dashboard.</p>
+          </div>
+
+          <section id="requestStep" class="form-card">
             <div class="field-grid">
-              <label id="displayNameField" class="field">
+              <label id="displayNameField" class="field" hidden>
                 <span class="field-label">Display name</span>
-                <input id="displayName" placeholder="Name the future audit protagonist" />
+                <input id="displayName" placeholder="Name the human behind this account" />
               </label>
               <label class="field">
                 <span class="field-label">Email address</span>
@@ -381,15 +540,13 @@ export const PUBLIC_APP_HTML = `<!doctype html>
               </label>
             </div>
             <div class="button-row">
-              <button class="primary" id="requestCode">Send login code</button>
-              <a id="secondaryActionLink" class="step-link" href="#verify-step" data-public-step-link="verify-step">Already have a code?</a>
+              <button id="requestCode" class="button" type="button">Send code</button>
+              <a id="secondaryActionLink" class="button-secondary" href="/sign-in">Already have an account?</a>
             </div>
+            <div id="requestNote" class="inline-note">Registration creates the account, sends the code, and takes you to verification in one pass.</div>
           </section>
 
-          <section class="section-shell" id="verify-step" hidden>
-            <p class="eyebrow">Step 02</p>
-            <h2>Verify the code, then graduate into the actual dashboard.</h2>
-            <p class="step-copy">Use the code from your inbox. A successful verification sends you to the protected dashboard where the rest of the app lives.</p>
+          <section id="verifyStep" class="form-card" hidden>
             <div class="field-grid">
               <label class="field">
                 <span class="field-label">Email address</span>
@@ -397,90 +554,81 @@ export const PUBLIC_APP_HTML = `<!doctype html>
               </label>
               <label class="field">
                 <span class="field-label">Verification code</span>
-                <input id="otpCode" placeholder="Enter the one-time code before the vibes expire" />
+                <input id="otpCode" placeholder="6-digit code" inputmode="numeric" />
               </label>
             </div>
             <div class="button-row">
-              <button class="primary" id="verifyCode">Verify code</button>
-              <button class="secondary" id="resendCode">Send another code</button>
+              <button id="verifyCode" class="button" type="button">Verify and continue</button>
+              <button id="resendCode" class="button-ghost" type="button">Send another code</button>
             </div>
+            <div class="inline-note">Verification returns you to /dashboard with a live session cookie.</div>
           </section>
 
           <div class="status-card">
             <p class="eyebrow">After verification</p>
-            <p id="statusCardCopy" class="status-copy">You will be redirected to /dashboard, which requires a valid session and keeps the rest of the tabs, keys, secrets, and runtime controls out of the public onboarding path.</p>
+            <strong id="statusTitle">Dashboard access</strong>
+            <p id="statusCardCopy" class="status-copy">The dashboard is where LLM keys, MCP access keys, connections, patterns, and runtime privacy settings actually live.</p>
           </div>
 
-          <div class="output-shell">
-            <div class="output-head">Onboarding log</div>
-            <pre id="sessionOut" class="output">Onboarding output</pre>
-          </div>
-        </div>
-      </section>
+          <pre id="sessionOut" class="dev-output">Auth output</pre>
+        </section>
+      </div>
     </main>
 
     <div id="banner" class="banner">Ready.</div>
+    <div id="toastStack" class="toast-stack" aria-live="polite" aria-atomic="false"></div>
 
     <script>
       const $ = (id) => document.getElementById(id);
       const banner = $('banner');
+      const toastStack = $('toastStack');
       const sessionOut = $('sessionOut');
       const mode = window.location.pathname.startsWith('/sign-in') ? 'signin' : 'register';
-      const sectionMap = {
-        'signup-step': $('signup-step'),
-        'verify-step': $('verify-step'),
-      };
-      const stepLinks = Array.from(document.querySelectorAll('[data-public-step-link]'));
+      const requestStep = $('requestStep');
+      const verifyStep = $('verifyStep');
+      const pillRequest = $('pillRequest');
+      const pillVerify = $('pillVerify');
+      const infoPanel = $('infoPanel');
+      const authPanel = $('authPanel');
+      const flowPills = document.querySelector('.flow-pills');
+      const statusCard = document.querySelector('.status-card');
+
+      function showToast(kind, message) {
+        if (!toastStack || !message) return;
+        const toast = document.createElement('div');
+        toast.className = 'toast ' + (kind || '');
+        toast.textContent = message;
+        toastStack.appendChild(toast);
+        requestAnimationFrame(function () {
+          toast.classList.add('show');
+        });
+        window.setTimeout(function () {
+          toast.classList.remove('show');
+          window.setTimeout(function () {
+            toast.remove();
+          }, 180);
+        }, kind === 'err' ? 4200 : 2600);
+      }
 
       function setBanner(kind, message) {
+        if (!banner) return;
         banner.className = 'banner ' + (kind || '');
         banner.textContent = message;
+        showToast(kind, message);
       }
 
       function print(value) {
-        sessionOut.textContent = JSON.stringify(value, null, 2);
-      }
-
-      function configurePageMode() {
-        const isSignIn = mode === 'signin';
-        $('heroEyebrow').textContent = isSignIn ? 'Private dashboard access.' : 'Public onboarding. Private dashboard. Same vibes.';
-        $('heroTitle').textContent = isSignIn
-          ? 'Sign in, verify the code, and get back to the control plane.'
-          : 'Join the operation before the control plane hands you the sharp objects.';
-        $('heroLede').textContent = isSignIn
-          ? '/sign-in is the direct path back into the protected dashboard. Enter the email already tied to your account, request a code, and verify it. If that email does not exist yet, we will send you to registration at /app instead.'
-          : '/app is now the clean part of the funnel: enter a name and email, get a login code, verify it, and then move into the authenticated dashboard where the keys, secrets, and other regrettably powerful controls actually live.';
-        $('heroStatus').textContent = isSignIn
-          ? 'If you still have a live session, this page should redirect you straight to the dashboard.'
-          : 'If you already have a live session, this page should redirect you to the dashboard instead of making you repeat the ceremony.';
-        $('flowLabel').textContent = isSignIn ? 'Sign-in flow' : 'Onboarding flow';
-        $('signupStepLink').textContent = isSignIn ? '01 Sign in' : '01 Join';
-        $('signupTitle').textContent = isSignIn
-          ? 'Use the email already attached to this account.'
-          : 'Tell us who is about to inherit this security posture.';
-        $('signupCopy').textContent = isSignIn
-          ? 'Enter the email for an existing account and we will send a one-time login code. Unknown emails get redirected into registration.'
-          : 'Enter a name and email so we can send the one-time code to an actual person before the software starts doing software things.';
-        $('displayNameField').hidden = isSignIn;
-        $('requestCode').textContent = isSignIn ? 'Send sign-in code' : 'Send login code';
-        $('secondaryActionLink').textContent = isSignIn ? 'Need a new account?' : 'Already have a code?';
-        $('secondaryActionLink').href = isSignIn ? '/app' : '#verify-step';
-        if (isSignIn) {
-          $('secondaryActionLink').removeAttribute('data-public-step-link');
+        if (sessionOut) {
+          sessionOut.textContent = JSON.stringify(value, null, 2);
         }
-        $('statusCardCopy').textContent = isSignIn
-          ? 'Verification returns you to /dashboard. If the email is unknown, you will be sent to /app to finish registration first.'
-          : 'You will be redirected to /dashboard, which requires a valid session and keeps the rest of the tabs, keys, secrets, and runtime controls out of the public onboarding path.';
-        $('primaryHeroAction').textContent = isSignIn ? 'Start sign-in' : 'Start onboarding';
-        $('primaryHeroAction').href = isSignIn ? '#signup-step' : '#signup-step';
       }
 
       function requireText(id, label) {
         const el = $(id);
-        const value = String(el?.value || '').trim();
+        const value = String(el && el.value || '').trim();
         if (!value) {
           setBanner('err', label + ' is required.');
-          el?.focus();
+          if (el) el.focus();
           return null;
         }
         return value;
@@ -492,128 +640,173 @@ export const PUBLIC_APP_HTML = `<!doctype html>
         const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
         if (!ok) {
           setBanner('err', 'Enter a valid email address.');
-          $(id)?.focus();
+          const el = $(id);
+          if (el) el.focus();
           return null;
         }
         return value;
       }
 
-      async function api(path, method = 'GET', body) {
-        const res = await fetch(path, {
-          method,
+      async function api(path, method, body) {
+        const response = await fetch(path, {
+          method: method || 'GET',
           credentials: 'include',
           headers: { 'content-type': 'application/json' },
           body: body ? JSON.stringify(body) : undefined,
         });
-        const text = await res.text();
+        const text = await response.text();
         let parsed;
-        try { parsed = JSON.parse(text); } catch { parsed = { raw: text }; }
-        if (!res.ok) {
-          throw new Error(String(parsed?.message || parsed?.error || 'Request failed'));
+        try {
+          parsed = JSON.parse(text);
+        } catch {
+          parsed = { raw: text };
+        }
+        if (!response.ok) {
+          const error = new Error(String(parsed && (parsed.message || parsed.error) || 'Request failed'));
+          error.data = parsed;
+          throw error;
         }
         return parsed;
       }
 
-      function activateStep(activeId, syncHash = true) {
-        Object.entries(sectionMap).forEach(([id, section]) => {
-          if (!section) return;
-          section.hidden = id !== activeId;
-        });
-
-        stepLinks.forEach((link) => {
-          link.classList.toggle('active', link.getAttribute('data-public-step-link') === activeId);
-        });
-
-        if (syncHash) {
-          window.location.hash = activeId;
-        }
+      function activateStep(step) {
+        const verify = step === 'verify-step';
+        if (requestStep) requestStep.hidden = verify;
+        if (verifyStep) verifyStep.hidden = !verify;
+        if (pillRequest) pillRequest.classList.toggle('active', !verify);
+        if (pillVerify) pillVerify.classList.toggle('active', verify);
       }
 
       function syncFromLocation() {
         const url = new URL(window.location.href);
-        const step = url.hash.replace(/^#/, '') || url.searchParams.get('step') || 'signup-step';
+        const step = url.searchParams.get('step') || url.hash.replace(/^#/, '') || 'request-step';
         const email = url.searchParams.get('email') || '';
-        const displayName = url.searchParams.get('displayName') || '';
-        $('email').value = email;
-        $('verifyEmail').value = email;
-        $('displayName').value = displayName;
-        activateStep(step === 'verify' ? 'verify-step' : step, false);
+        const displayName = mode === 'register' ? (url.searchParams.get('displayName') || '') : '';
+        if ($('email')) $('email').value = email;
+        if ($('verifyEmail')) $('verifyEmail').value = email;
+        if (mode === 'register' && $('displayName')) $('displayName').value = displayName;
+        activateStep(step === 'verify-step' ? 'verify-step' : 'request-step');
       }
 
-      stepLinks.forEach((link) => {
-        link.addEventListener('click', (event) => {
-          const href = String(link.getAttribute('href') || '');
-          if (href.startsWith('/')) {
-            return;
-          }
-          event.preventDefault();
-          activateStep(link.getAttribute('data-public-step-link') || 'signup-step');
-        });
-      });
+      function configurePageMode() {
+        const isSignIn = mode === 'signin';
+        document.body.classList.toggle('signin-mode', isSignIn);
+        document.title = isSignIn ? 'CUA MCP Sign In' : 'CUA MCP Registration';
+        $('topbarAction').textContent = isSignIn ? 'Create account' : 'Sign in';
+        $('topbarAction').href = isSignIn ? '/app' : '/sign-in';
+        $('secondaryActionLink').textContent = isSignIn ? 'Need a new account?' : 'Already have an account?';
+        $('secondaryActionLink').href = isSignIn ? '/app' : '/sign-in';
+        $('displayNameField').hidden = isSignIn;
+        if (!isSignIn) {
+          $('displayNameField').hidden = false;
+        }
 
-      $('requestCode').onclick = async () => {
+        if (isSignIn) {
+          $('layout').classList.remove('layout');
+          authPanel.classList.add('signin-shell');
+          if (infoPanel) infoPanel.hidden = true;
+          if (flowPills) flowPills.hidden = true;
+          if (statusCard) statusCard.hidden = true;
+          if (sessionOut) sessionOut.hidden = true;
+          $('panelEyebrow').textContent = 'Existing account';
+          $('panelTitle').textContent = 'Sign in with email.';
+          $('panelCopy').textContent = 'Enter the email already attached to your account. We send a one-time code and verify it here.';
+          $('requestCode').textContent = 'Send code';
+          $('requestNote').textContent = 'If the email is not registered yet, this flow will redirect you to /app.';
+          $('statusTitle').textContent = 'Back to work';
+          $('statusCardCopy').textContent = 'Verification returns you to the dashboard. MFA or OTP prompts encountered later during browser runs can be relayed through steering and clarification rather than stored as durable secrets.';
+        }
+      }
+
+      async function redirectIfAuthenticated() {
+        try {
+          const response = await fetch('/api/session/me', { credentials: 'include' });
+          if (response.ok) {
+            window.location.assign('/dashboard');
+          }
+        } catch {
+        }
+      }
+
+      $('requestCode').onclick = async function () {
         const email = requireEmail('email');
         if (!email) return;
-        const displayName = String($('displayName').value || '').trim();
+        const displayName = mode === 'register'
+          ? String($('displayName') && $('displayName').value || '').trim()
+          : '';
+        if (mode === 'register' && !displayName) {
+          setBanner('err', 'Display name is required.');
+          $('displayName').focus();
+          return;
+        }
+
         try {
-          const data = await api('/api/auth/request-code', 'POST', { email, displayName, mode });
+          const payload = { email: email, mode: mode };
+          if (mode === 'register') payload.displayName = displayName;
+          const data = await api('/api/auth/request-code', 'POST', payload);
           print(data);
-          setBanner('ok', (mode === 'signin' ? 'Sign-in' : 'Login') + ' code sent. Moving you to verification.');
+          setBanner('ok', 'Code sent. Check your inbox.');
           const next = new URL(mode === 'signin' ? '/sign-in' : '/app', window.location.origin);
           next.searchParams.set('step', 'verify-step');
           next.searchParams.set('email', email);
-          if (displayName) next.searchParams.set('displayName', displayName);
+          if (mode === 'register' && displayName) next.searchParams.set('displayName', displayName);
           window.location.assign(next.toString());
         } catch (error) {
-          if (mode === 'signin' && String(error.message || '').toLowerCase().includes('registration required')) {
+          const message = String(error && error.message || 'Could not send code.');
+          if (mode === 'signin' && message.toLowerCase().includes('registration required')) {
             const next = new URL('/app', window.location.origin);
             next.searchParams.set('email', email);
-            setBanner('err', 'No account exists for that email yet. Redirecting you to registration.');
+            setBanner('err', 'No account exists for that email yet. Redirecting to registration.');
             window.location.assign(next.toString());
             return;
           }
-          setBanner('err', error.message || 'Could not send login code.');
+          setBanner('err', message);
         }
       };
 
-      $('resendCode').onclick = async () => {
+      $('resendCode').onclick = async function () {
         const email = requireEmail('verifyEmail');
         if (!email) return;
-        const displayName = String($('displayName').value || '').trim();
+        const displayName = mode === 'register'
+          ? String($('displayName') && $('displayName').value || '').trim()
+          : '';
         try {
-          const data = await api('/api/auth/request-code', 'POST', { email, displayName, mode });
+          const payload = { email: email, mode: mode };
+          if (mode === 'register' && displayName) payload.displayName = displayName;
+          const data = await api('/api/auth/request-code', 'POST', payload);
           print(data);
-          setBanner('ok', 'Fresh code sent. Check your inbox again.');
+          setBanner('ok', 'Fresh code sent.');
         } catch (error) {
-          if (mode === 'signin' && String(error.message || '').toLowerCase().includes('registration required')) {
+          const message = String(error && error.message || 'Could not resend code.');
+          if (mode === 'signin' && message.toLowerCase().includes('registration required')) {
             const next = new URL('/app', window.location.origin);
             next.searchParams.set('email', email);
-            setBanner('err', 'That email is not registered yet. Redirecting you to onboarding.');
+            setBanner('err', 'That email is not registered yet. Redirecting to registration.');
             window.location.assign(next.toString());
             return;
           }
-          setBanner('err', error.message || 'Could not resend code.');
+          setBanner('err', message);
         }
       };
 
-      $('verifyCode').onclick = async () => {
+      $('verifyCode').onclick = async function () {
         const email = requireEmail('verifyEmail');
         if (!email) return;
         const code = requireText('otpCode', 'Code');
         if (!code) return;
         try {
-          const data = await api('/api/auth/verify-code', 'POST', { email, code });
+          const data = await api('/api/auth/verify-code', 'POST', { email: email, code: code });
           print(data);
           setBanner('ok', 'Verified. Redirecting to the dashboard.');
           window.location.assign('/dashboard');
         } catch (error) {
-          setBanner('err', error.message || 'Verification failed.');
+          setBanner('err', String(error && error.message || 'Verification failed.'));
         }
       };
 
-      window.addEventListener('hashchange', syncFromLocation);
       configurePageMode();
       syncFromLocation();
+      redirectIfAuthenticated();
     </script>
   </body>
 </html>

@@ -1,11 +1,9 @@
-import { CUA_SHEEP_ASCII } from './brandAscii.js';
-
 export const DASHBOARD_APP_HTML = `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>CUA Control Plane</title>
+    <title>CUA Dashboard</title>
     <meta name="theme-color" content="#ff8c42" />
     <meta name="apple-mobile-web-app-title" content="CUA MCP" />
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/brand/favicon-32x32.png" />
@@ -167,6 +165,10 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         text-transform: uppercase;
         letter-spacing: 0.16em;
         color: var(--muted);
+      }
+
+      .section-number {
+        display: none;
       }
 
       .hero-copy {
@@ -475,40 +477,11 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease;
       }
 
-      .step-link::after {
-        content: attr(data-tooltip);
-        position: absolute;
-        left: 50%;
-        bottom: calc(100% + 10px);
-        transform: translateX(-50%) translateY(6px);
-        width: min(300px, calc(100vw - 36px));
-        padding: 11px 13px;
-        border-radius: 14px;
-        border: 1px solid rgba(255, 209, 102, 0.2);
-        background: rgba(9, 17, 27, 0.98);
-        color: var(--ink);
-        font-size: 12px;
-        line-height: 1.45;
-        text-transform: none;
-        letter-spacing: normal;
-        white-space: normal;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.28);
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 160ms ease, transform 160ms ease;
-      }
-
       .step-link:hover,
       .step-link.active {
         transform: translateY(-1px);
         border-color: rgba(255, 209, 102, 0.22);
         background: rgba(255, 209, 102, 0.1);
-      }
-
-      .step-link:hover::after,
-      .step-link:focus-visible::after {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
       }
 
       .step-index {
@@ -826,6 +799,138 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         gap: 18px;
       }
 
+      .subsection-nav,
+      .surface-actions,
+      .connection-scope-picker,
+      .modal-field-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .subview-toggle,
+      .scope-chip {
+        appearance: none;
+        border: 1px solid var(--line);
+        background: rgba(255,255,255,0.04);
+        color: var(--muted);
+        border-radius: 999px;
+        min-height: 38px;
+        padding: 0 14px;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        cursor: pointer;
+      }
+
+      .subview-toggle.active,
+      .scope-chip.active {
+        color: #08111a;
+        background: linear-gradient(135deg, var(--accent), var(--warning));
+        border-color: transparent;
+      }
+
+      .surface-actions {
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .surface-actions .button-row {
+        justify-content: flex-end;
+      }
+
+      .subview {
+        display: grid;
+        gap: 18px;
+      }
+
+      .connection-scope-picker {
+        align-items: center;
+      }
+
+      .scope-chip input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .scope-chip {
+        position: relative;
+        align-items: center;
+        display: inline-flex;
+      }
+
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 60;
+        display: grid;
+        place-items: center;
+        padding: 20px;
+        background: rgba(2, 7, 12, 0.76);
+        backdrop-filter: blur(12px);
+      }
+
+      .modal-backdrop[hidden] {
+        display: none;
+      }
+
+      .modal-card {
+        width: min(620px, calc(100vw - 24px));
+        display: grid;
+        gap: 16px;
+        padding: 20px;
+        border-radius: 24px;
+        border: 1px solid var(--line-strong);
+        background: linear-gradient(180deg, rgba(12, 24, 35, 0.96), rgba(7, 15, 23, 0.98));
+        box-shadow: var(--shadow);
+      }
+
+      .modal-card pre,
+      .modal-card input {
+        min-height: 0;
+      }
+
+      .modal-card h3 {
+        margin: 0;
+        font-family: "Iowan Old Style", "Palatino Linotype", serif;
+        font-size: 1.7rem;
+        letter-spacing: -0.04em;
+      }
+
+      .modal-card p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .subtle-shell {
+        display: grid;
+        gap: 14px;
+        padding: 16px;
+        border-radius: 20px;
+        border: 1px solid var(--line);
+        background: rgba(255,255,255,0.03);
+      }
+
+      details.subtle-shell summary {
+        cursor: pointer;
+        font-size: 0.82rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      details.subtle-shell summary + * {
+        margin-top: 14px;
+      }
+
+      .dev-output {
+        display: none !important;
+      }
+
       .session-rail-inner,
       .session-card,
       .composer-card,
@@ -898,38 +1003,48 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         letter-spacing: 0.04em;
       }
 
-      .sheep-logout {
-        padding: 14px 16px;
-        border-radius: 20px;
+      .signout-button {
+        appearance: none;
+        width: 100%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        min-height: 44px;
+        padding: 0 16px;
+        border-radius: 14px;
         border: 1px solid rgba(255, 209, 102, 0.18);
         background: rgba(255, 209, 102, 0.06);
+        color: var(--ink);
+        font: inherit;
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
         cursor: pointer;
         transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease;
+        box-shadow: none;
       }
 
-      .sheep-logout:hover,
-      .sheep-logout:focus-visible {
+      .signout-button:hover,
+      .signout-button:focus-visible {
         transform: translateY(-1px);
         border-color: rgba(255, 209, 102, 0.34);
         background: rgba(255, 209, 102, 0.1);
         outline: none;
       }
 
-      .sheep-logout span {
-        display: block;
-        margin-top: 8px;
-        color: var(--muted);
-        font-size: 12px;
-        line-height: 1.5;
-      }
-
-      .session-sheep {
-        margin: 0;
+      .signout-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 209, 102, 0.24);
+        background: rgba(255, 209, 102, 0.1);
         color: #ffdca3;
-        font-family: "Cascadia Mono", "Consolas", "Courier New", monospace;
         font-size: 12px;
         line-height: 1.18;
-        white-space: pre;
       }
 
       .section-stack {
@@ -959,18 +1074,6 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         align-items: center;
         border-radius: 18px;
         white-space: normal;
-      }
-
-      .sidebar-nav .step-link::after {
-        left: calc(100% + 10px);
-        bottom: auto;
-        top: 50%;
-        transform: translateY(-50%) translateX(-6px);
-      }
-
-      .sidebar-nav .step-link:hover::after,
-      .sidebar-nav .step-link:focus-visible::after {
-        transform: translateY(-50%) translateX(0);
       }
 
       .sidebar-nav .step-copy strong {
@@ -1066,10 +1169,6 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         .workspace-nav {
           position: static;
         }
-
-        .sidebar-nav .step-link::after {
-          display: none;
-        }
       }
 
       @media (max-width: 840px) {
@@ -1098,52 +1197,52 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         <div class="session-rail-inner">
           <div class="brand-lockup session-brand">
             <div class="brand-badge">CUA</div>
-            <div>Control plane</div>
+            <div>Dashboard</div>
           </div>
 
           <div class="session-card">
             <span class="field-label">Signed in</span>
-            <strong id="sessionName">Loading account</strong>
-            <p id="sessionEmail">Fetching session details.</p>
+            <strong id="sessionName">Signed in</strong>
+            <p id="sessionEmail">Loading session details.</p>
             <p id="sessionMeta">Your OpenAI key, MCP access keys, connections, and run history stay scoped to this account.</p>
           </div>
 
           <div class="sidebar-nav">
             <div class="nav-label">Dashboard</div>
             <nav class="step-list" aria-label="Dashboard tabs">
-              <a class="step-link" href="#llm-step" data-step-link="llm-step" data-tooltip="Store and rotate the OpenAI key this account will use for computer-use runs." title="Store and rotate the OpenAI key this account will use for computer-use runs.">
-                <div class="step-index">01</div>
+              <a class="step-link" href="/dashboard/llm-api-keys" data-step-link="llm-step" data-step-path="/dashboard/llm-api-keys">
+                <div class="step-index">AI</div>
                 <div class="step-copy">
-                  <strong>OpenAI API Key</strong>
+                  <strong>OpenAI Keys</strong>
                   <span>Set the active model credential for new runs.</span>
                 </div>
               </a>
-              <a class="step-link" href="#keys-step" data-step-link="keys-step" data-tooltip="Create per-user MCP access keys and scope them to approved connections." title="Create per-user MCP access keys and scope them to approved connections.">
-                <div class="step-index">02</div>
-                <div class="step-copy">
-                  <strong>MCP Access Keys</strong>
-                  <span>Issue and revoke client credentials for this account.</span>
-                </div>
-              </a>
-              <a class="step-link" href="#connections-step" data-step-link="connections-step" data-tooltip="Define host policy, saved auth artifacts, and capture sessions for each connection." title="Define host policy, saved auth artifacts, and capture sessions for each connection.">
-                <div class="step-index">03</div>
+              <a class="step-link" href="/dashboard/connections" data-step-link="connections-step" data-step-path="/dashboard/connections">
+                <div class="step-index">CN</div>
                 <div class="step-copy">
                   <strong>Connections</strong>
-                  <span>Control policy, auth artifacts, and capture state.</span>
+                  <span>Create a boundary, then capture access only when needed.</span>
                 </div>
               </a>
-              <a class="step-link" href="#patterns-step" data-step-link="patterns-step" data-tooltip="Save reusable orchestration patterns so future runs start from learned structure instead of improvisation." title="Save reusable orchestration patterns so future runs start from learned structure instead of improvisation.">
-                <div class="step-index">04</div>
+              <a class="step-link" href="/dashboard/patterns" data-step-link="patterns-step" data-step-path="/dashboard/patterns">
+                <div class="step-index">PT</div>
                 <div class="step-copy">
                   <strong>Patterns</strong>
                   <span>Store reusable orchestration guides as editable cards.</span>
                 </div>
               </a>
-              <a class="step-link" href="#runs-step" data-step-link="runs-step" data-tooltip="Review retention settings and inspect the runs kept for this account." title="Review retention settings and inspect the runs kept for this account.">
-                <div class="step-index">05</div>
+              <a class="step-link" href="/dashboard/runs-privacy" data-step-link="runs-step" data-step-path="/dashboard/runs-privacy">
+                <div class="step-index">RP</div>
                 <div class="step-copy">
                   <strong>Runs and Privacy</strong>
                   <span>Inspect stored runs and retention settings.</span>
+                </div>
+              </a>
+              <a class="step-link" href="/dashboard/mcp-access-keys" data-step-link="keys-step" data-step-path="/dashboard/mcp-access-keys">
+                <div class="step-index">MK</div>
+                <div class="step-copy">
+                  <strong>MCP Access Keys</strong>
+                  <span>Issue and revoke client credentials for this account.</span>
                 </div>
               </a>
             </nav>
@@ -1151,24 +1250,24 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
 
           <div class="session-links">
             <a class="session-link" href="/">Public home</a>
-            <a class="session-link" href="#connections-step">Connections</a>
+            <a class="session-link" href="/dashboard/connections">Connections</a>
           </div>
 
-          <div id="sheepLogout" class="sheep-logout" role="button" tabindex="0" title="Sign out">
-            <pre class="session-sheep">${CUA_SHEEP_ASCII}</pre>
-            <span>Select the sheep to sign out.</span>
-          </div>
+          <button id="signOutButton" class="signout-button" type="button" aria-label="Sign out">
+            <span class="signout-icon" aria-hidden="true">-></span>
+            <span>Sign out</span>
+          </button>
         </div>
       </aside>
 
       <div class="workspace-main-shell">
         <div class="workspace-main">
-        <section class="section-panel" id="llm-step" data-reveal>
+        <section class="section-panel active-panel" id="llm-step" data-reveal>
           <div class="section-head">
-            <div class="section-number">Step 01 · OpenAI API Key</div>
-            <h2>You'll need an OpenAI API Key to start down this road.</h2>
+            <div class="section-number">OpenAI API Key</div>
+            <h2>Store the OpenAI key this account should use for new runs.</h2>
             <p>
-              Each account can store multiple OpenAI keys, keep one active at a time, and rotate without affecting anyone else. Raw key material is accepted once, encrypted immediately, and never returned to the browser.
+              Keep one active key for normal use, rotate it when needed, and leave old values deleted rather than lingering in the control plane. Raw key material is accepted once, encrypted immediately, and never returned to the browser.
             </p>
           </div>
 
@@ -1179,6 +1278,7 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
                 <p class="micro-copy">The active key is used for new runs. Activate a different key or revoke one directly from its card.</p>
               </div>
               <div class="button-row">
+                <button class="ghost" id="newLlmKey" type="button">Add key</button>
                 <button class="secondary" id="listLlmKeys">Refresh</button>
               </div>
             </div>
@@ -1188,14 +1288,20 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
                 <span class="field-label">No OpenAI keys yet</span>
                 <strong>Add your first key</strong>
                 <p>Store an OpenAI API key for this account before starting runs.</p>
+                <div class="button-row">
+                  <button type="button" data-empty-action="new-llm-key">Add your first key</button>
+                </div>
               </article>
             </div>
 
-            <div class="composer-card">
+            <div id="llmComposer" class="composer-card" hidden>
               <div class="title-row">
                 <div>
                   <span class="field-label">Add key</span>
                   <p class="micro-copy">The key value is accepted once, encrypted at rest, and hidden after submission.</p>
+                </div>
+                <div class="button-row">
+                  <button class="ghost" id="cancelLlmComposer" type="button">Cancel</button>
                 </div>
               </div>
 
@@ -1203,11 +1309,11 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
                 <label class="field">
                   <span class="field-label">Provider</span>
                   <select id="llmProvider">
-                    <option value="openai">openai</option>
+                    <option value="openai">OpenAI</option>
                   </select>
                 </label>
                 <label class="field">
-                  <span class="field-label">Label</span>
+                  <span class="field-label">Name</span>
                   <input id="llmKeyName" placeholder="Primary OpenAI key" />
                 </label>
                 <label class="field field-span-2">
@@ -1222,15 +1328,15 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
             </div>
           </div>
 
-          <div class="output-shell">
+          <div class="output-shell" hidden>
             <div class="output-head"><span>OpenAI key activity</span></div>
             <pre id="llmOut">OpenAI key output</pre>
           </div>
         </section>
 
-        <section class="section-panel" id="keys-step" data-reveal>
+        <section class="section-panel" id="keys-step" data-reveal hidden>
           <div class="section-head">
-            <div class="section-number">Step 02 · MCP Access Keys</div>
+            <div class="section-number">MCP Access Keys</div>
             <h2>Create access keys for clients and scope them to the connections they are allowed to use.</h2>
             <p>
               MCP access keys are shown once, then redacted. Create them for a specific machine or client, scope them to approved connections, and revoke them directly from the list when they are no longer needed.
@@ -1244,6 +1350,7 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
                 <p class="micro-copy">Cards show scope, creation time, and last use. Revoke from the card when a client should lose access.</p>
               </div>
               <div class="button-row">
+                <button class="ghost" id="newApiKey" type="button">Create key</button>
                 <button class="secondary" id="listKeys">Refresh</button>
               </div>
             </div>
@@ -1253,29 +1360,34 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
                 <span class="field-label">No access keys yet</span>
                 <strong>Create your first MCP key</strong>
                 <p>Issue a key for a client and scope it to the connections it should be able to reach.</p>
+                <div class="button-row">
+                  <button type="button" data-empty-action="new-api-key">Create access key</button>
+                </div>
               </article>
             </div>
 
-            <div class="composer-card">
+            <div id="keyComposer" class="composer-card" hidden>
               <div class="title-row">
                 <div>
                   <span class="field-label">Issue key</span>
-                  <p class="micro-copy">Use connection IDs to scope access. Leave the field empty to allow all of this user’s connections.</p>
+                  <p class="micro-copy">Scope this key by connection name. Leave all options unselected to allow every connection on this account.</p>
                 </div>
                 <div class="button-row">
                   <button class="ghost" id="scopeSelectedConnection" type="button">Use selected connection</button>
+                  <button class="ghost" id="cancelKeyComposer" type="button">Cancel</button>
                 </div>
               </div>
 
               <div class="field-grid">
                 <label class="field">
-                  <span class="field-label">Label</span>
+                  <span class="field-label">Name</span>
                   <input id="keyName" placeholder="Desktop client" />
                 </label>
-                <label class="field">
-                  <span class="field-label">Allowed connection IDs</span>
-                  <input id="keyConnIds" placeholder="Comma-separated connection ids" />
-                </label>
+                <div class="field field-span-2">
+                  <span class="field-label">Allowed connections</span>
+                  <div id="keyScopePicker" class="connection-scope-picker"></div>
+                  <input id="keyConnIds" type="hidden" />
+                </div>
               </div>
 
               <div class="button-row">
@@ -1284,31 +1396,41 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
             </div>
           </div>
 
-          <div id="oneTimeKeyPanel" class="one-time-key">
-            <strong>One-time access key</strong>
-            <p>Copy this now. It is returned once and will not be shown again.</p>
-            <label class="field">
-              <span class="field-label" style="color: rgba(241,246,255,0.72)">Secret value</span>
-              <input id="oneTimeKeyValue" readonly />
-            </label>
-            <div class="button-row">
-              <button class="secondary" id="copyOneTimeKey">Copy key</button>
-              <button class="danger" id="clearOneTimeKey">Clear from screen</button>
+          <div id="oneTimeKeyModal" class="modal-backdrop" hidden>
+            <div class="modal-card">
+              <div>
+                <p class="eyebrow">MCP Access Key</p>
+                <h3>Copy the server URL and key now.</h3>
+                <p>The raw key is returned once and never shown again.</p>
+              </div>
+              <label class="field">
+                <span class="field-label">Server URL</span>
+                <input id="oneTimeKeyServerUrl" readonly />
+              </label>
+              <label class="field">
+                <span class="field-label">Access key</span>
+                <input id="oneTimeKeyValue" readonly />
+              </label>
+              <div class="button-row">
+                <button class="secondary" id="copyOneTimeKey">Copy key</button>
+                <button class="ghost" id="copyServerUrl">Copy server URL</button>
+                <button class="danger" id="clearOneTimeKey">Done</button>
+              </div>
             </div>
           </div>
 
-          <div class="output-shell">
+          <div class="output-shell" hidden>
             <div class="output-head"><span>MCP key activity</span></div>
             <pre id="keysOut">MCP key output</pre>
           </div>
         </section>
 
-        <section class="section-panel" id="connections-step" data-reveal>
+        <section class="section-panel" id="connections-step" data-reveal hidden>
           <div class="section-head">
-            <div class="section-number">Step 03 · Connections</div>
-            <h2>Define the connection, then manage its hidden access artifacts from the same place.</h2>
+            <div class="section-number">Connections</div>
+            <h2>Create a connection first, then launch guided capture only when it needs browser access.</h2>
             <p>
-              A connection is the security boundary. You create the host policy here, decide whether the boundary should expand to subdomains or all paths, then manage encrypted secret refs, saved auth state, and interactive browser capture without splitting that work across a second tab.
+              A connection is the security boundary. Keep the default flow simple: create the allowed host boundary, select the card, and start a guided capture when you need a durable auth state. Manual secret and auth-state entry still exists, but it is secondary on purpose.
             </p>
           </div>
 
@@ -1320,227 +1442,256 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
               </div>
               <div class="button-row">
                 <button class="secondary" id="refreshConnections">Refresh list</button>
-                <button class="ghost" id="newConnection">New connection</button>
+                <button class="ghost" id="manageSelectedConnection" type="button">Launch guided capture</button>
+                <button class="ghost" id="openManualConnectionAccess" type="button">Manual access</button>
+                <button class="ghost" id="newConnection">Create connection</button>
               </div>
             </div>
             <div id="selectedConnectionMeta" class="selected-connection-meta">
-              <span class="connection-tag">Create or choose a connection card to manage its policy and hidden refs.</span>
+              <span class="connection-tag">Create or choose a connection card, then launch capture when the browser session needs durable access.</span>
             </div>
+          </div>
+
+          <div class="subsection-nav" aria-label="Connections views" hidden>
+            <button id="connectionsSetupTab" class="subview-toggle active" type="button">Connection setup</button>
+            <button id="connectionsAccessTab" class="subview-toggle" type="button">Access artifacts</button>
           </div>
 
           <div id="connectionsBoard" class="connection-board capture-history-empty">No connections loaded yet.</div>
 
-          <div class="field-grid">
-            <label class="field">
-              <span class="field-label">Connection name</span>
-              <input id="connName" placeholder="Name the utility the way a user, auditor, or future you would recognize it" />
-            </label>
-            <label class="field">
-              <span class="field-label">Base host</span>
-              <input id="connBaseHost" placeholder="portal.example.com" />
-            </label>
-            <label class="field field-span-2">
-              <span class="field-label">Allowed hosts</span>
-              <input id="connHosts" placeholder="Add approved subdomains or partner hosts, comma by comma, like you mean it" />
-            </label>
-            <label class="field field-span-2">
-              <span class="field-label">Allowed path prefixes</span>
-              <input id="connPaths" placeholder="/, /auth, /dashboard, /release-notes, /places-the-bot-may-behave" />
-            </label>
-            <label class="field checkbox-field">
-              <span class="field-label">Allow base-host subdomains</span>
-              <input id="connAllowSubdomains" type="checkbox" />
-            </label>
-            <label class="field checkbox-field">
-              <span class="field-label">Allow any path on approved hosts</span>
-              <input id="connAllowAnyPath" type="checkbox" />
-            </label>
-            <label class="field">
-              <span class="field-label">Preferred auth method</span>
-              <select id="connAuthMethod">
-                <option value="oauth">oauth</option>
-                <option value="auth_state">auth_state</option>
-                <option value="credentials">credentials</option>
-              </select>
-            </label>
-            <label class="field">
-              <span class="field-label">Patch status</span>
-              <select id="patchConnStatus">
-                <option value="active">active</option>
-                <option value="paused">paused</option>
-                <option value="disabled">disabled</option>
-              </select>
-            </label>
-            <input id="patchConnId" type="hidden" />
-          </div>
+          <div id="connectionSetupView" class="subview">
+            <div id="connectionComposer" class="composer-card" hidden>
+              <div class="title-row">
+                <div>
+                  <span class="field-label">Connection policy</span>
+                  <p class="micro-copy">Create the host boundary first. After the connection exists, capture access from the card instead of filling every advanced field up front.</p>
+                </div>
+                <div class="button-row">
+                  <button class="ghost" id="cancelConnectionComposer" type="button">Cancel</button>
+                </div>
+              </div>
 
-          <div class="button-row">
-            <button id="createConn">Create connection</button>
-            <button class="secondary" id="listConn">List connections</button>
-            <button class="ghost" id="patchConn">Patch connection</button>
-          </div>
+              <div class="field-grid">
+                <label class="field">
+                  <span class="field-label">Connection name</span>
+                  <input id="connName" placeholder="NetDocuments production" />
+                </label>
+                <label class="field">
+                  <span class="field-label">Base host</span>
+                  <input id="connBaseHost" placeholder="portal.example.com" />
+                </label>
+                <label class="field field-span-2">
+                  <span class="field-label">Allowed hosts</span>
+                  <input id="connHosts" placeholder="app.example.com, support.example.com" />
+                </label>
+                <label class="field field-span-2">
+                  <span class="field-label">Allowed path prefixes</span>
+                  <input id="connPaths" placeholder="/, /login, /dashboard" />
+                </label>
+                <label class="field checkbox-field">
+                  <span class="field-label">Allow base-host subdomains</span>
+                  <input id="connAllowSubdomains" type="checkbox" />
+                </label>
+                <label class="field checkbox-field">
+                  <span class="field-label">Allow any path on approved hosts</span>
+                  <input id="connAllowAnyPath" type="checkbox" />
+                </label>
+                <label class="field">
+                  <span class="field-label">Preferred auth method</span>
+                  <select id="connAuthMethod">
+                    <option value="oauth">oauth</option>
+                    <option value="auth_state">auth_state</option>
+                    <option value="credentials">credentials</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span class="field-label">Status</span>
+                  <select id="patchConnStatus">
+                    <option value="active">active</option>
+                    <option value="paused">paused</option>
+                    <option value="disabled">disabled</option>
+                  </select>
+                </label>
+                <input id="patchConnId" type="hidden" />
+              </div>
 
-          <p class="micro-copy">
-            Approved hosts and path prefixes are the contract the execution layer must satisfy before any secret reference can be resolved. The subdomain and any-path switches loosen that contract deliberately instead of by accident.
-          </p>
+              <div class="button-row">
+                <button id="createConn">Create connection</button>
+                <button class="secondary" id="patchConn">Save changes</button>
+              </div>
 
-          <div class="output-shell">
-            <div class="output-head"><span>Connection policy log</span></div>
-            <pre id="connOut">Connections output</pre>
-          </div>
-
-          <div class="section-head" style="margin-top: 34px;">
-            <div class="section-number">Connection-owned access artifacts</div>
-            <h2>Keep secret refs, auth state, and browser capture attached to the same connection boundary.</h2>
-            <p>
-              Secret values and saved auth states are encrypted at rest and never displayed back after creation. Build a fill plan against an exact URL to confirm the runtime sees only the references it should use and nothing it merely finds interesting.
-            </p>
-          </div>
-
-          <div class="field-grid">
-            <input id="secretConnId" type="hidden" />
-            <label class="field">
-              <span class="field-label">Secret type</span>
-              <select id="secretType">
-                <option value="username">username</option>
-                <option value="password">password</option>
-                <option value="otp">otp</option>
-                <option value="api_token">api_token</option>
-                <option value="cookie_bundle">cookie_bundle</option>
-              </select>
-            </label>
-            <label class="field field-span-2">
-              <span class="field-label">Secret value</span>
-              <textarea id="secretValue" placeholder="Paste the value once. It will be encrypted and cleared from this form after submission like this never happened."></textarea>
-            </label>
-            <label class="field">
-              <span class="field-label">Delete secret id</span>
-              <input id="deleteSecretId" placeholder="Delete a specific stored ref by id" />
-            </label>
-            <label class="field field-span-2">
-              <span class="field-label">Target URL for fill plan</span>
-              <input id="planUrl" placeholder="https://portal.example.com/login" />
-            </label>
-            <label class="field field-span-2">
-              <span class="field-label">Required secret types</span>
-              <input id="planTypes" placeholder="username,password or token,cookie_bundle" />
-            </label>
-            <label class="field">
-              <span class="field-label">Auth state type</span>
-              <select id="authStateType">
-                <option value="playwright_storage_state_json">playwright_storage_state_json</option>
-                <option value="cookie_bundle_json">cookie_bundle_json</option>
-              </select>
-            </label>
-            <label class="field">
-              <span class="field-label">Auth state expiry</span>
-              <input id="authStateExpiresAt" placeholder="2026-01-31T18:30:00Z" />
-            </label>
-            <label class="field field-span-2">
-              <span class="field-label">Auth state import file</span>
-              <input id="authStateFile" type="file" accept="application/json,.json" />
-            </label>
-            <label class="field field-span-2">
-              <span class="field-label">Auth state payload</span>
-              <textarea id="authStatePayload" placeholder='Paste Playwright storageState JSON or a cookie bundle JSON object, preferably the one you meant to use.'></textarea>
-            </label>
-            <label class="field">
-              <span class="field-label">Delete auth state id</span>
-              <input id="deleteAuthStateId" placeholder="Delete a stored auth state by id" />
-            </label>
-            <label class="field field-span-2">
-              <span class="field-label">Capture session id</span>
-              <input id="captureSessionId" placeholder="Start a capture session to populate this automatically and spare your wrists" />
-            </label>
-            <label class="field field-span-2">
-              <span class="field-label">Capture start URL</span>
-              <input id="captureStartUrl" placeholder="https://portal.example.com/login" />
-            </label>
-            <label class="field">
-              <span class="field-label">Navigate URL</span>
-              <input id="captureNavigateUrl" placeholder="https://portal.example.com/account" />
-            </label>
-            <label class="field">
-              <span class="field-label">Type text</span>
-              <input id="captureTypeText" placeholder="Text to type into the controlled browser without editorializing" />
-            </label>
-            <label class="field">
-              <span class="field-label">Keypress combo</span>
-              <input id="captureKeypress" placeholder="Tab or Control+L or some other carefully chosen impulse" />
-            </label>
-            <label class="field">
-              <span class="field-label">Click position</span>
-              <input id="captureClick" placeholder="x,y coordinates for the next bad but authorized idea" />
-            </label>
-            <label class="field">
-              <span class="field-label">Scroll delta Y</span>
-              <input id="captureScrollY" placeholder="600" />
-            </label>
-            <label class="field">
-              <span class="field-label">Wait milliseconds</span>
-              <input id="captureWaitMs" placeholder="1000 milliseconds of reflection" />
-            </label>
-          </div>
-
-          <div class="button-row">
-            <button class="secondary" id="loadConnArtifacts">Load connection artifacts</button>
-            <button id="addSecret">Add secret ref</button>
-            <button class="secondary" id="listSecrets">List secret refs</button>
-            <button class="danger" id="deleteSecret">Delete secret ref</button>
-            <button class="secondary" id="addAuthState">Add auth state</button>
-            <button class="secondary" id="importAuthState">Import auth state file</button>
-            <button class="secondary" id="listAuthStates">List auth states</button>
-            <button class="danger" id="deleteAuthState">Delete auth state</button>
-            <button class="ghost" id="secretPlan">Preview fill plan</button>
-            <button class="secondary" id="startCapture">Start capture</button>
-            <button class="secondary" id="listCaptureSessions">List captures</button>
-            <button class="ghost" id="refreshCapture">Refresh capture</button>
-            <button class="ghost" id="captureNavigate">Navigate capture</button>
-            <button class="ghost" id="captureType">Type into capture</button>
-            <button class="ghost" id="captureKey">Keypress capture</button>
-            <button class="ghost" id="captureClickButton">Click capture</button>
-            <button class="ghost" id="captureScrollButton">Scroll capture</button>
-            <button class="ghost" id="captureWaitButton">Wait capture</button>
-            <button class="secondary" id="finalizeCapture">Finalize capture</button>
-            <button class="danger" id="cancelCapture">Cancel capture</button>
-          </div>
-
-          <div class="capture-preview">
-            <div id="captureFrame" class="capture-frame empty">
-              <img id="captureImage" alt="Live capture session preview" style="display:none" />
-              <div id="captureMarker" class="capture-marker" aria-hidden="true"></div>
-              <div id="captureEmptyText">Start an auth capture session to control an isolated browser and save auth state directly from the flow without improvising around login screens.</div>
-            </div>
-            <div class="capture-selection">
-              <span>Click inside the screenshot to populate the click position for the next action and reduce coordinate-based fiction.</span>
-              <strong id="captureSelectionText">No coordinate selected</strong>
+              <p class="micro-copy">
+                Approved hosts and path prefixes are the contract the execution layer must satisfy before any secret reference can be resolved.
+              </p>
             </div>
           </div>
 
-          <div class="output-shell">
-            <div class="output-head"><span>Secret, auth-state, and fill-plan log</span></div>
-            <pre id="secretOut">Secrets output</pre>
-          </div>
+          <div id="connectionAccessView" class="subview" hidden>
+            <div class="subtle-shell">
+              <div>
+                <span class="field-label">Guided capture</span>
+                <p class="micro-copy">Start an isolated browser session for the selected connection, complete login there, then finalize to save auth state back into the boundary.</p>
+              </div>
 
-          <div class="output-shell">
-            <div class="output-head"><span>Capture session log</span></div>
-            <pre id="captureOut">Capture output</pre>
-          </div>
+              <div class="field-grid">
+                <input id="secretConnId" type="hidden" />
+                <label class="field field-span-2">
+                  <span class="field-label">Capture session id</span>
+                  <input id="captureSessionId" placeholder="Start a capture session and this fills automatically." />
+                </label>
+                <label class="field field-span-2">
+                  <span class="field-label">Auth state expiry</span>
+                  <input id="authStateExpiresAt" placeholder="2026-01-31T18:30:00Z" />
+                </label>
+                <label class="field field-span-2">
+                  <span class="field-label">Capture start URL</span>
+                  <input id="captureStartUrl" placeholder="https://portal.example.com/login" />
+                </label>
+                <label class="field">
+                  <span class="field-label">Navigate URL</span>
+                  <input id="captureNavigateUrl" placeholder="https://portal.example.com/account" />
+                </label>
+                <label class="field">
+                  <span class="field-label">Type text</span>
+                  <input id="captureTypeText" placeholder="Text to type into the controlled browser" />
+                </label>
+                <label class="field">
+                  <span class="field-label">Keypress combo</span>
+                  <input id="captureKeypress" placeholder="Tab or Control+L" />
+                </label>
+                <label class="field">
+                  <span class="field-label">Click position</span>
+                  <input id="captureClick" placeholder="x,y coordinates for the next click" />
+                </label>
+                <label class="field">
+                  <span class="field-label">Scroll delta Y</span>
+                  <input id="captureScrollY" placeholder="600" />
+                </label>
+                <label class="field">
+                  <span class="field-label">Wait milliseconds</span>
+                  <input id="captureWaitMs" placeholder="1000" />
+                </label>
+              </div>
 
-          <div class="output-shell">
-            <div class="output-head"><span>Capture finalize summary</span></div>
-            <div id="captureSummary" class="capture-summary empty">Finalize a capture to see which auth artifacts were saved and which hosts or paths were discovered.</div>
-          </div>
+              <div class="button-row">
+                <button class="secondary" id="startCapture">Start capture</button>
+                <button class="ghost" id="refreshCapture">Refresh capture</button>
+                <button class="ghost" id="captureNavigate">Navigate</button>
+                <button class="ghost" id="captureType">Type</button>
+                <button class="ghost" id="captureKey">Keypress</button>
+                <button class="ghost" id="captureClickButton">Click</button>
+                <button class="ghost" id="captureScrollButton">Scroll</button>
+                <button class="ghost" id="captureWaitButton">Wait</button>
+                <button class="secondary" id="finalizeCapture">Finalize</button>
+                <button class="danger" id="cancelCapture">Cancel</button>
+              </div>
+            </div>
 
-          <div class="output-shell">
-            <div class="output-head"><span>Capture session history</span></div>
-            <div id="captureHistoryOut" class="capture-history-empty">No capture history loaded yet.</div>
+            <div class="capture-preview">
+              <div id="captureFrame" class="capture-frame empty">
+                <img id="captureImage" alt="Live capture session preview" style="display:none" />
+                <div id="captureMarker" class="capture-marker" aria-hidden="true"></div>
+                <div id="captureEmptyText">Start an auth capture session to control an isolated browser and save auth state directly from the flow.</div>
+              </div>
+              <div class="capture-selection">
+                <span>Click inside the screenshot to populate the click position for the next action.</span>
+                <strong id="captureSelectionText">No coordinate selected</strong>
+              </div>
+            </div>
+
+            <div class="subtle-shell">
+              <div class="output-head"><span>Capture finalize summary</span></div>
+              <div id="captureSummary" class="capture-summary empty">Finalize a capture to see which auth artifacts were saved and which hosts or paths were discovered.</div>
+            </div>
+
+            <div class="subtle-shell">
+              <div class="title-row">
+                <div>
+                  <span class="field-label">Capture session history</span>
+                  <p class="micro-copy">Recent capture sessions for the selected connection.</p>
+                </div>
+                <div class="button-row">
+                  <button class="secondary" id="listCaptureSessions">Refresh history</button>
+                </div>
+              </div>
+              <div id="captureHistoryOut" class="capture-history-empty">No capture history loaded yet.</div>
+            </div>
+
+            <details class="subtle-shell">
+              <summary>Manual access artifacts</summary>
+              <div>
+                <p class="micro-copy">Use these controls only when capture is not the right tool. Stored secrets and imported auth state remain hidden after submission.</p>
+              </div>
+
+              <div class="field-grid">
+                <label class="field">
+                  <span class="field-label">Secret type</span>
+                  <select id="secretType">
+                    <option value="username">username</option>
+                    <option value="password">password</option>
+                    <option value="otp">otp</option>
+                    <option value="api_token">api_token</option>
+                    <option value="cookie_bundle">cookie_bundle</option>
+                  </select>
+                </label>
+                <label class="field field-span-2">
+                  <span class="field-label">Secret value</span>
+                  <textarea id="secretValue" placeholder="Paste the value once. It will be encrypted and cleared from this form after submission."></textarea>
+                </label>
+                <label class="field">
+                  <span class="field-label">Delete secret id</span>
+                  <input id="deleteSecretId" placeholder="Delete a specific stored ref by id" />
+                </label>
+                <label class="field field-span-2">
+                  <span class="field-label">Target URL for fill plan</span>
+                  <input id="planUrl" placeholder="https://portal.example.com/login" />
+                </label>
+                <label class="field field-span-2">
+                  <span class="field-label">Required secret types</span>
+                  <input id="planTypes" placeholder="username,password or token,cookie_bundle" />
+                </label>
+                <label class="field">
+                  <span class="field-label">Auth state type</span>
+                  <select id="authStateType">
+                    <option value="playwright_storage_state_json">playwright_storage_state_json</option>
+                    <option value="cookie_bundle_json">cookie_bundle_json</option>
+                  </select>
+                </label>
+                <label class="field field-span-2">
+                  <span class="field-label">Auth state import file</span>
+                  <input id="authStateFile" type="file" accept="application/json,.json" />
+                </label>
+                <label class="field field-span-2">
+                  <span class="field-label">Auth state payload</span>
+                  <textarea id="authStatePayload" placeholder='Paste Playwright storageState JSON or a cookie bundle JSON object.'></textarea>
+                </label>
+                <label class="field">
+                  <span class="field-label">Delete auth state id</span>
+                  <input id="deleteAuthStateId" placeholder="Delete a stored auth state by id" />
+                </label>
+              </div>
+
+              <div class="button-row">
+                <button class="secondary" id="loadConnArtifacts">Load connection artifacts</button>
+                <button id="addSecret">Add secret ref</button>
+                <button class="secondary" id="listSecrets">List secret refs</button>
+                <button class="danger" id="deleteSecret">Delete secret ref</button>
+                <button class="secondary" id="addAuthState">Add auth state</button>
+                <button class="secondary" id="importAuthState">Import auth state file</button>
+                <button class="secondary" id="listAuthStates">List auth states</button>
+                <button class="danger" id="deleteAuthState">Delete auth state</button>
+                <button class="ghost" id="secretPlan">Preview fill plan</button>
+              </div>
+
+              <pre id="secretOut" class="dev-output">Secrets output</pre>
+              <pre id="captureOut" class="dev-output">Capture output</pre>
+            </details>
           </div>
         </section>
 
-        <section class="section-panel" id="patterns-step" data-reveal>
+        <section class="section-panel" id="patterns-step" data-reveal hidden>
           <div class="section-head">
-            <div class="section-number">Step 04 · Patterns</div>
+            <div class="section-number">Patterns</div>
             <h2>Keep the system's learned playbooks in one place and edit them like they matter.</h2>
             <p>
               These patterns become reusable context for future delegations. Save the URLs that tend to matter, the steps that actually work, and the steering notes that prevent the same mistakes from becoming traditions.
@@ -1568,14 +1719,20 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
               <span class="field-label">No patterns yet</span>
               <strong>Write the first reusable guide</strong>
               <p>Capture one workflow with real URLs, working steps, and the issues that usually require steering.</p>
+              <div class="button-row">
+                <button type="button" data-empty-action="new-pattern">New pattern</button>
+              </div>
             </article>
           </div>
 
-          <div class="composer-card">
+          <div id="patternEditor" class="composer-card" hidden>
             <div class="title-row">
               <div>
                 <span class="field-label">Pattern editor</span>
                 <p class="micro-copy">Cards are summaries. This form holds the actual stepwise playbook and the issues worth remembering.</p>
+              </div>
+              <div class="button-row">
+                <button class="ghost" id="cancelPatternEditor" type="button">Cancel</button>
               </div>
             </div>
 
@@ -1610,74 +1767,87 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
             </div>
           </div>
 
-          <div class="output-shell">
+          <div class="output-shell" hidden>
             <div class="output-head"><span>Pattern activity</span></div>
             <pre id="patternsOut">Pattern output</pre>
           </div>
         </section>
 
-        <section class="section-panel" id="runs-step" data-reveal>
+        <section class="section-panel" id="runs-step" data-reveal hidden>
           <div class="section-head">
-            <div class="section-number">Step 05 · Runs and privacy</div>
+            <div class="section-number">Runs and privacy</div>
             <h2>Decide what the system remembers, what it forgets, and how suspiciously clean you want the trail.</h2>
             <p>
               Runtime settings stay user-scoped. Retention determines cleanup windows, while ZDR disables event and output persistence so the system keeps only the minimum needed to track run state and avoid becoming a scrapbook.
             </p>
           </div>
 
-          <div class="field-grid">
-            <label class="field">
-              <span class="field-label">Run retention days</span>
-              <input id="runtimeRetentionDays" type="number" min="1" max="365" placeholder="30" />
-            </label>
-            <label class="field">
-              <span class="field-label">Run detail id</span>
-              <input id="runDetailId" placeholder="Paste a run id to inspect the full stored aftermath" />
-            </label>
-            <label class="field field-span-2">
-              <span class="field-label">Delete run id</span>
-              <input id="deleteRunId" placeholder="Delete a specific run by id if history no longer deserves rights" />
-            </label>
-            <label class="field checkbox-field">
-              <span class="field-label">Zero-data retention</span>
-              <input id="runtimeZdrEnabled" type="checkbox" />
-            </label>
-            <label class="field checkbox-field">
-              <span class="field-label">Persist run events</span>
-              <input id="runtimePersistEvents" type="checkbox" checked />
-            </label>
-            <label class="field checkbox-field">
-              <span class="field-label">Persist run output</span>
-              <input id="runtimePersistOutput" type="checkbox" checked />
-            </label>
+          <div class="subsection-nav" aria-label="Runs views">
+            <button id="runsSettingsTab" class="subview-toggle active" type="button">Privacy settings</button>
+            <button id="runsHistoryTab" class="subview-toggle" type="button">Run history</button>
           </div>
 
-          <div class="button-row">
-            <button id="loadRuntimeSettings">Load settings</button>
-            <button class="secondary" id="saveRuntimeSettings">Save settings</button>
-            <button class="secondary" id="listRuns">List runs</button>
-            <button class="ghost" id="getRun">Inspect run</button>
-            <button class="danger" id="deleteRun">Delete run</button>
+          <div id="runSettingsView" class="subview">
+            <div class="field-grid">
+              <label class="field">
+                <span class="field-label">Run retention days</span>
+                <input id="runtimeRetentionDays" type="number" min="1" max="365" placeholder="30" />
+              </label>
+              <label class="field checkbox-field">
+                <span class="field-label">Zero-data retention</span>
+                <input id="runtimeZdrEnabled" type="checkbox" />
+              </label>
+              <label class="field checkbox-field">
+                <span class="field-label">Persist run events</span>
+                <input id="runtimePersistEvents" type="checkbox" checked />
+              </label>
+              <label class="field checkbox-field">
+                <span class="field-label">Persist run output</span>
+                <input id="runtimePersistOutput" type="checkbox" checked />
+              </label>
+            </div>
+
+            <div class="button-row">
+              <button id="loadRuntimeSettings">Load settings</button>
+              <button class="secondary" id="saveRuntimeSettings">Save settings</button>
+            </div>
           </div>
 
-          <div class="output-shell">
-            <div class="output-head"><span>Run history</span></div>
-            <div id="runsHistoryOut" class="capture-history-empty">No runs loaded yet.</div>
+          <div id="runHistoryView" class="subview" hidden>
+            <div class="surface-actions">
+              <div>
+                <span class="field-label">Stored runs</span>
+                <p class="micro-copy">Inspect a run in place or delete it from history.</p>
+              </div>
+              <div class="button-row">
+                <button class="secondary" id="listRuns">Refresh runs</button>
+              </div>
+            </div>
+
+            <div class="subtle-shell">
+              <div id="runsHistoryOut" class="capture-history-empty">No runs loaded yet.</div>
+            </div>
           </div>
 
-          <div class="output-shell">
-            <div class="output-head"><span>Runtime settings log</span></div>
-            <pre id="runtimeSettingsOut">Runtime settings output</pre>
-          </div>
-
-          <div class="output-shell">
-            <div class="output-head"><span>Run detail</span></div>
-            <pre id="runDetailOut">Run detail output</pre>
-          </div>
+          <pre id="runtimeSettingsOut" class="dev-output">Runtime settings output</pre>
         </section>
         </div>
       </div>
     </main>
+
+    <div id="runDetailModal" class="modal-backdrop" hidden>
+      <div class="modal-card">
+        <div>
+          <p class="eyebrow">Run detail</p>
+          <h3>Inspect the stored run.</h3>
+          <p>Use this to confirm what was persisted for the selected run without leaving the history view.</p>
+        </div>
+        <pre id="runDetailOut">Run detail output</pre>
+        <div class="button-row">
+          <button class="secondary" id="closeRunDetailModal">Close</button>
+        </div>
+      </div>
+    </div>
 
     <div id="banner" class="banner" hidden>Ready.</div>
     <div id="toastStack" class="toast-stack" aria-live="polite" aria-atomic="false"></div>
@@ -1710,13 +1880,24 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
       const sessionName = $('sessionName');
       const sessionEmail = $('sessionEmail');
       const sessionMeta = $('sessionMeta');
-      const sheepLogout = $('sheepLogout');
+      const signOutButton = $('signOutButton');
       const llmCards = $('llmCards');
       const apiKeyCards = $('apiKeyCards');
       const patternCards = $('patternCards');
       const selectedPatternShell = $('selectedPatternShell');
       const selectedPatternName = $('selectedPatternName');
       const selectedPatternMeta = $('selectedPatternMeta');
+      const llmComposer = $('llmComposer');
+      const keyComposer = $('keyComposer');
+      const patternEditor = $('patternEditor');
+      const keyScopePicker = $('keyScopePicker');
+      const oneTimeKeyModal = $('oneTimeKeyModal');
+      const runDetailModal = $('runDetailModal');
+      const connectionComposer = $('connectionComposer');
+      const connectionSetupView = $('connectionSetupView');
+      const connectionAccessView = $('connectionAccessView');
+      const runSettingsView = $('runSettingsView');
+      const runHistoryView = $('runHistoryView');
       const sections = Array.from(document.querySelectorAll('[data-reveal]'));
       const navLinks = Array.from(document.querySelectorAll('[data-step-link]'));
       const state = {
@@ -1728,6 +1909,26 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         selectedPatternId: '',
         currentUser: null,
         currentSession: null,
+        connectionsSubview: 'setup',
+        runsSubview: 'settings',
+      };
+
+      const DASHBOARD_ROUTE_BY_SECTION = {
+        'llm-step': '/dashboard/llm-api-keys',
+        'connections-step': '/dashboard/connections',
+        'patterns-step': '/dashboard/patterns',
+        'runs-step': '/dashboard/runs-privacy',
+        'keys-step': '/dashboard/mcp-access-keys',
+      };
+
+      const DASHBOARD_SECTION_BY_ROUTE = {
+        '/dashboard': 'llm-step',
+        '/dashboard/': 'llm-step',
+        '/dashboard/llm-api-keys': 'llm-step',
+        '/dashboard/connections': 'connections-step',
+        '/dashboard/patterns': 'patterns-step',
+        '/dashboard/runs-privacy': 'runs-step',
+        '/dashboard/mcp-access-keys': 'keys-step',
       };
 
       function showToast(kind, message) {
@@ -1799,28 +2000,77 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
       }
 
       async function api(path, method = 'GET', body) {
-        const res = await fetch(path, {
-          method,
-          credentials: 'include',
-          headers: { 'content-type': 'application/json' },
-          body: body ? JSON.stringify(body) : undefined,
-        });
-        const text = await res.text();
-        let parsed;
-        try { parsed = JSON.parse(text); } catch { parsed = { raw: text }; }
-        if (!res.ok) {
-          if (looksLikeFeatureDisabled(res.status, parsed)) {
-            setBanner('err', 'This route is disabled on the server. Enable the matching backend feature flag before using this step.');
-          } else {
-            setBanner('err', String(parsed?.message || parsed?.error || ('Request failed (' + res.status + ').')));
+        try {
+          const res = await fetch(path, {
+            method,
+            credentials: 'include',
+            headers: { 'content-type': 'application/json' },
+            body: body ? JSON.stringify(body) : undefined,
+          });
+          const text = await res.text();
+          let parsed;
+          try { parsed = JSON.parse(text); } catch { parsed = { raw: text }; }
+          if (!res.ok) {
+            if (looksLikeFeatureDisabled(res.status, parsed)) {
+              setBanner('err', 'This route is disabled on the server. Enable the matching backend feature flag before using this step.');
+            } else {
+              setBanner('err', String(parsed?.message || parsed?.error || ('Request failed (' + res.status + ').')));
+            }
+            return { ok: false, status: res.status, body: parsed };
           }
-          return { ok: false, status: res.status, body: parsed };
+          return { ok: true, status: res.status, body: parsed };
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error || 'Unknown network error');
+          setBanner('err', 'Request failed before a response was received. ' + message);
+          return { ok: false, status: 0, body: { error: message } };
         }
-        return { ok: true, status: res.status, body: parsed };
       }
 
       function splitCsv(raw) {
         return String(raw || '').split(',').map(v => v.trim()).filter(Boolean);
+      }
+
+      function showSurface(element, show) {
+        if (!element) return;
+        element.hidden = !show;
+      }
+
+      function openModal(element) {
+        if (!element) return;
+        element.hidden = false;
+      }
+
+      function closeModal(element) {
+        if (!element) return;
+        element.hidden = true;
+      }
+
+      function setConnectionsSubview(view) {
+        state.connectionsSubview = view === 'access' ? 'access' : 'setup';
+        showSurface(connectionSetupView, state.connectionsSubview === 'setup');
+        showSurface(connectionAccessView, state.connectionsSubview === 'access');
+        $('connectionsSetupTab')?.classList.toggle('active', state.connectionsSubview === 'setup');
+        $('connectionsAccessTab')?.classList.toggle('active', state.connectionsSubview === 'access');
+      }
+
+      function setRunsSubview(view) {
+        state.runsSubview = view === 'history' ? 'history' : 'settings';
+        showSurface(runSettingsView, state.runsSubview === 'settings');
+        showSurface(runHistoryView, state.runsSubview === 'history');
+        $('runsSettingsTab')?.classList.toggle('active', state.runsSubview === 'settings');
+        $('runsHistoryTab')?.classList.toggle('active', state.runsSubview === 'history');
+      }
+
+      function showLlmComposer(show) {
+        showSurface(llmComposer, show);
+      }
+
+      function showKeyComposer(show) {
+        showSurface(keyComposer, show);
+      }
+
+      function showPatternEditor(show) {
+        showSurface(patternEditor, show);
       }
 
       function truncateText(value, limit = 180) {
@@ -1843,7 +2093,8 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         state.selectedConnectionId = '';
         selectedConnectionShell.classList.add('empty');
         selectedConnectionName.textContent = 'No connection selected';
-        selectedConnectionMeta.innerHTML = '<span class="connection-tag">Create or choose a connection card to manage its policy and hidden refs.</span>';
+        selectedConnectionMeta.innerHTML = '<span class="connection-tag">Create or choose a connection card, then launch capture when it needs browser access.</span>';
+        setConnectionsSubview('setup');
       }
 
       function clearConnectionForm() {
@@ -1856,6 +2107,7 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         $('connAuthMethod').value = 'oauth';
         $('patchConnStatus').value = 'active';
         clearConnectionSelection();
+        showSurface(connectionComposer, false);
       }
 
       function setActivePatternId(patternId) {
@@ -1879,6 +2131,64 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         $('patternSteps').value = '';
         $('patternIssues').value = '';
         clearPatternSelection();
+        showPatternEditor(false);
+      }
+
+      function describeConnectionScopes(connectionIds) {
+        const ids = Array.isArray(connectionIds) ? connectionIds : [];
+        if (!ids.length) {
+          return 'all connections';
+        }
+        const names = ids.map((id) => {
+          const connection = state.connections.find((entry) => entry.id === id);
+          return connection?.name || connection?.baseHost || id;
+        });
+        return names.join(', ');
+      }
+
+      function collectSelectedConnectionIds() {
+        if (!keyScopePicker) return [];
+        const ids = Array.from(keyScopePicker.querySelectorAll('input[type="checkbox"]:checked'))
+          .map((input) => String(input.value || '').trim())
+          .filter(Boolean);
+        $('keyConnIds').value = ids.join(', ');
+        return ids;
+      }
+
+      function setSelectedConnectionScopeIds(connectionIds) {
+        const selected = new Set(Array.isArray(connectionIds) ? connectionIds : []);
+        if (!keyScopePicker) return;
+        Array.from(keyScopePicker.querySelectorAll('input[type="checkbox"]')).forEach((input) => {
+          const checked = selected.has(String(input.value || ''));
+          input.checked = checked;
+          input.closest('.scope-chip')?.classList.toggle('active', checked);
+        });
+        $('keyConnIds').value = Array.from(selected).join(', ');
+      }
+
+      function renderConnectionScopePicker() {
+        if (!keyScopePicker) return;
+        if (!state.connections.length) {
+          keyScopePicker.innerHTML = '<span class="connection-tag">All connections</span><span class="micro-copy">Create a connection first if you need to scope this key.</span>';
+          $('keyConnIds').value = '';
+          return;
+        }
+
+        keyScopePicker.innerHTML = state.connections.map((connection) => {
+          const label = escapeHtml(connection.name || connection.baseHost || 'Unnamed connection');
+          const id = escapeAttr(connection.id);
+          return '<label class="scope-chip" data-scope-chip="' + id + '">' +
+            '<input type="checkbox" value="' + id + '" />' +
+            label +
+          '</label>';
+        }).join('');
+
+        Array.from(keyScopePicker.querySelectorAll('input[type="checkbox"]')).forEach((input) => {
+          input.addEventListener('change', () => {
+            input.closest('.scope-chip')?.classList.toggle('active', input.checked);
+            collectSelectedConnectionIds();
+          });
+        });
       }
 
       function getFaviconUrl(baseHost) {
@@ -1920,6 +2230,7 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         $('patchConnStatus').value = String(connection.status || 'active');
         setActiveConnectionId(connection.id);
         renderSelectedConnection(connection);
+        showSurface(connectionComposer, true);
       }
 
       function renderSelectedPattern(pattern) {
@@ -1947,13 +2258,15 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         $('patternIssues').value = String(pattern.knownIssuesMarkdown || '');
         setActivePatternId(pattern.id);
         renderSelectedPattern(pattern);
+        showPatternEditor(true);
       }
 
       function renderConnectionsBoard(connections) {
         state.connections = Array.isArray(connections) ? connections : [];
+        renderConnectionScopePicker();
         if (!state.connections.length) {
           connectionsBoard.className = 'connection-board capture-history-empty';
-          connectionsBoard.innerHTML = 'No connections yet. Create one below to define a secure host boundary before you capture anything interesting.';
+          connectionsBoard.innerHTML = '<article class="empty-state-card"><span class="field-label">No connections yet</span><strong>Create your first connection</strong><p>Define the allowed host boundary first. Guided capture comes after the connection exists.</p><div class="button-row"><button type="button" data-empty-action="new-connection">Create connection</button></div></article>';
           if (!state.selectedConnectionId) {
             renderSelectedConnection(null);
           }
@@ -1985,7 +2298,8 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
             '</div>' +
             '<div class="connection-card-actions">' +
               '<button class="secondary" type="button" data-connection-edit="' + escapeHtml(connection.id) + '">Edit</button>' +
-              '<button class="ghost" type="button" data-connection-manage="' + escapeHtml(connection.id) + '">Manage access</button>' +
+              '<button class="ghost" type="button" data-connection-capture="' + escapeHtml(connection.id) + '">Launch capture</button>' +
+              '<button class="danger" type="button" data-connection-delete="' + escapeHtml(connection.id) + '">Delete</button>' +
             '</div>' +
           '</article>';
         }).join('');
@@ -1995,7 +2309,7 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         state.patterns = Array.isArray(patterns) ? patterns : [];
         if (!patternCards) return;
         if (!state.patterns.length) {
-          patternCards.innerHTML = '<article class="empty-state-card"><span class="field-label">No patterns yet</span><strong>Write the first reusable guide</strong><p>Capture one workflow with real URLs, working steps, and the issues that usually require steering.</p></article>';
+          patternCards.innerHTML = '<article class="empty-state-card"><span class="field-label">No patterns yet</span><strong>Write the first reusable guide</strong><p>Capture one workflow with real URLs, working steps, and the issues that usually require steering.</p><div class="button-row"><button type="button" data-empty-action="new-pattern">New pattern</button></div></article>';
           if (!state.selectedPatternId) {
             renderSelectedPattern(null);
           }
@@ -2035,7 +2349,10 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         populateConnectionForm(connection);
         renderConnectionsBoard(state.connections);
         if (options.loadArtifacts) {
+          setConnectionsSubview('access');
           refreshConnectionArtifacts();
+        } else {
+          setConnectionsSubview('setup');
         }
       }
 
@@ -2044,6 +2361,33 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         if (!pattern) return;
         populatePatternForm(pattern);
         renderPatternCards(state.patterns);
+      }
+
+      function getDefaultCaptureStartUrl(connection) {
+        const host = String(connection?.baseHost || '').trim();
+        return host ? 'https://' + host : '';
+      }
+
+      async function launchGuidedCaptureForConnection(connectionId) {
+        const connection = state.connections.find((entry) => entry.id === connectionId);
+        if (!connection) {
+          setBanner('err', 'Select a connection first.');
+          return;
+        }
+
+        setActiveConnectionId(connection.id);
+        renderSelectedConnection(connection);
+        setConnectionsSubview('access');
+        $('captureStartUrl').value = $('captureStartUrl').value.trim() || getDefaultCaptureStartUrl(connection);
+
+        const data = await api('/api/connections/' + encodeURIComponent(connection.id) + '/capture-sessions', 'POST', {
+          startUrl: $('captureStartUrl').value.trim() || undefined,
+        });
+        renderCapture(data);
+        if (data.ok) {
+          await refreshCaptureHistory();
+          setBanner('ok', 'Guided capture started for ' + (connection.name || connection.baseHost || 'this connection') + '.');
+        }
       }
 
       function detectAuthStateType(parsed) {
@@ -2155,6 +2499,10 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         } else if (data.status === 401) {
           setSessionSummary(null, null);
           window.location.href = '/sign-in';
+        } else {
+          sessionName.textContent = 'Session unavailable';
+          sessionEmail.textContent = 'Could not load account details.';
+          sessionMeta.textContent = 'Reload this page after sign-in to restore account context.';
         }
         print(out.session, data);
         return data;
@@ -2164,7 +2512,7 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         state.llmKeys = Array.isArray(keys) ? keys : [];
         if (!llmCards) return;
         if (!state.llmKeys.length) {
-          llmCards.innerHTML = '<article class="empty-state-card"><span class="field-label">No OpenAI keys yet</span><strong>Add your first key</strong><p>Store an OpenAI API key for this account before starting runs.</p></article>';
+          llmCards.innerHTML = '<article class="empty-state-card"><span class="field-label">No OpenAI keys yet</span><strong>Add your first key</strong><p>Store an OpenAI API key for this account before starting runs.</p><div class="button-row"><button type="button" data-empty-action="new-llm-key">Add your first key</button></div></article>';
           return;
         }
 
@@ -2210,13 +2558,12 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         state.apiKeys = Array.isArray(keys) ? keys : [];
         if (!apiKeyCards) return;
         if (!state.apiKeys.length) {
-          apiKeyCards.innerHTML = '<article class="empty-state-card"><span class="field-label">No access keys yet</span><strong>Create your first MCP key</strong><p>Issue a key for a client and scope it to the connections it should be able to reach.</p></article>';
+          apiKeyCards.innerHTML = '<article class="empty-state-card"><span class="field-label">No access keys yet</span><strong>Create your first MCP key</strong><p>Issue a key for a client and scope it to the connections it should be able to reach.</p><div class="button-row"><button type="button" data-empty-action="new-api-key">Create access key</button></div></article>';
           return;
         }
 
         apiKeyCards.innerHTML = state.apiKeys.map((key) => {
-          const scopedCount = Array.isArray(key.allowedConnectionIds) ? key.allowedConnectionIds.length : 0;
-          const scopeLabel = scopedCount ? scopedCount + ' scoped connection' + (scopedCount === 1 ? '' : 's') : 'all connections';
+          const scopeLabel = describeConnectionScopes(key.allowedConnectionIds);
           const statusClass = key.revokedAt ? 'revoked' : 'active';
           const statusLabel = key.revokedAt ? 'revoked' : 'active';
           const actions = [];
@@ -2355,6 +2702,7 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
               '<div><strong>Connection:</strong> ' + connectionId + '</div>' +
               '<div><strong>Task:</strong> ' + task + '</div>' +
               '<div><strong>Summary:</strong> ' + summary + '</div>' +
+              '<div class="button-row"><button class="secondary" type="button" data-run-inspect="' + escapeAttr(run.id || '') + '">Inspect</button><button class="danger" type="button" data-run-delete="' + escapeAttr(run.id || '') + '">Delete</button></div>' +
             '</div>' +
           '</article>';
         }).join('');
@@ -2468,7 +2816,7 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
           if (state.selectedConnectionId) {
             const stillExists = data.body.connections.some((entry) => entry.id === state.selectedConnectionId);
             if (stillExists) {
-              selectConnectionById(state.selectedConnectionId);
+              selectConnectionById(state.selectedConnectionId, { loadArtifacts: state.connectionsSubview === 'access' });
             } else {
               clearConnectionSelection();
             }
@@ -2504,7 +2852,16 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         });
       }
 
-      function activateSection(activeId, syncHash = true, shouldScroll = true) {
+      function getSectionIdFromPathname(pathname) {
+        const normalized = String(pathname || '/dashboard').replace(/\/+$/, '') || '/dashboard';
+        return DASHBOARD_SECTION_BY_ROUTE[normalized] || 'llm-step';
+      }
+
+      function getRouteForSection(sectionId) {
+        return DASHBOARD_ROUTE_BY_SECTION[sectionId] || '/dashboard/llm-api-keys';
+      }
+
+      function activateSection(activeId, syncRoute = true, shouldScroll = true) {
         const fallback = sections[0];
         const section = sections.find((entry) => entry.id === activeId) || fallback;
         const resolvedId = section?.id || '';
@@ -2518,8 +2875,11 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
 
         updateActiveSection(resolvedId);
 
-        if (syncHash && resolvedId && window.location.hash !== '#' + resolvedId) {
-          history.replaceState(null, '', '#' + resolvedId);
+        if (syncRoute && resolvedId) {
+          const nextPath = getRouteForSection(resolvedId);
+          if (window.location.pathname !== nextPath) {
+            history.pushState(null, '', nextPath);
+          }
         }
 
         if (shouldScroll && section) {
@@ -2534,20 +2894,13 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         });
       });
 
-      window.addEventListener('hashchange', () => {
-        const hashTarget = decodeURIComponent(window.location.hash.replace(/^#/, ''));
-        activateSection(hashTarget || 'llm-step', false, false);
+      window.addEventListener('popstate', () => {
+        activateSection(getSectionIdFromPathname(window.location.pathname), false, false);
       });
 
-      if (sheepLogout) {
-        sheepLogout.addEventListener('click', () => {
+      if (signOutButton) {
+        signOutButton.addEventListener('click', () => {
           confirmAndLogout();
-        });
-        sheepLogout.addEventListener('keydown', (event) => {
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            confirmAndLogout();
-          }
         });
       }
 
@@ -2555,6 +2908,11 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         llmCards.addEventListener('click', async (event) => {
           const target = event.target;
           if (!(target instanceof HTMLElement)) return;
+          const emptyAction = target.getAttribute('data-empty-action');
+          if (emptyAction === 'new-llm-key') {
+            showLlmComposer(true);
+            return;
+          }
           const action = target.getAttribute('data-llm-action');
           const keyId = target.getAttribute('data-llm-key-id');
           if (!action || !keyId) return;
@@ -2582,14 +2940,21 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         apiKeyCards.addEventListener('click', async (event) => {
           const target = event.target;
           if (!(target instanceof HTMLElement)) return;
+          const emptyAction = target.getAttribute('data-empty-action');
+          if (emptyAction === 'new-api-key') {
+            showKeyComposer(true);
+            activateSection('keys-step');
+            return;
+          }
           const action = target.getAttribute('data-api-key-action');
           const keyId = target.getAttribute('data-api-key-id');
           if (!action || !keyId) return;
           const key = state.apiKeys.find((entry) => entry.id === keyId);
           if (!key) return;
           if (action === 'use-scope') {
-            $('keyConnIds').value = Array.isArray(key.allowedConnectionIds) ? key.allowedConnectionIds.join(', ') : '';
+            setSelectedConnectionScopeIds(key.allowedConnectionIds || []);
             $('keyName').value = key.name ? key.name + ' copy' : '';
+            showKeyComposer(true);
             activateSection('keys-step');
             setBanner('ok', 'Copied key scope into the form. Create a new key to replace or narrow it.');
             return;
@@ -2610,6 +2975,12 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         patternCards.addEventListener('click', (event) => {
           const target = event.target;
           if (!(target instanceof HTMLElement)) return;
+          const emptyAction = target.getAttribute('data-empty-action');
+          if (emptyAction === 'new-pattern') {
+            clearPatternForm();
+            showPatternEditor(true);
+            return;
+          }
           const editId = target.getAttribute('data-pattern-edit');
           const duplicateId = target.getAttribute('data-pattern-duplicate');
           const cardId = target.closest('[data-pattern-id]')?.getAttribute('data-pattern-id');
@@ -2624,6 +2995,7 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
             $('patternSteps').value = String(pattern.stepsMarkdown || '');
             $('patternIssues').value = String(pattern.knownIssuesMarkdown || '');
             setActivePatternId('');
+            showPatternEditor(true);
             renderSelectedPattern({
               ...pattern,
               id: '',
@@ -2637,27 +3009,66 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         });
       }
 
-      connectionsBoard.addEventListener('click', (event) => {
+      connectionsBoard.addEventListener('click', async (event) => {
         const target = event.target;
         if (!(target instanceof HTMLElement)) return;
+        const emptyAction = target.getAttribute('data-empty-action');
+        if (emptyAction === 'new-connection') {
+          clearConnectionForm();
+          showSurface(connectionComposer, true);
+          setConnectionsSubview('setup');
+          return;
+        }
         const editId = target.getAttribute('data-connection-edit');
-        const manageId = target.getAttribute('data-connection-manage');
+        const captureId = target.getAttribute('data-connection-capture');
+        const deleteId = target.getAttribute('data-connection-delete');
         const cardId = target.closest('[data-connection-id]')?.getAttribute('data-connection-id');
-        const connectionId = editId || manageId || cardId;
+        const connectionId = editId || captureId || deleteId || cardId;
         if (!connectionId) return;
-        selectConnectionById(connectionId, { loadArtifacts: Boolean(manageId) });
+        if (deleteId) {
+          const approved = window.confirm('Delete this connection and its stored artifacts?');
+          if (!approved) return;
+          const data = await api('/api/connections/' + encodeURIComponent(connectionId), 'DELETE');
+          print(out.conn, data);
+          if (data.ok) {
+            if (state.selectedConnectionId === connectionId) {
+              clearConnectionSelection();
+            }
+            await loadConnections();
+            setConnectionsSubview('setup');
+          }
+          return;
+        }
+        if (captureId) {
+          await launchGuidedCaptureForConnection(connectionId);
+          return;
+        }
+        selectConnectionById(connectionId, { loadArtifacts: false });
       });
 
-      activateSection(decodeURIComponent(window.location.hash.replace(/^#/, '')) || 'llm-step', false, false);
+      activateSection(getSectionIdFromPathname(window.location.pathname), false, false);
+      setConnectionsSubview('setup');
+      setRunsSubview('settings');
       syncRuntimeCheckboxes();
       loadSessionSummary();
       loadLlmKeys();
       loadApiKeys();
       loadConnections();
       loadPatterns();
+      loadRuntimeSettings();
+
+      $('newLlmKey').onclick = () => {
+        showLlmComposer(true);
+      };
+
+      $('cancelLlmComposer').onclick = () => {
+        $('llmApiKey').value = '';
+        $('llmKeyName').value = '';
+        showLlmComposer(false);
+      };
 
       $('createLlmKey').onclick = async () => {
-        const name = requireText('llmKeyName', 'Key label');
+        const name = requireText('llmKeyName', 'Key name');
         if (!name) return;
         const apiKeyValue = requireText('llmApiKey', 'OpenAI API key');
         if (!apiKeyValue) return;
@@ -2672,27 +3083,42 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         print(out.llm, data);
         if (data.ok) {
           await loadLlmKeys();
+          showLlmComposer(false);
         }
       };
 
       $('listLlmKeys').onclick = loadLlmKeys;
 
+      $('newApiKey').onclick = () => {
+        showKeyComposer(true);
+      };
+
+      $('cancelKeyComposer').onclick = () => {
+        $('keyName').value = '';
+        setSelectedConnectionScopeIds([]);
+        showKeyComposer(false);
+      };
+
       $('createKey').onclick = async () => {
-        const name = requireText('keyName', 'Key label');
+        const name = requireText('keyName', 'Key name');
         if (!name) return;
+        const allowedConnectionIds = collectSelectedConnectionIds();
         const data = await api('/api/keys', 'POST', {
           name,
-          allowedConnectionIds: splitCsv($('keyConnIds').value),
+          allowedConnectionIds,
         });
 
         if (data.ok && data.body?.secret) {
-          $('oneTimeKeyPanel').style.display = 'block';
+          $('oneTimeKeyServerUrl').value = window.location.origin + '/mcp';
           $('oneTimeKeyValue').value = String(data.body.secret);
           const safe = { ...data, body: { ...data.body } };
           delete safe.body.secret;
           print(out.keys, safe);
           setBanner('ok', 'API key created. Copy and store the one-time key now.');
           $('keyName').value = '';
+          setSelectedConnectionScopeIds([]);
+          showKeyComposer(false);
+          openModal(oneTimeKeyModal);
           await loadApiKeys();
           return;
         }
@@ -2706,17 +3132,22 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
           setBanner('err', 'No one-time key to copy.');
           return;
         }
-        try {
-          await navigator.clipboard.writeText(value);
-          setBanner('ok', 'API key copied to clipboard.');
-        } catch {
-          setBanner('err', 'Clipboard copy failed. Copy manually.');
+        await copyText(value, 'API key copied to clipboard.');
+      };
+
+      $('copyServerUrl').onclick = async () => {
+        const value = String($('oneTimeKeyServerUrl').value || '');
+        if (!value) {
+          setBanner('err', 'No server URL to copy.');
+          return;
         }
+        await copyText(value, 'Server URL copied to clipboard.');
       };
 
       $('clearOneTimeKey').onclick = () => {
         $('oneTimeKeyValue').value = '';
-        $('oneTimeKeyPanel').style.display = 'none';
+        $('oneTimeKeyServerUrl').value = '';
+        closeModal(oneTimeKeyModal);
         setBanner('ok', 'One-time key cleared from screen.');
       };
 
@@ -2727,17 +3158,23 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
           setBanner('err', 'Select a connection in the Connections tab first.');
           return;
         }
-        $('keyConnIds').value = connectionId;
-        setBanner('ok', 'Copied the selected connection into the access-key scope field.');
+        setSelectedConnectionScopeIds([connectionId]);
+        setBanner('ok', 'Scoped this key to the selected connection.');
       };
 
       $('refreshPatterns').onclick = loadPatterns;
       $('listPatterns').onclick = loadPatterns;
       $('newPattern').onclick = () => {
         clearPatternForm();
+        showPatternEditor(true);
         renderPatternCards(state.patterns);
         setBanner('ok', 'Pattern editor reset for a new entry.');
       };
+
+      $('cancelPatternEditor').onclick = () => {
+        clearPatternForm();
+      };
+
       $('savePattern').onclick = async () => {
         const name = requireText('patternName', 'Pattern name');
         if (!name) return;
@@ -2782,6 +3219,49 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         }
       };
 
+      $('connectionsSetupTab').onclick = () => {
+        setConnectionsSubview('setup');
+      };
+
+      $('connectionsAccessTab').onclick = async () => {
+        if (!state.selectedConnectionId) {
+          setBanner('err', 'Select a connection first.');
+          return;
+        }
+        setConnectionsSubview('access');
+        await refreshConnectionArtifacts();
+      };
+
+      $('refreshConnections').onclick = loadConnections;
+      $('manageSelectedConnection').onclick = async () => {
+        if (!state.selectedConnectionId) {
+          setBanner('err', 'Select a connection first.');
+          return;
+        }
+        await launchGuidedCaptureForConnection(state.selectedConnectionId);
+      };
+
+      $('openManualConnectionAccess').onclick = async () => {
+        if (!state.selectedConnectionId) {
+          setBanner('err', 'Select a connection first.');
+          return;
+        }
+        setConnectionsSubview('access');
+        await refreshConnectionArtifacts();
+      };
+
+      $('newConnection').onclick = () => {
+        clearConnectionForm();
+        showSurface(connectionComposer, true);
+        setConnectionsSubview('setup');
+        renderConnectionsBoard(state.connections);
+        setBanner('ok', 'Connection form reset for a new entry.');
+      };
+
+      $('cancelConnectionComposer').onclick = () => {
+        clearConnectionForm();
+      };
+
       $('createConn').onclick = async () => {
         const name = requireText('connName', 'Connection name');
         if (!name) return;
@@ -2799,18 +3279,16 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         if (data.ok) {
           setActiveConnectionId(data.body?.connection?.id);
           await loadConnections();
-          selectConnectionById(data.body?.connection?.id, { loadArtifacts: true });
+          selectConnectionById(data.body?.connection?.id, { loadArtifacts: false });
+          showSurface(connectionComposer, false);
+          const startCaptureNow = window.confirm('Connection created. Start guided auth capture now?');
+          if (startCaptureNow && data.body?.connection?.id) {
+            await launchGuidedCaptureForConnection(data.body.connection.id);
+          }
         }
         print(out.conn, data);
       };
 
-      $('listConn').onclick = loadConnections;
-      $('refreshConnections').onclick = loadConnections;
-      $('newConnection').onclick = () => {
-        clearConnectionForm();
-        renderConnectionsBoard(state.connections);
-        setBanner('ok', 'Connection form reset for a new entry.');
-      };
       $('patchConn').onclick = async () => {
         const id = String($('patchConnId').value || '').trim();
         if (!id) {
@@ -2832,7 +3310,9 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         if (data.ok) {
           setActiveConnectionId(id);
           await loadConnections();
-          selectConnectionById(id, { loadArtifacts: true });
+          selectConnectionById(id, { loadArtifacts: false });
+          setConnectionsSubview('setup');
+          showSurface(connectionComposer, false);
         }
         print(out.conn, data);
       };
@@ -2845,6 +3325,7 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         }
         if (!connId) return;
         setActiveConnectionId(connId);
+        setConnectionsSubview('access');
         await refreshConnectionArtifacts();
       };
 
@@ -3054,6 +3535,15 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         syncRuntimeCheckboxes();
       };
 
+      $('runsSettingsTab').onclick = () => {
+        setRunsSubview('settings');
+      };
+
+      $('runsHistoryTab').onclick = async () => {
+        setRunsSubview('history');
+        await loadRuns();
+      };
+
       $('loadRuntimeSettings').onclick = async () => {
         await loadRuntimeSettings();
       };
@@ -3080,29 +3570,46 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
       };
 
       $('listRuns').onclick = async () => {
+        setRunsSubview('history');
         await loadRuns();
       };
 
-      $('getRun').onclick = async () => {
-        const runId = requireText('runDetailId', 'Run detail ID');
-        if (!runId) return;
-        const data = await api('/api/runs/' + encodeURIComponent(runId));
-        print(out.runDetail, data);
+      $('closeRunDetailModal').onclick = () => {
+        closeModal(runDetailModal);
       };
 
-      $('deleteRun').onclick = async () => {
-        const runId = requireText('deleteRunId', 'Delete run ID');
-        if (!runId) return;
-        const data = await api('/api/runs/' + encodeURIComponent(runId), 'DELETE');
-        print(out.runDetail, data);
-        if (data.ok) {
-          $('deleteRunId').value = '';
-          if ($('runDetailId').value === runId) {
-            $('runDetailId').value = '';
+      $('runsHistoryOut').addEventListener('click', async (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return;
+        const inspectId = target.getAttribute('data-run-inspect');
+        const deleteId = target.getAttribute('data-run-delete');
+        if (inspectId) {
+          const data = await api('/api/runs/' + encodeURIComponent(inspectId));
+          print(out.runDetail, data);
+          if (data.ok) {
+            openModal(runDetailModal);
           }
-          await loadRuns();
+          return;
         }
-      };
+        if (deleteId) {
+          const approved = window.confirm('Delete this stored run?');
+          if (!approved) return;
+          const data = await api('/api/runs/' + encodeURIComponent(deleteId), 'DELETE');
+          print(out.runDetail, data);
+          if (data.ok) {
+            closeModal(runDetailModal);
+            await loadRuns();
+          }
+        }
+      });
+
+      [oneTimeKeyModal, runDetailModal].forEach((modal) => {
+        modal?.addEventListener('click', (event) => {
+          if (event.target === modal) {
+            closeModal(modal);
+          }
+        });
+      });
     </script>
   </body>
 </html>
