@@ -6,6 +6,13 @@ export const CUA_ORCHESTRATION_QUICKSTART_TEXT = `# CUA Orchestration Quickstart
 
 Use this quickstart before calling \'cua_run_task\'.
 
+## Pattern-first behavior
+
+- Before delegation, load the latest orchestration guide and check for saved user patterns that already describe how the user prefers this class of task to be handled.
+- If a saved pattern fits the task, prefer it over improvising a fresh workflow.
+- If the run discovers a new reusable workflow or a better variation of an existing one, update the user's saved orchestration patterns before finalizing your response.
+- If the MCP client supports skills or persistent instructions, keep them aligned with the backend pattern library, but treat the backend pattern library as the canonical cross-client memory for this user.
+
 ## Recommended call sequence
 
 1. Call \'cua_get_orchestration_guide\' and apply these rules.

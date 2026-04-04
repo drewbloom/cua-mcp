@@ -13,6 +13,7 @@ import { buildSecretFillPlan, getConnectionPolicyForUser, isUrlAllowedByPolicy, 
 import { cancelCaptureSession, finalizeCaptureSession, getCaptureSnapshot, listCaptureSnapshots, performCaptureAction, startCaptureSession } from '../security/authCapture.js';
 import { cuaRuntime } from '../cua/runtime.js';
 import { getUserCuaSettings, updateUserCuaSettings } from '../cua/userSettings.js';
+import { deleteOrchestrationPattern, listOrchestrationPatterns, upsertOrchestrationPattern } from '../orchestration/patternLibrary.js';
 
 type JsonObject = Record<string, unknown>;
 
@@ -57,6 +58,15 @@ async function readJsonBody(request: IncomingMessage): Promise<JsonObject> {
 function writeJson(response: ServerResponse, status: number, body: JsonObject, extraHeaders: Record<string, string> = {}): void {
   response.writeHead(status, {
     'content-type': 'application/json',
+    'cache-control': 'no-store',
+    'x-content-type-options': 'nosniff',
+    'x-frame-options': 'DENY',
+    'referrer-policy': 'same-origin',
+    'permissions-policy': 'camera=(), microphone=(), geolocation=(), interest-cohort=(), browsing-topics=()'
+      .replace(/, /g, ', '),
+    'cross-origin-opener-policy': 'same-origin',
+    'cross-origin-resource-policy': 'same-origin',
+    'content-security-policy': "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
     ...extraHeaders,
   });
   response.end(JSON.stringify(body));
@@ -66,6 +76,14 @@ function writeHtml(response: ServerResponse, status: number, html: string): void
   response.writeHead(status, {
     'content-type': 'text/html; charset=utf-8',
     'cache-control': 'no-store',
+    'x-content-type-options': 'nosniff',
+    'x-frame-options': 'DENY',
+    'referrer-policy': 'same-origin',
+    'permissions-policy': 'camera=(), microphone=(), geolocation=(), interest-cohort=(), browsing-topics=()'
+      .replace(/, /g, ', '),
+    'cross-origin-opener-policy': 'same-origin',
+    'cross-origin-resource-policy': 'same-origin',
+    'content-security-policy': "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data: https:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https:; font-src 'self' data:",
   });
   response.end(html);
 }
@@ -75,6 +93,8 @@ async function writeStaticFile(response: ServerResponse, filePath: string, conte
   response.writeHead(200, {
     'content-type': contentType,
     'cache-control': 'public, max-age=86400',
+    'x-content-type-options': 'nosniff',
+    'cross-origin-resource-policy': 'same-origin',
   });
   response.end(body);
 }
@@ -83,6 +103,9 @@ function writeRedirect(response: ServerResponse, location: string): void {
   response.writeHead(302, {
     location,
     'cache-control': 'no-store',
+    'x-content-type-options': 'nosniff',
+    'x-frame-options': 'DENY',
+    'referrer-policy': 'same-origin',
   });
   response.end();
 }
@@ -274,6 +297,7 @@ const accountApiPaths = [
   '/api/llm-keys',
   '/api/runs',
   '/api/connections',
+  '/api/orchestration-patterns',
 ];
 
 function accountApiPathAllowed(pathname: string): boolean {
@@ -282,6 +306,7 @@ function accountApiPathAllowed(pathname: string): boolean {
   if (/^\/api\/llm-keys\/[^/]+$/.test(pathname)) return true;
   if (/^\/api\/runs\/[^/]+$/.test(pathname)) return true;
   if (/^\/api\/connections\/[^/]+$/.test(pathname)) return true;
+  if (/^\/api\/orchestration-patterns\/[^/]+$/.test(pathname)) return true;
   if (/^\/api\/connections\/[^/]+\/secrets$/.test(pathname)) return true;
   if (/^\/api\/connections\/[^/]+\/secrets\/[^/]+$/.test(pathname)) return true;
   if (/^\/api\/connections\/[^/]+\/auth-states$/.test(pathname)) return true;
@@ -332,6 +357,21 @@ async function upsertUser(email: string, displayName?: string): Promise<{ id: st
     id,
     email,
     displayName: displayName || null,
+  };
+}
+
+async function getUserByEmail(email: string): Promise<{ id: string; email: string; displayName: string | null } | null> {
+  const db = getPool();
+  const existing = await db.query('SELECT id, email, display_name FROM users WHERE email = $1 LIMIT 1', [email]);
+  if ((existing.rowCount ?? 0) === 0) {
+    return null;
+  }
+
+  const row = existing.rows[0];
+  return {
+    id: String(row.id),
+    email: String(row.email),
+    displayName: row.display_name ? String(row.display_name) : null,
   };
 }
 
@@ -1047,8 +1087,26 @@ async function handleAuthRequestCode(request: IncomingMessage, response: ServerR
     return;
   }
 
+  const mode = String(body.mode || 'register').trim().toLowerCase();
+  if (mode !== 'register' && mode !== 'signin') {
+    writeJson(response, 400, { error: 'Invalid auth mode' });
+    return;
+  }
+
   const displayName = String(body.displayName || '').trim() || null;
-  const user = await upsertUser(email, displayName || undefined);
+  const existingUser = await getUserByEmail(email);
+  if (mode === 'signin' && !existingUser) {
+    writeJson(response, 404, {
+      error: 'Registration required',
+      message: 'No account exists for that email yet. Finish onboarding first.',
+      registrationRequired: true,
+    });
+    return;
+  }
+
+  const user = existingUser
+    ? await upsertUser(email, mode === 'register' ? displayName || undefined : undefined)
+    : await upsertUser(email, displayName || undefined);
   const ip = getRequestIp(request);
 
   const emailAllowed = await enforceRateLimit('otp_request_email', `email:${email}`, config.authRequestLimitPerEmail, config.authRequestWindowMinutes);
@@ -1089,6 +1147,8 @@ async function handleAuthRequestCode(request: IncomingMessage, response: ServerR
   writeJson(response, 200, {
     success: true,
     message: 'Login code sent.',
+    mode,
+    existingUser: Boolean(existingUser),
   });
 }
 
@@ -1219,6 +1279,11 @@ async function handleSessionMe(request: IncomingMessage, response: ServerRespons
   const db = getPool();
   const userRes = await db.query('SELECT id, email, display_name, created_at FROM users WHERE id = $1 LIMIT 1', [auth.userId]);
   const user = userRes.rows[0];
+  const sessionRes = await db.query(
+    'SELECT created_at, expires_at, absolute_expires_at, last_seen_at FROM user_sessions WHERE id = $1 LIMIT 1',
+    [auth.sessionId],
+  );
+  const session = sessionRes.rows[0];
 
   writeJson(response, 200, {
     authenticated: true,
@@ -1228,6 +1293,15 @@ async function handleSessionMe(request: IncomingMessage, response: ServerRespons
       displayName: user.display_name ? String(user.display_name) : null,
       createdAt: new Date(user.created_at).toISOString(),
     },
+    session: session
+      ? {
+          id: String(auth.sessionId),
+          createdAt: new Date(session.created_at).toISOString(),
+          expiresAt: new Date(session.expires_at).toISOString(),
+          absoluteExpiresAt: session.absolute_expires_at ? new Date(session.absolute_expires_at).toISOString() : null,
+          lastSeenAt: session.last_seen_at ? new Date(session.last_seen_at).toISOString() : null,
+        }
+      : null,
   });
 }
 
@@ -1256,6 +1330,83 @@ async function requireAuth(request: IncomingMessage, response: ServerResponse): 
     return null;
   }
   return auth;
+}
+
+async function handleOrchestrationPatternsList(request: IncomingMessage, response: ServerResponse): Promise<void> {
+  const auth = await requireAuth(request, response);
+  if (!auth) return;
+
+  const patterns = await listOrchestrationPatterns(auth.userId);
+  writeJson(response, 200, { patterns });
+}
+
+async function handleOrchestrationPatternCreate(request: IncomingMessage, response: ServerResponse): Promise<void> {
+  const auth = await requireAuth(request, response);
+  if (!auth) return;
+
+  const body = await readJsonBody(request);
+  const pattern = await upsertOrchestrationPattern(auth.userId, {
+    name: requireString(body.name, 'name'),
+    summary: 'summary' in body ? String(body.summary || '') : undefined,
+    urls: 'urls' in body ? asStringArray(body.urls) : undefined,
+    stepsMarkdown: requireString(body.stepsMarkdown, 'stepsMarkdown'),
+    knownIssuesMarkdown: 'knownIssuesMarkdown' in body ? String(body.knownIssuesMarkdown || '') : undefined,
+  });
+
+  await logSecurityEvent(auth.userId, 'orchestration_pattern_created', 'orchestration', {
+    patternId: pattern.id,
+    name: pattern.name,
+    urlCount: pattern.urls.length,
+  });
+
+  writeJson(response, 200, { success: true, pattern });
+}
+
+async function handleOrchestrationPatternPatch(request: IncomingMessage, response: ServerResponse, patternId: string): Promise<void> {
+  const auth = await requireAuth(request, response);
+  if (!auth) return;
+
+  const existing = (await listOrchestrationPatterns(auth.userId)).find((pattern) => pattern.id === patternId);
+  if (!existing) {
+    writeJson(response, 404, { error: 'Pattern not found' });
+    return;
+  }
+
+  const body = await readJsonBody(request);
+  const pattern = await upsertOrchestrationPattern(auth.userId, {
+    patternId,
+    name: 'name' in body ? requireString(body.name, 'name') : existing.name,
+    summary: 'summary' in body ? String(body.summary || '') : existing.summary || undefined,
+    urls: 'urls' in body ? asStringArray(body.urls) : existing.urls,
+    stepsMarkdown: 'stepsMarkdown' in body ? requireString(body.stepsMarkdown, 'stepsMarkdown') : existing.stepsMarkdown,
+    knownIssuesMarkdown:
+      'knownIssuesMarkdown' in body ? String(body.knownIssuesMarkdown || '') : existing.knownIssuesMarkdown || undefined,
+  });
+
+  await logSecurityEvent(auth.userId, 'orchestration_pattern_updated', 'orchestration', {
+    patternId: pattern.id,
+    name: pattern.name,
+    urlCount: pattern.urls.length,
+  });
+
+  writeJson(response, 200, { success: true, pattern });
+}
+
+async function handleOrchestrationPatternDelete(request: IncomingMessage, response: ServerResponse, patternId: string): Promise<void> {
+  const auth = await requireAuth(request, response);
+  if (!auth) return;
+
+  const deleted = await deleteOrchestrationPattern(auth.userId, patternId);
+  if (!deleted) {
+    writeJson(response, 404, { error: 'Pattern not found' });
+    return;
+  }
+
+  await logSecurityEvent(auth.userId, 'orchestration_pattern_deleted', 'orchestration', {
+    patternId,
+  });
+
+  writeJson(response, 200, { success: true, patternId });
 }
 
 async function handleRuntimeSettingsGet(request: IncomingMessage, response: ServerResponse): Promise<void> {
@@ -1852,6 +2003,25 @@ export async function handleApiRequest(request: IncomingMessage, response: Serve
       return true;
     }
 
+    if (request.method === 'GET' && url.pathname === '/api/orchestration-patterns') {
+      await handleOrchestrationPatternsList(request, response);
+      return true;
+    }
+    if (request.method === 'POST' && url.pathname === '/api/orchestration-patterns') {
+      await handleOrchestrationPatternCreate(request, response);
+      return true;
+    }
+
+    const orchestrationPatternMatch = url.pathname.match(/^\/api\/orchestration-patterns\/([^/]+)$/);
+    if (orchestrationPatternMatch && request.method === 'PATCH') {
+      await handleOrchestrationPatternPatch(request, response, orchestrationPatternMatch[1]);
+      return true;
+    }
+    if (orchestrationPatternMatch && request.method === 'DELETE') {
+      await handleOrchestrationPatternDelete(request, response, orchestrationPatternMatch[1]);
+      return true;
+    }
+
     if (request.method === 'GET' && url.pathname === '/api/settings/runtime') {
       await handleRuntimeSettingsGet(request, response);
       return true;
@@ -2046,10 +2216,21 @@ export async function handleFrontendRequest(request: IncomingMessage, response: 
     return true;
   }
 
+  if (url.pathname === '/sign-in' || url.pathname === '/sign-in/') {
+    const auth = await getAuthContext(request);
+    if (auth) {
+      writeRedirect(response, '/dashboard');
+      return true;
+    }
+
+    writeHtml(response, 200, PUBLIC_APP_HTML);
+    return true;
+  }
+
   if (url.pathname === '/dashboard' || url.pathname === '/dashboard/') {
     const auth = await getAuthContext(request);
     if (!auth) {
-      writeRedirect(response, '/app');
+      writeRedirect(response, '/sign-in');
       return true;
     }
 

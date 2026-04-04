@@ -92,6 +92,21 @@ export async function initPostgres(): Promise<void> {
       updated_at TIMESTAMPTZ NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS user_orchestration_patterns (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      summary TEXT NULL,
+      urls_json JSONB NOT NULL,
+      steps_markdown TEXT NOT NULL,
+      known_issues_markdown TEXT NULL,
+      created_at TIMESTAMPTZ NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_user_orchestration_patterns_user_id
+      ON user_orchestration_patterns(user_id, updated_at DESC, created_at DESC);
+
     CREATE TABLE IF NOT EXISTS user_sessions (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

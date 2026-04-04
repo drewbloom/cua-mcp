@@ -344,22 +344,22 @@ export const PUBLIC_APP_HTML = `<!doctype html>
             <div class="brand-badge">CUA</div>
             <div>Computer Use Agent, Missing Common Precautions</div>
           </div>
-          <p class="eyebrow">Public onboarding. Private dashboard. Same vibes.</p>
-          <h1>Join the operation before the control plane hands you the sharp objects.</h1>
-          <p class="lede">/app is now the clean part of the funnel: enter a name and email, get a login code, verify it, and then move into the authenticated dashboard where the keys, secrets, and other regrettably powerful controls actually live.</p>
+          <p id="heroEyebrow" class="eyebrow">Public onboarding. Private dashboard. Same vibes.</p>
+          <h1 id="heroTitle">Join the operation before the control plane hands you the sharp objects.</h1>
+          <p id="heroLede" class="lede">/app is now the clean part of the funnel: enter a name and email, get a login code, verify it, and then move into the authenticated dashboard where the keys, secrets, and other regrettably powerful controls actually live.</p>
           <pre class="hero-art">${CUA_MCP_ASCII}</pre>
           <div class="hero-actions">
-            <a class="hero-button" href="#signup-step">Start onboarding</a>
+            <a id="primaryHeroAction" class="hero-button" href="#signup-step">Start onboarding</a>
             <a class="hero-button secondary" href="/">Back to the manifesto</a>
           </div>
-          <p class="status-copy">If you already have a live session, this page should redirect you to the dashboard instead of making you repeat the ceremony.</p>
+          <p id="heroStatus" class="status-copy">If you already have a live session, this page should redirect you to the dashboard instead of making you repeat the ceremony.</p>
         </div>
       </section>
 
       <div class="nav-shell">
-        <div class="nav-label">Onboarding flow</div>
+        <div id="flowLabel" class="nav-label">Onboarding flow</div>
         <nav class="step-list" aria-label="Onboarding steps">
-          <a class="step-link" href="#signup-step" data-public-step-link="signup-step">01 Join</a>
+          <a id="signupStepLink" class="step-link" href="#signup-step" data-public-step-link="signup-step">01 Join</a>
           <a class="step-link" href="#verify-step" data-public-step-link="verify-step">02 Verify</a>
         </nav>
       </div>
@@ -368,10 +368,10 @@ export const PUBLIC_APP_HTML = `<!doctype html>
         <div class="panel-inner">
           <section class="section-shell" id="signup-step">
             <p class="eyebrow">Step 01</p>
-            <h2>Tell us who is about to inherit this security posture.</h2>
-            <p class="step-copy">Enter a name and email so we can send the one-time code to an actual person before the software starts doing software things.</p>
+            <h2 id="signupTitle">Tell us who is about to inherit this security posture.</h2>
+            <p id="signupCopy" class="step-copy">Enter a name and email so we can send the one-time code to an actual person before the software starts doing software things.</p>
             <div class="field-grid">
-              <label class="field">
+              <label id="displayNameField" class="field">
                 <span class="field-label">Display name</span>
                 <input id="displayName" placeholder="Name the future audit protagonist" />
               </label>
@@ -382,7 +382,7 @@ export const PUBLIC_APP_HTML = `<!doctype html>
             </div>
             <div class="button-row">
               <button class="primary" id="requestCode">Send login code</button>
-              <a class="step-link" href="#verify-step" data-public-step-link="verify-step">Already have a code?</a>
+              <a id="secondaryActionLink" class="step-link" href="#verify-step" data-public-step-link="verify-step">Already have a code?</a>
             </div>
           </section>
 
@@ -408,7 +408,7 @@ export const PUBLIC_APP_HTML = `<!doctype html>
 
           <div class="status-card">
             <p class="eyebrow">After verification</p>
-            <p class="status-copy">You will be redirected to /dashboard, which requires a valid session and keeps the rest of the tabs, keys, secrets, and runtime controls out of the public onboarding path.</p>
+            <p id="statusCardCopy" class="status-copy">You will be redirected to /dashboard, which requires a valid session and keeps the rest of the tabs, keys, secrets, and runtime controls out of the public onboarding path.</p>
           </div>
 
           <div class="output-shell">
@@ -425,6 +425,7 @@ export const PUBLIC_APP_HTML = `<!doctype html>
       const $ = (id) => document.getElementById(id);
       const banner = $('banner');
       const sessionOut = $('sessionOut');
+      const mode = window.location.pathname.startsWith('/sign-in') ? 'signin' : 'register';
       const sectionMap = {
         'signup-step': $('signup-step'),
         'verify-step': $('verify-step'),
@@ -438,6 +439,40 @@ export const PUBLIC_APP_HTML = `<!doctype html>
 
       function print(value) {
         sessionOut.textContent = JSON.stringify(value, null, 2);
+      }
+
+      function configurePageMode() {
+        const isSignIn = mode === 'signin';
+        $('heroEyebrow').textContent = isSignIn ? 'Private dashboard access.' : 'Public onboarding. Private dashboard. Same vibes.';
+        $('heroTitle').textContent = isSignIn
+          ? 'Sign in, verify the code, and get back to the control plane.'
+          : 'Join the operation before the control plane hands you the sharp objects.';
+        $('heroLede').textContent = isSignIn
+          ? '/sign-in is the direct path back into the protected dashboard. Enter the email already tied to your account, request a code, and verify it. If that email does not exist yet, we will send you to registration at /app instead.'
+          : '/app is now the clean part of the funnel: enter a name and email, get a login code, verify it, and then move into the authenticated dashboard where the keys, secrets, and other regrettably powerful controls actually live.';
+        $('heroStatus').textContent = isSignIn
+          ? 'If you still have a live session, this page should redirect you straight to the dashboard.'
+          : 'If you already have a live session, this page should redirect you to the dashboard instead of making you repeat the ceremony.';
+        $('flowLabel').textContent = isSignIn ? 'Sign-in flow' : 'Onboarding flow';
+        $('signupStepLink').textContent = isSignIn ? '01 Sign in' : '01 Join';
+        $('signupTitle').textContent = isSignIn
+          ? 'Use the email already attached to this account.'
+          : 'Tell us who is about to inherit this security posture.';
+        $('signupCopy').textContent = isSignIn
+          ? 'Enter the email for an existing account and we will send a one-time login code. Unknown emails get redirected into registration.'
+          : 'Enter a name and email so we can send the one-time code to an actual person before the software starts doing software things.';
+        $('displayNameField').hidden = isSignIn;
+        $('requestCode').textContent = isSignIn ? 'Send sign-in code' : 'Send login code';
+        $('secondaryActionLink').textContent = isSignIn ? 'Need a new account?' : 'Already have a code?';
+        $('secondaryActionLink').href = isSignIn ? '/app' : '#verify-step';
+        if (isSignIn) {
+          $('secondaryActionLink').removeAttribute('data-public-step-link');
+        }
+        $('statusCardCopy').textContent = isSignIn
+          ? 'Verification returns you to /dashboard. If the email is unknown, you will be sent to /app to finish registration first.'
+          : 'You will be redirected to /dashboard, which requires a valid session and keeps the rest of the tabs, keys, secrets, and runtime controls out of the public onboarding path.';
+        $('primaryHeroAction').textContent = isSignIn ? 'Start sign-in' : 'Start onboarding';
+        $('primaryHeroAction').href = isSignIn ? '#signup-step' : '#signup-step';
       }
 
       function requireText(id, label) {
@@ -507,6 +542,10 @@ export const PUBLIC_APP_HTML = `<!doctype html>
 
       stepLinks.forEach((link) => {
         link.addEventListener('click', (event) => {
+          const href = String(link.getAttribute('href') || '');
+          if (href.startsWith('/')) {
+            return;
+          }
           event.preventDefault();
           activateStep(link.getAttribute('data-public-step-link') || 'signup-step');
         });
@@ -517,15 +556,22 @@ export const PUBLIC_APP_HTML = `<!doctype html>
         if (!email) return;
         const displayName = String($('displayName').value || '').trim();
         try {
-          const data = await api('/api/auth/request-code', 'POST', { email, displayName });
+          const data = await api('/api/auth/request-code', 'POST', { email, displayName, mode });
           print(data);
-          setBanner('ok', 'Login code sent. Moving you to verification.');
-          const next = new URL('/app', window.location.origin);
+          setBanner('ok', (mode === 'signin' ? 'Sign-in' : 'Login') + ' code sent. Moving you to verification.');
+          const next = new URL(mode === 'signin' ? '/sign-in' : '/app', window.location.origin);
           next.searchParams.set('step', 'verify-step');
           next.searchParams.set('email', email);
           if (displayName) next.searchParams.set('displayName', displayName);
           window.location.assign(next.toString());
         } catch (error) {
+          if (mode === 'signin' && String(error.message || '').toLowerCase().includes('registration required')) {
+            const next = new URL('/app', window.location.origin);
+            next.searchParams.set('email', email);
+            setBanner('err', 'No account exists for that email yet. Redirecting you to registration.');
+            window.location.assign(next.toString());
+            return;
+          }
           setBanner('err', error.message || 'Could not send login code.');
         }
       };
@@ -535,10 +581,17 @@ export const PUBLIC_APP_HTML = `<!doctype html>
         if (!email) return;
         const displayName = String($('displayName').value || '').trim();
         try {
-          const data = await api('/api/auth/request-code', 'POST', { email, displayName });
+          const data = await api('/api/auth/request-code', 'POST', { email, displayName, mode });
           print(data);
           setBanner('ok', 'Fresh code sent. Check your inbox again.');
         } catch (error) {
+          if (mode === 'signin' && String(error.message || '').toLowerCase().includes('registration required')) {
+            const next = new URL('/app', window.location.origin);
+            next.searchParams.set('email', email);
+            setBanner('err', 'That email is not registered yet. Redirecting you to onboarding.');
+            window.location.assign(next.toString());
+            return;
+          }
           setBanner('err', error.message || 'Could not resend code.');
         }
       };
@@ -559,6 +612,7 @@ export const PUBLIC_APP_HTML = `<!doctype html>
       };
 
       window.addEventListener('hashchange', syncFromLocation);
+      configurePageMode();
       syncFromLocation();
     </script>
   </body>

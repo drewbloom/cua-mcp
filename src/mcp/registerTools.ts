@@ -10,6 +10,12 @@ import {
   CUA_ORCHESTRATION_QUICKSTART_TITLE,
   CUA_ORCHESTRATION_QUICKSTART_URI,
 } from '../resources/cuaDelegationGuide.js';
+import {
+  buildUserScopedOrchestrationGuide,
+  deleteOrchestrationPattern,
+  listOrchestrationPatterns,
+  upsertOrchestrationPattern,
+} from '../orchestration/patternLibrary.js';
 
 function extractReferencedConnectionIds(input: unknown): string[] {
   if (!input || typeof input !== 'object') return [];
@@ -147,7 +153,7 @@ export function registerCuaTools(server: McpServer, authContext: McpAuthContext)
     'cua_get_orchestration_guide',
     {
       title: 'CUA Get Orchestration Guide',
-      description: 'Returns the built-in orchestration quickstart for prompting, await-loop control, terminal handling, hybrid direct+search navigation, generic source-selection heuristics, and when to pass connectionId for approved headless auth-safe execution. Agent callers should read this before running CUA tasks.',
+      description: 'Returns the user-scoped orchestration quickstart plus the learned pattern library for prompting, await-loop control, terminal handling, hybrid direct+search navigation, generic source-selection heuristics, and when to pass connectionId for approved headless auth-safe execution. Agent callers should read this before running CUA tasks and before deciding whether to update saved patterns.',
       inputSchema: {},
       annotations: {
         readOnlyHint: true,
@@ -156,15 +162,17 @@ export function registerCuaTools(server: McpServer, authContext: McpAuthContext)
       },
     },
     async () => {
+      const guide = await buildUserScopedOrchestrationGuide(authContext.userId);
       return {
-        content: [{ type: 'text', text: CUA_ORCHESTRATION_QUICKSTART_TEXT }],
+        content: [{ type: 'text', text: guide.text }],
         structuredContent: {
           resource: {
-            uri: CUA_ORCHESTRATION_QUICKSTART_URI,
-            title: CUA_ORCHESTRATION_QUICKSTART_TITLE,
+            uri: guide.uri,
+            title: guide.title,
             mimeType: 'text/markdown',
-            text: CUA_ORCHESTRATION_QUICKSTART_TEXT,
+            text: guide.text,
           },
+          patterns: guide.patterns,
         },
       };
     },
@@ -183,16 +191,107 @@ export function registerCuaTools(server: McpServer, authContext: McpAuthContext)
       },
     },
     async () => {
+      const guide = await buildUserScopedOrchestrationGuide(authContext.userId);
       return {
-        content: [{ type: 'text', text: CUA_ORCHESTRATION_QUICKSTART_TEXT }],
+        content: [{ type: 'text', text: guide.text }],
         structuredContent: {
           resource: {
-            uri: CUA_ORCHESTRATION_QUICKSTART_URI,
-            title: CUA_ORCHESTRATION_QUICKSTART_TITLE,
+            uri: guide.uri,
+            title: guide.title,
             mimeType: 'text/markdown',
-            text: CUA_ORCHESTRATION_QUICKSTART_TEXT,
+            text: guide.text,
           },
+          patterns: guide.patterns,
         },
+      };
+    },
+  );
+
+  server.registerTool(
+    'cua_list_orchestration_patterns',
+    {
+      title: 'CUA List Orchestration Patterns',
+      description: 'List the user-scoped learned CUA orchestration patterns. Call this before delegation if you want just the pattern records, and after a run to decide whether an existing pattern should be updated.',
+      inputSchema: {},
+      annotations: {
+        readOnlyHint: true,
+        openWorldHint: false,
+        destructiveHint: false,
+      },
+    },
+    async () => {
+      const patterns = await listOrchestrationPatterns(authContext.userId);
+      return {
+        content: [{ type: 'text', text: patterns.length ? `Found ${patterns.length} orchestration pattern(s).` : 'No saved orchestration patterns yet.' }],
+        structuredContent: { patterns },
+      };
+    },
+  );
+
+  server.registerTool(
+    'cua_upsert_orchestration_pattern',
+    {
+      title: 'CUA Upsert Orchestration Pattern',
+      description: 'Create or update a learned orchestration pattern for this user. Use this after a successful or instructive run to encode reusable natural-language guidance for future delegation. Pattern fields should capture the task name, known URLs or paths, stepwise guide, and known issues or steering conditions.',
+      inputSchema: {
+        patternId: z.string().optional(),
+        name: z.string().min(1),
+        summary: z.string().optional(),
+        urls: z.array(z.string()).optional(),
+        stepsMarkdown: z.string().min(1),
+        knownIssuesMarkdown: z.string().optional(),
+      },
+      annotations: {
+        readOnlyHint: false,
+        openWorldHint: false,
+        destructiveHint: false,
+      },
+    },
+    async (args: any) => {
+      const parsed = z.object({
+        patternId: z.string().optional(),
+        name: z.string().min(1),
+        summary: z.string().optional(),
+        urls: z.array(z.string()).optional(),
+        stepsMarkdown: z.string().min(1),
+        knownIssuesMarkdown: z.string().optional(),
+      }).parse(args);
+
+      const pattern = await upsertOrchestrationPattern(authContext.userId, parsed);
+      return {
+        content: [{ type: 'text', text: `Saved orchestration pattern: ${pattern.name}` }],
+        structuredContent: { pattern },
+      };
+    },
+  );
+
+  server.registerTool(
+    'cua_delete_orchestration_pattern',
+    {
+      title: 'CUA Delete Orchestration Pattern',
+      description: 'Delete a saved orchestration pattern for this user when it is obsolete or incorrect.',
+      inputSchema: {
+        patternId: z.string().min(1),
+      },
+      annotations: {
+        readOnlyHint: false,
+        openWorldHint: false,
+        destructiveHint: true,
+      },
+    },
+    async (args: any) => {
+      const parsed = z.object({ patternId: z.string().min(1) }).parse(args);
+      const deleted = await deleteOrchestrationPattern(authContext.userId, parsed.patternId);
+      if (!deleted) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `Pattern not found: ${parsed.patternId}` }],
+        };
+      }
+
+      return {
+        content: [{ type: 'text', text: `Deleted orchestration pattern: ${parsed.patternId}` }],
+        structuredContent: { deleted: true, patternId: parsed.patternId },
       };
     },
   );

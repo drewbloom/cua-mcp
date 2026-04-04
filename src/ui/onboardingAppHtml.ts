@@ -773,6 +773,44 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         border-color: rgba(217, 80, 111, 0.24);
       }
 
+      .toast-stack {
+        position: fixed;
+        right: 18px;
+        bottom: 18px;
+        display: grid;
+        gap: 10px;
+        z-index: 40;
+        width: min(360px, calc(100vw - 24px));
+        pointer-events: none;
+      }
+
+      .toast {
+        padding: 14px 16px;
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        background: rgba(7, 14, 22, 0.96);
+        box-shadow: 0 22px 48px rgba(0, 0, 0, 0.28);
+        color: var(--ink);
+        line-height: 1.45;
+        backdrop-filter: blur(16px);
+        transform: translateY(10px);
+        opacity: 0;
+        transition: opacity 180ms ease, transform 180ms ease;
+      }
+
+      .toast.show {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .toast.ok {
+        border-color: rgba(120, 219, 169, 0.24);
+      }
+
+      .toast.err {
+        border-color: rgba(217, 80, 111, 0.28);
+      }
+
       .app-shell {
         width: min(1380px, calc(100% - 28px));
         margin: 0 auto;
@@ -841,14 +879,14 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
       }
 
       .session-links {
-        display: flex;
-        flex-wrap: wrap;
+        display: grid;
         gap: 10px;
       }
 
       .session-link {
-        display: inline-flex;
+        display: flex;
         align-items: center;
+        justify-content: center;
         min-height: 34px;
         padding: 0 12px;
         border-radius: 999px;
@@ -897,6 +935,53 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
       .section-stack {
         display: grid;
         gap: 18px;
+      }
+
+      .sidebar-nav {
+        display: grid;
+        gap: 10px;
+      }
+
+      .sidebar-nav .nav-label {
+        margin-top: 4px;
+      }
+
+      .sidebar-nav .step-list {
+        display: grid;
+        gap: 10px;
+        overflow: visible;
+        padding-bottom: 0;
+      }
+
+      .sidebar-nav .step-link {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr);
+        align-items: center;
+        border-radius: 18px;
+        white-space: normal;
+      }
+
+      .sidebar-nav .step-link::after {
+        left: calc(100% + 10px);
+        bottom: auto;
+        top: 50%;
+        transform: translateY(-50%) translateX(-6px);
+      }
+
+      .sidebar-nav .step-link:hover::after,
+      .sidebar-nav .step-link:focus-visible::after {
+        transform: translateY(-50%) translateX(0);
+      }
+
+      .sidebar-nav .step-copy strong {
+        margin-bottom: 2px;
+      }
+
+      .sidebar-nav .step-copy span {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.45;
       }
 
       .title-row {
@@ -981,6 +1066,10 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         .workspace-nav {
           position: static;
         }
+
+        .sidebar-nav .step-link::after {
+          display: none;
+        }
       }
 
       @media (max-width: 840px) {
@@ -1019,6 +1108,47 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
             <p id="sessionMeta">Your OpenAI key, MCP access keys, connections, and run history stay scoped to this account.</p>
           </div>
 
+          <div class="sidebar-nav">
+            <div class="nav-label">Dashboard</div>
+            <nav class="step-list" aria-label="Dashboard tabs">
+              <a class="step-link" href="#llm-step" data-step-link="llm-step" data-tooltip="Store and rotate the OpenAI key this account will use for computer-use runs." title="Store and rotate the OpenAI key this account will use for computer-use runs.">
+                <div class="step-index">01</div>
+                <div class="step-copy">
+                  <strong>OpenAI API Key</strong>
+                  <span>Set the active model credential for new runs.</span>
+                </div>
+              </a>
+              <a class="step-link" href="#keys-step" data-step-link="keys-step" data-tooltip="Create per-user MCP access keys and scope them to approved connections." title="Create per-user MCP access keys and scope them to approved connections.">
+                <div class="step-index">02</div>
+                <div class="step-copy">
+                  <strong>MCP Access Keys</strong>
+                  <span>Issue and revoke client credentials for this account.</span>
+                </div>
+              </a>
+              <a class="step-link" href="#connections-step" data-step-link="connections-step" data-tooltip="Define host policy, saved auth artifacts, and capture sessions for each connection." title="Define host policy, saved auth artifacts, and capture sessions for each connection.">
+                <div class="step-index">03</div>
+                <div class="step-copy">
+                  <strong>Connections</strong>
+                  <span>Control policy, auth artifacts, and capture state.</span>
+                </div>
+              </a>
+              <a class="step-link" href="#patterns-step" data-step-link="patterns-step" data-tooltip="Save reusable orchestration patterns so future runs start from learned structure instead of improvisation." title="Save reusable orchestration patterns so future runs start from learned structure instead of improvisation.">
+                <div class="step-index">04</div>
+                <div class="step-copy">
+                  <strong>Patterns</strong>
+                  <span>Store reusable orchestration guides as editable cards.</span>
+                </div>
+              </a>
+              <a class="step-link" href="#runs-step" data-step-link="runs-step" data-tooltip="Review retention settings and inspect the runs kept for this account." title="Review retention settings and inspect the runs kept for this account.">
+                <div class="step-index">05</div>
+                <div class="step-copy">
+                  <strong>Runs and Privacy</strong>
+                  <span>Inspect stored runs and retention settings.</span>
+                </div>
+              </a>
+            </nav>
+          </div>
+
           <div class="session-links">
             <a class="session-link" href="/">Public home</a>
             <a class="session-link" href="#connections-step">Connections</a>
@@ -1032,36 +1162,6 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
       </aside>
 
       <div class="workspace-main-shell">
-        <div class="workspace-nav">
-          <div class="nav-label">Dashboard</div>
-          <nav class="step-list" aria-label="Dashboard tabs">
-            <a class="step-link" href="#llm-step" data-step-link="llm-step" data-tooltip="Store and rotate the OpenAI key this account will use for computer-use runs." title="Store and rotate the OpenAI key this account will use for computer-use runs.">
-              <div class="step-index">01</div>
-              <div class="step-copy">
-                <strong>OpenAI API Key</strong>
-              </div>
-            </a>
-            <a class="step-link" href="#keys-step" data-step-link="keys-step" data-tooltip="Create per-user MCP access keys and scope them to approved connections." title="Create per-user MCP access keys and scope them to approved connections.">
-              <div class="step-index">02</div>
-              <div class="step-copy">
-                <strong>MCP Access Keys</strong>
-              </div>
-            </a>
-            <a class="step-link" href="#connections-step" data-step-link="connections-step" data-tooltip="Define host policy, saved auth artifacts, and capture sessions for each connection." title="Define host policy, saved auth artifacts, and capture sessions for each connection.">
-              <div class="step-index">03</div>
-              <div class="step-copy">
-                <strong>Connections</strong>
-              </div>
-            </a>
-            <a class="step-link" href="#runs-step" data-step-link="runs-step" data-tooltip="Review retention settings and inspect the runs kept for this account." title="Review retention settings and inspect the runs kept for this account.">
-              <div class="step-index">04</div>
-              <div class="step-copy">
-                <strong>Runs and Privacy</strong>
-              </div>
-            </a>
-          </nav>
-        </div>
-
         <div class="workspace-main">
         <section class="section-panel" id="llm-step" data-reveal>
           <div class="section-head">
@@ -1438,9 +1538,87 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
           </div>
         </section>
 
+        <section class="section-panel" id="patterns-step" data-reveal>
+          <div class="section-head">
+            <div class="section-number">Step 04 · Patterns</div>
+            <h2>Keep the system's learned playbooks in one place and edit them like they matter.</h2>
+            <p>
+              These patterns become reusable context for future delegations. Save the URLs that tend to matter, the steps that actually work, and the steering notes that prevent the same mistakes from becoming traditions.
+            </p>
+          </div>
+
+          <div id="selectedPatternShell" class="selected-connection-shell empty">
+            <div class="selected-connection-head">
+              <div class="selected-connection-title">
+                <span class="field-label">Selected pattern</span>
+                <strong id="selectedPatternName">No pattern selected</strong>
+              </div>
+              <div class="button-row">
+                <button class="secondary" id="refreshPatterns">Refresh list</button>
+                <button class="ghost" id="newPattern">New pattern</button>
+              </div>
+            </div>
+            <div id="selectedPatternMeta" class="selected-connection-meta">
+              <span class="connection-tag">Create or choose a pattern card to edit the learned guide it contributes to future runs.</span>
+            </div>
+          </div>
+
+          <div id="patternCards" class="card-grid">
+            <article class="empty-state-card">
+              <span class="field-label">No patterns yet</span>
+              <strong>Write the first reusable guide</strong>
+              <p>Capture one workflow with real URLs, working steps, and the issues that usually require steering.</p>
+            </article>
+          </div>
+
+          <div class="composer-card">
+            <div class="title-row">
+              <div>
+                <span class="field-label">Pattern editor</span>
+                <p class="micro-copy">Cards are summaries. This form holds the actual stepwise playbook and the issues worth remembering.</p>
+              </div>
+            </div>
+
+            <div class="field-grid">
+              <input id="patternId" type="hidden" />
+              <label class="field">
+                <span class="field-label">Pattern name</span>
+                <input id="patternName" placeholder="NetDocuments login with stored auth-state fallback" />
+              </label>
+              <label class="field field-span-2">
+                <span class="field-label">Known URLs or paths</span>
+                <input id="patternUrls" placeholder="https://example.com/login, /search, /matters/active" />
+              </label>
+              <label class="field field-span-2">
+                <span class="field-label">Summary</span>
+                <textarea id="patternSummary" placeholder="Short description of when this pattern applies and what it gets done."></textarea>
+              </label>
+              <label class="field field-span-2">
+                <span class="field-label">Stepwise guide</span>
+                <textarea id="patternSteps" placeholder="1. Start on the login page.\n2. Prefer saved auth state if present.\n3. If redirected, navigate back to the dashboard and reopen the search pane."></textarea>
+              </label>
+              <label class="field field-span-2">
+                <span class="field-label">Known issues and steering notes</span>
+                <textarea id="patternIssues" placeholder="Ask for clarification if multiple matter workspaces appear. Refresh once if the grid loads blank. Stop if the connection boundary would be exceeded."></textarea>
+              </label>
+            </div>
+
+            <div class="button-row">
+              <button id="savePattern">Save pattern</button>
+              <button class="secondary" id="listPatterns">List patterns</button>
+              <button class="danger" id="deletePattern">Delete pattern</button>
+            </div>
+          </div>
+
+          <div class="output-shell">
+            <div class="output-head"><span>Pattern activity</span></div>
+            <pre id="patternsOut">Pattern output</pre>
+          </div>
+        </section>
+
         <section class="section-panel" id="runs-step" data-reveal>
           <div class="section-head">
-            <div class="section-number">Step 04 · Runs and privacy</div>
+            <div class="section-number">Step 05 · Runs and privacy</div>
             <h2>Decide what the system remembers, what it forgets, and how suspiciously clean you want the trail.</h2>
             <p>
               Runtime settings stay user-scoped. Retention determines cleanup windows, while ZDR disables event and output persistence so the system keeps only the minimum needed to track run state and avoid becoming a scrapbook.
@@ -1501,7 +1679,8 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
       </div>
     </main>
 
-    <div id="banner" class="banner">Ready.</div>
+    <div id="banner" class="banner" hidden>Ready.</div>
+    <div id="toastStack" class="toast-stack" aria-live="polite" aria-atomic="false"></div>
 
     <script>
       const $ = (id) => document.getElementById(id);
@@ -1510,6 +1689,7 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         llm: $('llmOut'),
         keys: $('keysOut'),
         conn: $('connOut'),
+        patterns: $('patternsOut'),
         secret: $('secretOut'),
         capture: $('captureOut'),
         captureHistory: $('captureHistoryOut'),
@@ -1518,6 +1698,7 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         runDetail: $('runDetailOut'),
       };
       const banner = $('banner');
+      const toastStack = $('toastStack');
       const captureImage = $('captureImage');
       const captureMarker = $('captureMarker');
       const captureSelectionText = $('captureSelectionText');
@@ -1532,6 +1713,10 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
       const sheepLogout = $('sheepLogout');
       const llmCards = $('llmCards');
       const apiKeyCards = $('apiKeyCards');
+      const patternCards = $('patternCards');
+      const selectedPatternShell = $('selectedPatternShell');
+      const selectedPatternName = $('selectedPatternName');
+      const selectedPatternMeta = $('selectedPatternMeta');
       const sections = Array.from(document.querySelectorAll('[data-reveal]'));
       const navLinks = Array.from(document.querySelectorAll('[data-step-link]'));
       const state = {
@@ -1539,12 +1724,33 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         selectedConnectionId: '',
         llmKeys: [],
         apiKeys: [],
+        patterns: [],
+        selectedPatternId: '',
         currentUser: null,
+        currentSession: null,
       };
 
-      function setBanner(kind, message) {
+      function showToast(kind, message) {
+        if (!toastStack || !message) return;
+        const toast = document.createElement('div');
+        toast.className = 'toast ' + (kind || '');
+        toast.textContent = message;
+        toastStack.appendChild(toast);
+        requestAnimationFrame(() => {
+          toast.classList.add('show');
+        });
+        window.setTimeout(() => {
+          toast.classList.remove('show');
+          window.setTimeout(() => toast.remove(), 180);
+        }, kind === 'err' ? 4200 : 2600);
+      }
+
+      function setBanner(kind, message, options = {}) {
         banner.className = 'banner ' + (kind || '');
         banner.textContent = message;
+        if (options.toast !== false) {
+          showToast(kind, message);
+        }
       }
 
       function looksLikeFeatureDisabled(status, body) {
@@ -1606,16 +1812,21 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
           if (looksLikeFeatureDisabled(res.status, parsed)) {
             setBanner('err', 'This route is disabled on the server. Enable the matching backend feature flag before using this step.');
           } else {
-            setBanner('err', 'Request failed (' + res.status + ').');
+            setBanner('err', String(parsed?.message || parsed?.error || ('Request failed (' + res.status + ').')));
           }
           return { ok: false, status: res.status, body: parsed };
         }
-        setBanner('ok', 'Request succeeded (' + res.status + ').');
         return { ok: true, status: res.status, body: parsed };
       }
 
       function splitCsv(raw) {
         return String(raw || '').split(',').map(v => v.trim()).filter(Boolean);
+      }
+
+      function truncateText(value, limit = 180) {
+        const text = String(value || '').trim();
+        if (!text) return '';
+        return text.length > limit ? text.slice(0, limit - 1) + '…' : text;
       }
 
       function setActiveConnectionId(connectionId) {
@@ -1645,6 +1856,29 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         $('connAuthMethod').value = 'oauth';
         $('patchConnStatus').value = 'active';
         clearConnectionSelection();
+      }
+
+      function setActivePatternId(patternId) {
+        const value = String(patternId || '').trim();
+        $('patternId').value = value;
+        state.selectedPatternId = value;
+      }
+
+      function clearPatternSelection() {
+        setActivePatternId('');
+        if (!selectedPatternShell || !selectedPatternName || !selectedPatternMeta) return;
+        selectedPatternShell.classList.add('empty');
+        selectedPatternName.textContent = 'No pattern selected';
+        selectedPatternMeta.innerHTML = '<span class="connection-tag">Create or choose a pattern card to edit the learned guide it contributes to future runs.</span>';
+      }
+
+      function clearPatternForm() {
+        $('patternName').value = '';
+        $('patternUrls').value = '';
+        $('patternSummary').value = '';
+        $('patternSteps').value = '';
+        $('patternIssues').value = '';
+        clearPatternSelection();
       }
 
       function getFaviconUrl(baseHost) {
@@ -1686,6 +1920,33 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         $('patchConnStatus').value = String(connection.status || 'active');
         setActiveConnectionId(connection.id);
         renderSelectedConnection(connection);
+      }
+
+      function renderSelectedPattern(pattern) {
+        if (!pattern) {
+          clearPatternSelection();
+          return;
+        }
+
+        selectedPatternShell.classList.remove('empty');
+        selectedPatternName.textContent = pattern.name || 'Unnamed pattern';
+        const urlCount = Array.isArray(pattern.urls) ? pattern.urls.length : 0;
+        selectedPatternMeta.innerHTML = [
+          '<span class="connection-tag">' + urlCount + ' url' + (urlCount === 1 ? '' : 's') + '</span>',
+          '<span class="connection-tag">updated ' + escapeHtml(formatTimestamp(pattern.updatedAt)) + '</span>',
+          pattern.summary ? '<span class="connection-tag">' + escapeHtml(truncateText(pattern.summary, 120)) + '</span>' : '<span class="connection-tag">No summary yet</span>'
+        ].join('');
+      }
+
+      function populatePatternForm(pattern) {
+        if (!pattern) return;
+        $('patternName').value = String(pattern.name || '');
+        $('patternUrls').value = Array.isArray(pattern.urls) ? pattern.urls.join(', ') : '';
+        $('patternSummary').value = String(pattern.summary || '');
+        $('patternSteps').value = String(pattern.stepsMarkdown || '');
+        $('patternIssues').value = String(pattern.knownIssuesMarkdown || '');
+        setActivePatternId(pattern.id);
+        renderSelectedPattern(pattern);
       }
 
       function renderConnectionsBoard(connections) {
@@ -1730,6 +1991,44 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         }).join('');
       }
 
+      function renderPatternCards(patterns) {
+        state.patterns = Array.isArray(patterns) ? patterns : [];
+        if (!patternCards) return;
+        if (!state.patterns.length) {
+          patternCards.innerHTML = '<article class="empty-state-card"><span class="field-label">No patterns yet</span><strong>Write the first reusable guide</strong><p>Capture one workflow with real URLs, working steps, and the issues that usually require steering.</p></article>';
+          if (!state.selectedPatternId) {
+            renderSelectedPattern(null);
+          }
+          return;
+        }
+
+        patternCards.innerHTML = state.patterns.map((pattern) => {
+          const active = pattern.id === state.selectedPatternId ? ' active' : '';
+          const summary = truncateText(pattern.summary || pattern.stepsMarkdown || 'No summary yet.', 180);
+          const urlCount = Array.isArray(pattern.urls) ? pattern.urls.length : 0;
+          const issueState = pattern.knownIssuesMarkdown ? 'Issues tracked' : 'No issues logged';
+          return '<article class="key-card' + active + '" data-pattern-id="' + escapeAttr(pattern.id) + '">' +
+            '<div class="key-card-head">' +
+              '<div>' +
+                '<span class="field-label">Pattern</span>' +
+                '<strong>' + escapeHtml(pattern.name || 'Unnamed pattern') + '</strong>' +
+              '</div>' +
+              '<span class="status-pill idle">saved</span>' +
+            '</div>' +
+            '<div class="key-card-meta">' +
+              '<div><strong>Updated:</strong> ' + escapeHtml(formatTimestamp(pattern.updatedAt)) + '</div>' +
+              '<div><strong>URLs:</strong> ' + escapeHtml(String(urlCount)) + '</div>' +
+              '<div><strong>Notes:</strong> ' + escapeHtml(issueState) + '</div>' +
+              '<div><strong>Summary:</strong> ' + escapeHtml(summary) + '</div>' +
+            '</div>' +
+            '<div class="key-card-actions">' +
+              '<button class="secondary" type="button" data-pattern-edit="' + escapeAttr(pattern.id) + '">Edit</button>' +
+              '<button class="ghost" type="button" data-pattern-duplicate="' + escapeAttr(pattern.id) + '">Duplicate</button>' +
+            '</div>' +
+          '</article>';
+        }).join('');
+      }
+
       function selectConnectionById(connectionId, options = {}) {
         const connection = state.connections.find((entry) => entry.id === connectionId);
         if (!connection) return;
@@ -1738,6 +2037,13 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         if (options.loadArtifacts) {
           refreshConnectionArtifacts();
         }
+      }
+
+      function selectPatternById(patternId) {
+        const pattern = state.patterns.find((entry) => entry.id === patternId);
+        if (!pattern) return;
+        populatePatternForm(pattern);
+        renderPatternCards(state.patterns);
       }
 
       function detectAuthStateType(parsed) {
@@ -1814,8 +2120,9 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         }
       }
 
-      function setSessionSummary(user) {
+      function setSessionSummary(user, session) {
         state.currentUser = user || null;
+        state.currentSession = session || null;
         if (!sessionName || !sessionEmail || !sessionMeta) return;
         if (!user) {
           sessionName.textContent = 'Not signed in';
@@ -1826,18 +2133,28 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
 
         sessionName.textContent = user.displayName || user.email || 'Signed in';
         sessionEmail.textContent = user.email || 'Authenticated account';
-        sessionMeta.textContent = user.createdAt
-          ? 'Account created ' + formatTimestamp(user.createdAt) + '.'
+        const details = [];
+        if (session?.createdAt) {
+          details.push('Session started ' + formatTimestamp(session.createdAt));
+        }
+        if (session?.expiresAt) {
+          details.push('idle expiry ' + formatTimestamp(session.expiresAt));
+        }
+        if (user.createdAt) {
+          details.push('account created ' + formatTimestamp(user.createdAt));
+        }
+        sessionMeta.textContent = details.length
+          ? details.join(' · ') + '.'
           : 'Manage keys, connections, and runs for this account.';
       }
 
       async function loadSessionSummary() {
         const data = await api('/api/session/me');
         if (data.ok) {
-          setSessionSummary(data.body?.user || null);
+          setSessionSummary(data.body?.user || null, data.body?.session || null);
         } else if (data.status === 401) {
-          setSessionSummary(null);
-          window.location.href = '/app';
+          setSessionSummary(null, null);
+          window.location.href = '/sign-in';
         }
         print(out.session, data);
         return data;
@@ -1936,14 +2253,30 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         return data;
       }
 
+      async function loadPatterns() {
+        const data = await api('/api/orchestration-patterns');
+        if (data.ok) {
+          const patterns = data.body?.patterns || [];
+          renderPatternCards(patterns);
+          if (state.selectedPatternId) {
+            const stillExists = patterns.some((entry) => entry.id === state.selectedPatternId);
+            if (stillExists) {
+              selectPatternById(state.selectedPatternId);
+            } else {
+              clearPatternForm();
+            }
+          }
+        }
+        print(out.patterns, data);
+        return data;
+      }
+
       async function confirmAndLogout() {
-        const label = state.currentUser?.email || 'this account';
-        const shouldLogout = window.confirm('Sign out of ' + label + '?');
-        if (!shouldLogout) return;
+        setBanner('ok', 'Signing out.', { toast: true });
         const data = await api('/api/session/logout', 'POST');
         print(out.session, data);
         if (data.ok) {
-          window.location.href = '/app';
+          window.location.href = '/';
         }
       }
 
@@ -2273,6 +2606,37 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         });
       }
 
+      if (patternCards) {
+        patternCards.addEventListener('click', (event) => {
+          const target = event.target;
+          if (!(target instanceof HTMLElement)) return;
+          const editId = target.getAttribute('data-pattern-edit');
+          const duplicateId = target.getAttribute('data-pattern-duplicate');
+          const cardId = target.closest('[data-pattern-id]')?.getAttribute('data-pattern-id');
+          const patternId = editId || duplicateId || cardId;
+          if (!patternId) return;
+          const pattern = state.patterns.find((entry) => entry.id === patternId);
+          if (!pattern) return;
+          if (duplicateId) {
+            $('patternName').value = (pattern.name || 'Pattern') + ' copy';
+            $('patternUrls').value = Array.isArray(pattern.urls) ? pattern.urls.join(', ') : '';
+            $('patternSummary').value = String(pattern.summary || '');
+            $('patternSteps').value = String(pattern.stepsMarkdown || '');
+            $('patternIssues').value = String(pattern.knownIssuesMarkdown || '');
+            setActivePatternId('');
+            renderSelectedPattern({
+              ...pattern,
+              id: '',
+              name: (pattern.name || 'Pattern') + ' copy',
+              updatedAt: new Date().toISOString(),
+            });
+            setBanner('ok', 'Pattern copied into the editor as a new draft.');
+            return;
+          }
+          selectPatternById(patternId);
+        });
+      }
+
       connectionsBoard.addEventListener('click', (event) => {
         const target = event.target;
         if (!(target instanceof HTMLElement)) return;
@@ -2290,6 +2654,7 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
       loadLlmKeys();
       loadApiKeys();
       loadConnections();
+      loadPatterns();
 
       $('createLlmKey').onclick = async () => {
         const name = requireText('llmKeyName', 'Key label');
@@ -2364,6 +2729,57 @@ export const DASHBOARD_APP_HTML = `<!doctype html>
         }
         $('keyConnIds').value = connectionId;
         setBanner('ok', 'Copied the selected connection into the access-key scope field.');
+      };
+
+      $('refreshPatterns').onclick = loadPatterns;
+      $('listPatterns').onclick = loadPatterns;
+      $('newPattern').onclick = () => {
+        clearPatternForm();
+        renderPatternCards(state.patterns);
+        setBanner('ok', 'Pattern editor reset for a new entry.');
+      };
+      $('savePattern').onclick = async () => {
+        const name = requireText('patternName', 'Pattern name');
+        if (!name) return;
+        const stepsMarkdown = requireText('patternSteps', 'Stepwise guide');
+        if (!stepsMarkdown) return;
+        const patternId = String($('patternId').value || '').trim();
+        const payload = {
+          name,
+          summary: $('patternSummary').value.trim(),
+          urls: splitCsv($('patternUrls').value),
+          stepsMarkdown,
+          knownIssuesMarkdown: $('patternIssues').value.trim(),
+        };
+        const data = patternId
+          ? await api('/api/orchestration-patterns/' + encodeURIComponent(patternId), 'PATCH', payload)
+          : await api('/api/orchestration-patterns', 'POST', payload);
+        print(out.patterns, data);
+        if (data.ok) {
+          const nextId = data.body?.pattern?.id || patternId;
+          setActivePatternId(nextId);
+          await loadPatterns();
+          if (nextId) {
+            selectPatternById(nextId);
+          }
+          setBanner('ok', patternId ? 'Pattern updated.' : 'Pattern created.');
+        }
+      };
+      $('deletePattern').onclick = async () => {
+        const patternId = String($('patternId').value || '').trim();
+        if (!patternId) {
+          setBanner('err', 'Select a pattern card before deleting it.');
+          return;
+        }
+        const approved = window.confirm('Delete this orchestration pattern?');
+        if (!approved) return;
+        const data = await api('/api/orchestration-patterns/' + encodeURIComponent(patternId), 'DELETE');
+        print(out.patterns, data);
+        if (data.ok) {
+          clearPatternForm();
+          await loadPatterns();
+          setBanner('ok', 'Pattern deleted.');
+        }
       };
 
       $('createConn').onclick = async () => {
