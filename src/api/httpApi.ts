@@ -5,7 +5,7 @@ import { URL } from 'node:url';
 import path from 'node:path';
 import { getPool } from '../db/postgres.js';
 import { config } from '../config.js';
-import { DASHBOARD_APP_HTML } from '../ui/onboardingAppHtml.js';
+import { renderDashboardAppHtml } from '../ui/dashboardAppHtml.js';
 import { PUBLIC_APP_HTML } from '../ui/publicAppHtml.js';
 import { LANDING_PAGE_HTML } from '../ui/landingPageHtml.js';
 import { encryptText, hashValue, isSameHash, requireHex32ByteKey } from '../security/crypto.js';
@@ -1583,6 +1583,84 @@ async function handleApiKeysCreate(request: IncomingMessage, response: ServerRes
   });
 }
 
+async function handleApiKeysPatch(request: IncomingMessage, response: ServerResponse, apiKeyId: string): Promise<void> {
+  const auth = await requireAuth(request, response);
+  if (!auth) return;
+
+  const body = await readJsonBody(request);
+  const updates: string[] = [];
+  const values: unknown[] = [];
+  const changedFields: string[] = [];
+
+  if (body.name !== undefined) {
+    const name = requireString(body.name, 'name');
+    updates.push(`name = $${values.length + 1}`);
+    values.push(name);
+    changedFields.push('name');
+  }
+
+  if (body.allowedConnectionIds !== undefined) {
+    const allowedConnectionIds = asStringArray(body.allowedConnectionIds);
+    if (allowedConnectionIds.length > 0) {
+      const db = getPool();
+      const scopeRes = await db.query(
+        'SELECT id FROM connections WHERE user_id = $1 AND id = ANY($2::text[])',
+        [auth.userId, allowedConnectionIds],
+      );
+      const owned = new Set(scopeRes.rows.map((row) => String(row.id)));
+      const invalid = allowedConnectionIds.filter((id) => !owned.has(id));
+      if (invalid.length > 0) {
+        writeJson(response, 400, {
+          error: 'Invalid allowedConnectionIds',
+          message: 'All scoped connection ids must belong to the current user.',
+          invalidConnectionIds: invalid,
+        });
+        return;
+      }
+    }
+    updates.push(`allowed_connection_ids_json = $${values.length + 1}::jsonb`);
+    values.push(JSON.stringify(allowedConnectionIds));
+    changedFields.push('allowedConnectionIds');
+  }
+
+  if (updates.length === 0) {
+    writeJson(response, 400, { error: 'No updatable fields provided' });
+    return;
+  }
+
+  values.push(apiKeyId, auth.userId);
+  const db = getPool();
+  const res = await db.query(
+    `
+    UPDATE user_api_keys
+    SET ${updates.join(', ')}
+    WHERE id = $${values.length - 1} AND user_id = $${values.length} AND revoked_at IS NULL
+    RETURNING id, name, key_prefix, allowed_connection_ids_json, created_at, last_used_at, revoked_at
+    `,
+    values,
+  );
+
+  if ((res.rowCount ?? 0) === 0) {
+    writeJson(response, 404, { error: 'API key not found' });
+    return;
+  }
+
+  const row = res.rows[0];
+  await logSecurityEvent(auth.userId, 'api_key_updated', 'api_key', { apiKeyId, fields: changedFields });
+  writeJson(response, 200, {
+    success: true,
+    apiKey: {
+      id: String(row.id),
+      name: String(row.name),
+      keyPrefix: String(row.key_prefix),
+      allowedConnectionIds: row.allowed_connection_ids_json || [],
+      createdAt: new Date(row.created_at).toISOString(),
+      lastUsedAt: row.last_used_at ? new Date(row.last_used_at).toISOString() : null,
+      revokedAt: row.revoked_at ? new Date(row.revoked_at).toISOString() : null,
+    },
+  });
+}
+
 async function handleApiKeysRevoke(request: IncomingMessage, response: ServerResponse, apiKeyId: string): Promise<void> {
   const auth = await requireAuth(request, response);
   if (!auth) return;
@@ -1710,9 +1788,19 @@ async function handleLlmKeysCreate(request: IncomingMessage, response: ServerRes
   });
 }
 
-async function handleLlmKeyActivate(request: IncomingMessage, response: ServerResponse, llmKeyId: string): Promise<void> {
+async function handleLlmKeyPatch(request: IncomingMessage, response: ServerResponse, llmKeyId: string): Promise<void> {
   const auth = await requireAuth(request, response);
   if (!auth) return;
+
+  const body = await readJsonBody(request);
+  const hasName = body.name !== undefined;
+  const hasApiKey = body.apiKey !== undefined;
+  const hasIsActive = body.isActive !== undefined;
+
+  if (!hasName && !hasApiKey && !hasIsActive) {
+    writeJson(response, 400, { error: 'No updatable fields provided' });
+    return;
+  }
 
   const db = getPool();
   const existing = await db.query(
@@ -1731,32 +1819,94 @@ async function handleLlmKeyActivate(request: IncomingMessage, response: ServerRe
     return;
   }
 
+  const updates: string[] = [];
+  const values: unknown[] = [];
+  const changedFields: string[] = [];
+
+  if (hasName) {
+    const name = requireString(body.name, 'name');
+    updates.push(`name = $${values.length + 1}`);
+    values.push(name);
+    changedFields.push('name');
+  }
+
+  if (hasApiKey) {
+    const apiKey = requireString(body.apiKey, 'apiKey');
+    const encrypted = encryptSecretValue(apiKey);
+    updates.push(`ciphertext = $${values.length + 1}`);
+    values.push(encrypted.ciphertext);
+    updates.push(`iv_hex = $${values.length + 1}`);
+    values.push(encrypted.ivHex);
+    updates.push(`auth_tag_hex = $${values.length + 1}`);
+    values.push(encrypted.authTagHex);
+    updates.push(`key_version = $${values.length + 1}`);
+    values.push(encrypted.keyVersion);
+    changedFields.push('apiKey');
+  }
+
+  if (hasIsActive) {
+    const isActive = Boolean(body.isActive);
+    updates.push(`is_active = $${values.length + 1}`);
+    values.push(isActive);
+    changedFields.push('isActive');
+  }
+
+  updates.push('updated_at = NOW()');
+
   await db.query('BEGIN');
   try {
-    await db.query(
+    if (hasIsActive && Boolean(body.isActive)) {
+      await db.query(
+        `
+        UPDATE user_llm_keys
+        SET is_active = FALSE, updated_at = NOW()
+        WHERE user_id = $1 AND provider = $2 AND revoked_at IS NULL
+        `,
+        [auth.userId, row.provider],
+      );
+    }
+
+    values.push(llmKeyId, auth.userId);
+    const updateRes = await db.query(
       `
       UPDATE user_llm_keys
-      SET is_active = FALSE, updated_at = NOW()
-      WHERE user_id = $1 AND provider = $2 AND revoked_at IS NULL
+      SET ${updates.join(', ')}
+      WHERE id = $${values.length - 1} AND user_id = $${values.length} AND revoked_at IS NULL
+      RETURNING id, provider, name, key_version, is_active, created_at, updated_at, last_used_at, revoked_at
       `,
-      [auth.userId, row.provider],
+      values,
     );
-    await db.query(
-      `
-      UPDATE user_llm_keys
-      SET is_active = TRUE, updated_at = NOW()
-      WHERE id = $1 AND user_id = $2 AND revoked_at IS NULL
-      `,
-      [llmKeyId, auth.userId],
-    );
+
+    if ((updateRes.rowCount ?? 0) === 0) {
+      throw new Error('LLM key not found during update');
+    }
+
     await db.query('COMMIT');
+
+    const updated = updateRes.rows[0];
+    await logSecurityEvent(auth.userId, 'llm_key_updated', 'llm_key', {
+      llmKeyId,
+      provider: String(updated.provider),
+      fields: changedFields,
+    });
+    writeJson(response, 200, {
+      success: true,
+      llmKey: {
+        id: String(updated.id),
+        provider: String(updated.provider),
+        name: String(updated.name),
+        keyVersion: String(updated.key_version),
+        isActive: Boolean(updated.is_active) && !updated.revoked_at,
+        createdAt: new Date(updated.created_at).toISOString(),
+        updatedAt: new Date(updated.updated_at).toISOString(),
+        lastUsedAt: updated.last_used_at ? new Date(updated.last_used_at).toISOString() : null,
+        revokedAt: updated.revoked_at ? new Date(updated.revoked_at).toISOString() : null,
+      },
+    });
   } catch (error) {
     await db.query('ROLLBACK');
     throw error;
   }
-
-  await logSecurityEvent(auth.userId, 'llm_key_activated', 'llm_key', { llmKeyId, provider: String(row.provider) });
-  writeJson(response, 200, { success: true, llmKeyId, provider: String(row.provider), isActive: true });
 }
 
 async function handleLlmKeyRevoke(request: IncomingMessage, response: ServerResponse, llmKeyId: string): Promise<void> {
@@ -2093,6 +2243,10 @@ export async function handleApiRequest(request: IncomingMessage, response: Serve
     }
 
     const keyMatch = url.pathname.match(/^\/api\/keys\/([^/]+)$/);
+    if (keyMatch && request.method === 'PATCH') {
+      await handleApiKeysPatch(request, response, keyMatch[1]);
+      return true;
+    }
     if (keyMatch && request.method === 'DELETE') {
       await handleApiKeysRevoke(request, response, keyMatch[1]);
       return true;
@@ -2100,7 +2254,7 @@ export async function handleApiRequest(request: IncomingMessage, response: Serve
 
     const llmKeyMatch = url.pathname.match(/^\/api\/llm-keys\/([^/]+)$/);
     if (llmKeyMatch && request.method === 'PATCH') {
-      await handleLlmKeyActivate(request, response, llmKeyMatch[1]);
+      await handleLlmKeyPatch(request, response, llmKeyMatch[1]);
       return true;
     }
     if (llmKeyMatch && request.method === 'DELETE') {
@@ -2267,7 +2421,22 @@ export async function handleFrontendRequest(request: IncomingMessage, response: 
       return true;
     }
 
-    writeHtml(response, 200, DASHBOARD_APP_HTML);
+    const sectionByRoute: Record<string, string> = {
+      '/dashboard': 'llm-step',
+      '/dashboard/': 'llm-step',
+      '/dashboard/llm-api-keys': 'llm-step',
+      '/dashboard/connections': 'connections-step',
+      '/dashboard/patterns': 'patterns-step',
+      '/dashboard/runs-privacy': 'runs-step',
+      '/dashboard/mcp-access-keys': 'keys-step',
+    };
+    const normalizedPath = String(url.pathname || '/dashboard').replace(/\/+$/, '') || '/dashboard';
+    const sectionId = sectionByRoute[normalizedPath] || 'llm-step';
+    const openComposerParam = String(url.searchParams.get('new') || '').trim();
+    const openComposer = openComposerParam === '1' && sectionId === 'llm-step'
+      ? 'llm'
+      : undefined;
+    writeHtml(response, 200, renderDashboardAppHtml(sectionId, { openComposer }));
     return true;
   }
 

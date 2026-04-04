@@ -570,7 +570,6 @@ export const PUBLIC_APP_HTML = `<!doctype html>
             <p id="statusCardCopy" class="status-copy">The dashboard is where LLM keys, MCP access keys, connections, patterns, and runtime privacy settings actually live.</p>
           </div>
 
-          <pre id="sessionOut" class="dev-output">Auth output</pre>
         </section>
       </div>
     </main>

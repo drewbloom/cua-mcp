@@ -20,6 +20,13 @@ function applyTemplate(template: string, variables: Record<string, string>): str
   });
 }
 
+function sanitizeSteeringPreview(message: string): string {
+  const text = String(message || '');
+  // Avoid persisting likely OTP/passcode values in steering event previews.
+  const redacted = text.replace(/\b\d{4,8}\b/g, '[redacted-code]');
+  return redacted.slice(0, 300);
+}
+
 export class CuaRuntime {
   private runs = new Map<string, CuaRunRecord>();
   private recipes = new Map<string, CuaRecipe>();
@@ -369,7 +376,7 @@ export class CuaRuntime {
       source,
       mode,
       queueDepth: queue.length,
-      preview: steeringMessage.slice(0, 300),
+      preview: sanitizeSteeringPreview(steeringMessage),
     });
     await this.persistRun(run);
     return run;
