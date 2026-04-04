@@ -19,12 +19,21 @@ function requestIsSecure(request: import('node:http').IncomingMessage): boolean 
   return Boolean((request.socket as { encrypted?: boolean }).encrypted);
 }
 
+function hasProxySignal(request: import('node:http').IncomingMessage): boolean {
+  return Boolean(
+    String(request.headers['x-forwarded-proto'] || '').trim() ||
+    String(request.headers['x-forwarded-host'] || '').trim() ||
+    String(request.headers['x-forwarded-for'] || '').trim(),
+  );
+}
+
 function maybeEnforceHttps(
   request: import('node:http').IncomingMessage,
   response: import('node:http').ServerResponse,
   url: URL,
 ): boolean {
   if (config.nodeEnv !== 'production') return false;
+  if (!hasProxySignal(request)) return false;
   if (requestIsSecure(request)) return false;
   if (isLocalHost(url.hostname)) return false;
 

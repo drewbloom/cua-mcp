@@ -333,7 +333,10 @@ export const LANDING_PAGE_HTML = `<!doctype html>
     <main class="page">
       <div class="topbar">
         <div class="brand"><div class="badge">CUA</div><span>Computer Use Agent, Missing Common Precautions</span></div>
-        <div>Working product. Dubious serenity.</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <span>Working product. Dubious serenity.</span>
+          <a class="button secondary" href="/sign-in" style="min-height:38px;padding:0 14px;">Sign in</a>
+        </div>
       </div>
 
       <section class="hero">
@@ -351,7 +354,8 @@ export const LANDING_PAGE_HTML = `<!doctype html>
             </div>
           </div>
           <div class="actions">
-            <a class="button primary" href="/app">Enter the control panel</a>
+            <a class="button primary" href="/app">Create an account</a>
+            <a class="button secondary" href="/sign-in">Sign in</a>
             <a class="button secondary" href="/health">Ask if it is alive</a>
           </div>
           <p class="micro">Conversion to multi-user, UI, and the security spiral were finished by GPT-5.4 after repeated exposure to the phrase “make it more secure.” The current result is best described as enterprise-grade buffoonery with audit logs and a firm belief that another pass will finally fix everything.</p>
@@ -389,7 +393,8 @@ export const LANDING_PAGE_HTML = `<!doctype html>
           <p class="eyebrow">Next move</p>
           <h2>Open the app, click a tab, and try not to ask for fries and a drink.</h2>
           <div class="actions">
-            <a class="button primary" href="/app">Launch /app</a>
+            <a class="button primary" href="/app">Register at /app</a>
+            <a class="button secondary" href="/sign-in">Use /sign-in</a>
             <a class="button secondary" href="https://www.youtube.com/watch?v=dQw4w9WgXcQ&pp=ygUXbmV2ZXIgZ29ubmEgZ2l2ZSB5b3UgdXA%3D">Review SOC II posture</a>
           </div>
         </div>
