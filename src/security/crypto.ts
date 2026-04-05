@@ -19,6 +19,19 @@ export function requireHex32ByteKey(raw: string, fieldName: string): Buffer {
   return Buffer.from(value, 'hex');
 }
 
+// Accept either a legacy 64-char hex key or any non-empty passphrase.
+// For passphrases, derive a stable 32-byte AES key using SHA-256.
+export function requireFlexible32ByteKey(raw: string, fieldName: string): Buffer {
+  const value = String(raw || '').trim();
+  if (!value) {
+    throw new Error(`${fieldName} must be set.`);
+  }
+  if (/^[a-fA-F0-9]{64}$/.test(value)) {
+    return Buffer.from(value, 'hex');
+  }
+  return createHash('sha256').update(value, 'utf8').digest();
+}
+
 export function encryptText(plaintext: string, key: Buffer): { ciphertext: string; ivHex: string; authTagHex: string; keyVersion: string } {
   const iv = randomBytes(12);
   const cipher = createCipheriv('aes-256-gcm', key, iv);

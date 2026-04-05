@@ -1,6 +1,6 @@
 import { getPool } from '../db/postgres.js';
 import { config } from '../config.js';
-import { decryptText, requireHex32ByteKey } from './crypto.js';
+import { decryptText, requireFlexible32ByteKey } from './crypto.js';
 
 export type ConnectionPolicy = {
   id: string;
@@ -46,7 +46,7 @@ export type SecretExecutionArtifacts = {
 };
 
 function getMasterKey(): Buffer {
-  return requireHex32ByteKey(config.secretMasterKeyHex, 'CUA_SECRET_MASTER_KEY');
+  return requireFlexible32ByteKey(config.secretMasterKeyHex, 'CUA_SECRET_MASTER_KEY');
 }
 
 export function normalizeHost(value: string): string {

@@ -41,6 +41,8 @@ export const config = {
   sessionIdleTtlHours: asNumber(process.env.SESSION_IDLE_TTL_HOURS, 12),
   sessionAbsoluteTtlDays: asNumber(process.env.SESSION_ABSOLUTE_TTL_DAYS, 30),
   secretMasterKeyHex: asString(process.env.CUA_SECRET_MASTER_KEY),
+  requireExternalSecretMasterKey:
+    asString(process.env.CUA_REQUIRE_EXTERNAL_SECRET_MASTER_KEY || '').toLowerCase() === 'true',
   resendApiKey: asString(process.env.RESEND_API_KEY),
   resendFromEmail: asString(process.env.RESEND_FROM_EMAIL),
   resendFromName: asString(process.env.RESEND_FROM_NAME || 'CUA MCP'),

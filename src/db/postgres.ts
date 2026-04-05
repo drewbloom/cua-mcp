@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
 import { config } from '../config.js';
+import { randomBytes } from 'node:crypto';
 
 let pool: Pool | null = null;
 
@@ -254,6 +255,13 @@ export async function initPostgres(): Promise<void> {
       created_at TIMESTAMPTZ NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS app_encryption_keys (
+      id TEXT PRIMARY KEY,
+      secret_master_key TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL
+    );
+
     CREATE INDEX IF NOT EXISTS idx_security_audit_logs_user_scope
       ON security_audit_logs(user_id, event_scope, created_at DESC);
 
@@ -263,6 +271,30 @@ export async function initPostgres(): Promise<void> {
     ALTER TABLE connections ADD COLUMN IF NOT EXISTS allow_subdomains BOOLEAN NOT NULL DEFAULT FALSE;
     ALTER TABLE connections ADD COLUMN IF NOT EXISTS allow_any_path BOOLEAN NOT NULL DEFAULT FALSE;
   `);
+
+  if (!String(config.secretMasterKeyHex || '').trim()) {
+    if (config.requireExternalSecretMasterKey) {
+      throw new Error(
+        'CUA_SECRET_MASTER_KEY is required when CUA_REQUIRE_EXTERNAL_SECRET_MASTER_KEY=true. Set it in deployment secrets.',
+      );
+    }
+    const keyId = 'primary';
+    const generated = randomBytes(32).toString('hex');
+    await db.query(
+      `
+      INSERT INTO app_encryption_keys (id, secret_master_key, created_at, updated_at)
+      VALUES ($1, $2, NOW(), NOW())
+      ON CONFLICT (id) DO NOTHING
+      `,
+      [keyId, generated],
+    );
+    const existing = await db.query('SELECT secret_master_key FROM app_encryption_keys WHERE id = $1 LIMIT 1', [keyId]);
+    if ((existing.rowCount ?? 0) === 0) {
+      throw new Error('Failed to initialize DB-managed encryption key.');
+    }
+    config.secretMasterKeyHex = String(existing.rows[0].secret_master_key || '').trim();
+    console.warn('[startup] CUA_SECRET_MASTER_KEY not set. Using DB-managed persistent encryption key.');
+  }
 }
 
 export async function closePool(): Promise<void> {

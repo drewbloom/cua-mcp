@@ -8,7 +8,7 @@ import { config } from '../config.js';
 import { renderDashboardAppHtml } from '../ui/dashboardAppHtml.js';
 import { PUBLIC_APP_HTML } from '../ui/publicAppHtml.js';
 import { LANDING_PAGE_HTML } from '../ui/landingPageHtml.js';
-import { encryptText, hashValue, isSameHash, requireHex32ByteKey } from '../security/crypto.js';
+import { encryptText, hashValue, isSameHash, requireFlexible32ByteKey } from '../security/crypto.js';
 import { buildSecretFillPlan, getConnectionPolicyForUser, isUrlAllowedByPolicy, normalizeHost, normalizePathPrefix } from '../security/secretBoundary.js';
 import { cancelCaptureSession, finalizeCaptureSession, getCaptureSnapshot, listCaptureSnapshots, performCaptureAction, startCaptureSession } from '../security/authCapture.js';
 import { cuaRuntime } from '../cua/runtime.js';
@@ -247,7 +247,7 @@ function toBase64Url(value: Buffer): string {
 }
 
 function requireSecretMasterKey(): Buffer {
-  return requireHex32ByteKey(config.secretMasterKeyHex, 'CUA_SECRET_MASTER_KEY');
+  return requireFlexible32ByteKey(config.secretMasterKeyHex, 'CUA_SECRET_MASTER_KEY');
 }
 
 function encryptSecretValue(plaintext: string): { ciphertext: string; ivHex: string; authTagHex: string; keyVersion: string } {

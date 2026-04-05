@@ -1,9 +1,9 @@
 import { getPool } from '../db/postgres.js';
 import { config } from '../config.js';
-import { decryptText, requireHex32ByteKey } from '../security/crypto.js';
+import { decryptText, requireFlexible32ByteKey } from '../security/crypto.js';
 
 function getMasterKey(): Buffer {
-  return requireHex32ByteKey(config.secretMasterKeyHex, 'CUA_SECRET_MASTER_KEY');
+  return requireFlexible32ByteKey(config.secretMasterKeyHex, 'CUA_SECRET_MASTER_KEY');
 }
 
 export async function getActiveOpenAiApiKeyForUser(userId: string): Promise<string | null> {
