@@ -77,13 +77,72 @@ export function renderDashboardClientScript(initialSectionId: string, openCompos
           if (!toastStack || !message) return;
           const toast = document.createElement('div');
           toast.className = 'toast ' + (kind || '');
-          toast.textContent = message;
+          const text = String(message || '');
+          const messageEl = document.createElement('div');
+          messageEl.className = 'toast-message';
+          messageEl.textContent = text;
+          toast.appendChild(messageEl);
+          const errorId = extractErrorId(text);
+          if (errorId) {
+            const action = document.createElement('button');
+            action.type = 'button';
+            action.className = 'toast-copy';
+            action.textContent = 'Copy Error ID';
+            action.addEventListener('click', async (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              const copied = await copyToClipboard(errorId);
+              action.textContent = copied ? 'Copied' : 'Copy failed';
+              window.setTimeout(() => {
+                action.textContent = 'Copy Error ID';
+              }, 1200);
+            });
+            toast.appendChild(action);
+          }
           toastStack.appendChild(toast);
           requestAnimationFrame(() => toast.classList.add('show'));
           window.setTimeout(() => {
             toast.classList.remove('show');
             window.setTimeout(() => toast.remove(), 180);
           }, kind === 'err' ? 4200 : 2600);
+        }
+
+        function extractErrorId(message) {
+          const text = String(message || '');
+          const marker = 'error id:';
+          const lower = text.toLowerCase();
+          const index = lower.lastIndexOf(marker);
+          if (index < 0) return '';
+          const tail = text.slice(index + marker.length).trim();
+          const match = tail.match(/^[A-Za-z0-9-]+/);
+          return match ? String(match[0]) : '';
+        }
+
+        async function copyToClipboard(value) {
+          const text = String(value || '');
+          if (!text) return false;
+          try {
+            if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+              await navigator.clipboard.writeText(text);
+              return true;
+            }
+          } catch {
+          }
+          try {
+            const input = document.createElement('textarea');
+            input.value = text;
+            input.setAttribute('readonly', 'true');
+            input.style.position = 'fixed';
+            input.style.opacity = '0';
+            input.style.pointerEvents = 'none';
+            document.body.appendChild(input);
+            input.select();
+            const ok = document.execCommand('copy');
+            input.remove();
+            return ok;
+          } catch {
+            return false;
+          }
         }
 
         function setBanner(kind, message) {
@@ -93,6 +152,14 @@ export function renderDashboardClientScript(initialSectionId: string, openCompos
             banner.textContent = message;
           }
           showToast(kind, message);
+        }
+
+        function withCorrelationId(message, correlationId) {
+          const clean = String(message || '').trim();
+          const cid = String(correlationId || '').trim();
+          if (!cid) return clean;
+          if (clean.toLowerCase().includes('error id:')) return clean;
+          return clean + ' (Error ID: ' + cid + ')';
         }
 
         function print(target, data) {
@@ -127,11 +194,15 @@ export function renderDashboardClientScript(initialSectionId: string, openCompos
             const text = await res.text();
             let parsed;
             try { parsed = JSON.parse(text); } catch { parsed = { raw: text }; }
+            const correlationId =
+              String(res.headers.get('x-correlation-id') || '').trim() ||
+              String(parsed?.correlationId || '').trim();
             if (!res.ok) {
-              setBanner('err', String(parsed?.message || parsed?.error || ('Request failed (' + res.status + ').')));
-              return { ok: false, status: res.status, body: parsed };
+              const msg = String(parsed?.message || parsed?.error || ('Request failed (' + res.status + ').'));
+              setBanner('err', withCorrelationId(msg, correlationId));
+              return { ok: false, status: res.status, body: parsed, correlationId };
             }
-            return { ok: true, status: res.status, body: parsed };
+            return { ok: true, status: res.status, body: parsed, correlationId };
           } catch (error) {
             const message = error instanceof Error ? error.message : String(error || 'Unknown network error');
             setBanner('err', message);

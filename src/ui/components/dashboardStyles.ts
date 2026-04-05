@@ -396,6 +396,8 @@ textarea { min-height: 110px; resize: vertical; }
   pointer-events: none;
 }
 .toast {
+  display: grid;
+  gap: 10px;
   padding: 14px 16px;
   border-radius: 18px;
   border: 1px solid var(--line);
@@ -407,6 +409,22 @@ textarea { min-height: 110px; resize: vertical; }
 .toast.show { opacity: 1; transform: translateY(0); }
 .toast.ok { border-color: rgba(120, 219, 169, 0.24); }
 .toast.err { border-color: rgba(217, 80, 111, 0.28); }
+.toast-message {
+  margin: 0;
+  color: var(--ink);
+  line-height: 1.5;
+}
+.toast-copy {
+  justify-self: start;
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 800;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 209, 102, 0.4);
+  color: #08111a;
+  background: linear-gradient(135deg, var(--accent), var(--warning));
+}
 
 .dev-output,
 .output-shell { display: none !important; }

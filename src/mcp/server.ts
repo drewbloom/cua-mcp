@@ -1,4 +1,5 @@
 import { createServer } from 'node:http';
+import { randomUUID } from 'node:crypto';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { config } from '../config.js';
@@ -96,6 +97,18 @@ function extractApiKey(request: import('node:http').IncomingMessage): string | n
   return null;
 }
 
+function getRequestIp(request: import('node:http').IncomingMessage): string {
+  const forwarded = String(request.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  if (forwarded) return forwarded;
+  return request.socket.remoteAddress || 'unknown';
+}
+
+function getRequestCorrelationId(request: import('node:http').IncomingMessage): string {
+  const incoming = String(request.headers['x-correlation-id'] || '').trim();
+  if (incoming) return incoming.slice(0, 128);
+  return randomUUID();
+}
+
 async function getAuthorizationContext(request: import('node:http').IncomingMessage): Promise<McpAuthContext | null> {
   const key = extractApiKey(request);
   if (!key) return null;
@@ -132,6 +145,8 @@ export async function startHttpServer(): Promise<void> {
     }
 
     const url = new URL(request.url, `http://${request.headers.host ?? 'localhost'}`);
+    const correlationId = getRequestCorrelationId(request);
+    response.setHeader('X-Correlation-Id', correlationId);
     applyBaseSecurityHeaders(request, response);
 
     if (maybeEnforceHttps(request, response, url)) {
@@ -186,8 +201,41 @@ export async function startHttpServer(): Promise<void> {
 
     const authContext = await getAuthorizationContext(request);
     if (!authContext) {
+      if (config.cuaLogEvents) {
+        console.warn(
+          JSON.stringify({
+            component: 'mcp-server',
+            eventType: 'mcp_auth_failed',
+            timestamp: new Date().toISOString(),
+            correlationId,
+            method: String(request.method || 'UNKNOWN'),
+            path: url.pathname,
+            ip: getRequestIp(request),
+            hasAuthorizationHeader: Boolean(String(request.headers.authorization || '').trim()),
+            hasApiKeyHeader: Boolean(String(request.headers['x-api-key'] || '').trim()),
+          }),
+        );
+      }
       writeUnauthorized(response);
       return;
+    }
+
+    authContext.requestId = correlationId;
+
+    if (config.cuaLogEvents) {
+      console.log(
+        JSON.stringify({
+          component: 'mcp-server',
+          eventType: 'mcp_auth_succeeded',
+          timestamp: new Date().toISOString(),
+          correlationId,
+          method: String(request.method || 'UNKNOWN'),
+          path: url.pathname,
+          userId: authContext.userId,
+          apiKeyId: authContext.apiKeyId,
+          allowedConnectionScopeCount: authContext.allowedConnectionIds.length,
+        }),
+      );
     }
 
     response.setHeader('Access-Control-Allow-Origin', getMcpCorsOrigin(request));
@@ -209,7 +257,19 @@ export async function startHttpServer(): Promise<void> {
       await mcpServer.connect(transport);
       await transport.handleRequest(request, response);
     } catch (error) {
-      console.error('[mcp] request failed', error);
+      console.error(
+        JSON.stringify({
+          component: 'mcp-server',
+          eventType: 'mcp_request_failed',
+          timestamp: new Date().toISOString(),
+          correlationId,
+          method: String(request.method || 'UNKNOWN'),
+          path: url.pathname,
+          userId: authContext.userId,
+          apiKeyId: authContext.apiKeyId,
+          error: error instanceof Error ? error.message : String(error),
+        }),
+      );
       if (!response.headersSent) {
         response.writeHead(500).end('Internal server error');
       }

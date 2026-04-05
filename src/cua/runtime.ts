@@ -94,11 +94,16 @@ export class CuaRuntime {
       'run_started',
       'run_completed',
       'run_failed',
+      'run_blocked',
       'response_turn',
       'computer_call_requested',
       'computer_actions_executed',
       'page_diagnostics',
       'possible_render_or_bot_block',
+      'connection_context_resolved',
+      'connection_artifact_resolution_denied',
+      'connection_auth_state_applied',
+      'connection_secret_fill_applied',
       'clarification_required',
       'interrupt_handoff_required',
       'environment_overridden',
@@ -147,6 +152,72 @@ export class CuaRuntime {
 
     if (type === 'run_failed') {
       return { error: payload.error };
+    }
+
+    if (type === 'run_started') {
+      return {
+        environment: payload.environment,
+        authStateId: payload.authStateId,
+        connectionId: payload.connectionId,
+        connectionName: payload.connectionName,
+        connectionBaseHost: payload.connectionBaseHost,
+        engine: payload.engine,
+        model: payload.model,
+        correlationId: payload.correlationId,
+      };
+    }
+
+    if (type === 'run_blocked') {
+      return {
+        reason: payload.reason,
+        finalMessage: payload.finalMessage,
+      };
+    }
+
+    if (type === 'connection_context_resolved') {
+      return {
+        turn: payload.turn,
+        connectionId: payload.connectionId,
+        connectionName: payload.connectionName,
+        connectionBaseHost: payload.connectionBaseHost,
+        url: payload.url,
+        authStateAvailable: payload.authStateAvailable,
+        availableSecretTypes: payload.availableSecretTypes,
+        missingSecretTypes: payload.missingSecretTypes,
+      };
+    }
+
+    if (type === 'connection_artifact_resolution_denied') {
+      return {
+        turn: payload.turn,
+        connectionId: payload.connectionId,
+        url: payload.url,
+        error: payload.error,
+      };
+    }
+
+    if (type === 'connection_auth_state_applied') {
+      return {
+        turn: payload.turn,
+        connectionId: payload.connectionId,
+        connectionName: payload.connectionName,
+        connectionBaseHost: payload.connectionBaseHost,
+        url: payload.url,
+        authStateId: payload.authStateId,
+        applied: payload.applied,
+      };
+    }
+
+    if (type === 'connection_secret_fill_applied') {
+      return {
+        turn: payload.turn,
+        connectionId: payload.connectionId,
+        connectionName: payload.connectionName,
+        connectionBaseHost: payload.connectionBaseHost,
+        url: payload.url,
+        filledTypes: payload.filledTypes,
+        loginLike: payload.loginLike,
+      };
     }
 
     return payload;
@@ -527,6 +598,7 @@ export class CuaRuntime {
       connectionBaseHost: connectionPolicy ? String(connectionPolicy.base_host || '') : null,
       engine: config.cuaEngine,
       model: config.cuaModel,
+      correlationId: input.correlationId || null,
     });
     await this.persistRun(run);
 
@@ -682,6 +754,7 @@ export class CuaRuntime {
       const line = {
         component: 'cua-runtime',
         runId: run.id,
+        correlationId: run.input.correlationId || null,
         eventType: type,
         timestamp: event.timestamp,
         payload: this.toLogPayload(type, payload),

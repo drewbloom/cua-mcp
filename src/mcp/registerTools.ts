@@ -124,6 +124,20 @@ export function registerCuaTools(server: McpServer, authContext: McpAuthContext)
     async (args: any) => {
       const scope = enforceConnectionScope(authContext, args);
       if (!scope.ok) {
+        if (config.cuaLogEvents) {
+          console.warn(
+            JSON.stringify({
+              component: 'mcp-tools',
+              eventType: 'connection_scope_denied',
+              timestamp: new Date().toISOString(),
+              correlationId: authContext.requestId || null,
+              userId: authContext.userId,
+              apiKeyId: authContext.apiKeyId,
+              deniedConnectionIds: scope.deniedIds,
+              allowedConnectionScopeCount: authContext.allowedConnectionIds.length,
+            }),
+          );
+        }
         return {
           isError: true,
           content: [{ type: 'text', text: `API key is not authorized for connection ids: ${scope.deniedIds.join(', ')}` }],
@@ -140,7 +154,13 @@ export function registerCuaTools(server: McpServer, authContext: McpAuthContext)
         })
         .parse(args);
 
-      const run = await cuaRuntime.startRun(parsed, authContext.userId);
+      const run = await cuaRuntime.startRun(
+        {
+          ...parsed,
+          correlationId: authContext.requestId || undefined,
+        },
+        authContext.userId,
+      );
       return {
         content: [{ type: 'text', text: `CUA run started: ${run.id}` }],
         structuredContent: { run },

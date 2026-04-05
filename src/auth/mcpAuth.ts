@@ -6,6 +6,7 @@ export type McpAuthContext = {
   email: string;
   apiKeyId: string;
   allowedConnectionIds: string[];
+  requestId?: string;
 };
 
 function asStringArray(value: unknown): string[] {

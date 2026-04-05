@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { readFile } from 'node:fs/promises';
 import { randomBytes, randomInt, randomUUID } from 'node:crypto';
 import { URL } from 'node:url';
@@ -22,6 +23,22 @@ type AuthContext = {
   email: string;
   sessionId: string;
 };
+
+type RequestContext = {
+  correlationId: string;
+};
+
+const requestContextStore = new AsyncLocalStorage<RequestContext>();
+
+function createCorrelationId(request: IncomingMessage): string {
+  const incoming = String(request.headers['x-correlation-id'] || '').trim();
+  if (incoming) return incoming.slice(0, 128);
+  return randomUUID();
+}
+
+function getRequestCorrelationId(): string | null {
+  return requestContextStore.getStore()?.correlationId ?? null;
+}
 
 function parseCookies(request: IncomingMessage): Record<string, string> {
   const cookieHeader = String(request.headers.cookie || '');
@@ -376,11 +393,31 @@ async function getUserByEmail(email: string): Promise<{ id: string; email: strin
 }
 
 async function logSecurityEvent(userId: string | null, eventType: string, eventScope: string, details: JsonObject): Promise<void> {
+  const correlationId = getRequestCorrelationId();
+  const detailsWithCorrelation = {
+    ...(details || {}),
+    ...(correlationId ? { correlationId } : {}),
+  } as JsonObject;
+  const redacted = redactAuditDetails(detailsWithCorrelation);
   const db = getPool();
   await db.query(
     'INSERT INTO security_audit_logs (user_id, event_type, event_scope, details_json, created_at) VALUES ($1, $2, $3, $4::jsonb, NOW())',
-    [userId, eventType, eventScope, JSON.stringify(redactAuditDetails(details))],
+    [userId, eventType, eventScope, JSON.stringify(redacted)],
   );
+
+  if (config.cuaLogEvents) {
+    console.log(
+      JSON.stringify({
+        component: 'security-audit',
+        timestamp: new Date().toISOString(),
+        userId,
+        eventType,
+        eventScope,
+        correlationId,
+        details: redacted,
+      }),
+    );
+  }
 }
 
 async function recordRateLimitEvent(actionName: string, scopeKey: string): Promise<void> {
@@ -526,6 +563,10 @@ async function handleConnectionSecretsList(request: IncomingMessage, response: S
 
   const policy = await getConnectionPolicyForUser(auth.userId, connectionId);
   if (!policy) {
+    await logSecurityEvent(auth.userId, 'auth_capture_start_failed', 'auth_capture', {
+      connectionId,
+      reason: 'connection_not_found',
+    });
     writeJson(response, 404, { error: 'Connection not found' });
     return;
   }
@@ -815,6 +856,11 @@ async function handleCaptureSessionStart(request: IncomingMessage, response: Ser
   }
 
   if (!isUrlAllowedByPolicy(startUrl, policy)) {
+    await logSecurityEvent(auth.userId, 'auth_capture_start_denied_url', 'auth_capture', {
+      connectionId,
+      startUrl,
+      reason: 'url_not_allowed_by_policy',
+    });
     writeJson(response, 403, { error: 'Start URL is not allowed for this connection policy' });
     return;
   }
@@ -906,6 +952,12 @@ async function handleCaptureSessionAction(request: IncomingMessage, response: Se
     writeJson(response, 200, { success: true, capture: snapshot });
   } catch (error: any) {
     const message = String(error?.message || 'Capture session not found');
+    await logSecurityEvent(auth.userId, 'auth_capture_action_failed', 'auth_capture', {
+      connectionId,
+      captureSessionId: sessionId,
+      actionType,
+      message,
+    });
     writeJson(response, message.toLowerCase().includes('no longer active') ? 409 : 404, { error: message });
   }
 }
@@ -1010,6 +1062,11 @@ async function handleCaptureSessionFinalize(request: IncomingMessage, response: 
     });
   } catch (error: any) {
     const message = String(error?.message || 'Capture session not found');
+    await logSecurityEvent(auth.userId, 'auth_capture_finalize_failed', 'auth_capture', {
+      connectionId,
+      captureSessionId: sessionId,
+      message,
+    });
     writeJson(response, message.toLowerCase().includes('no longer active') ? 409 : 404, { error: message });
   }
 }
@@ -1026,6 +1083,11 @@ async function handleCaptureSessionCancel(request: IncomingMessage, response: Se
     writeJson(response, 200, { success: true });
   } catch (error: any) {
     const message = String(error?.message || 'Capture session not found');
+    await logSecurityEvent(auth.userId, 'auth_capture_cancel_failed', 'auth_capture', {
+      connectionId,
+      captureSessionId: sessionId,
+      message,
+    });
     writeJson(response, message.toLowerCase().includes('no longer active') ? 409 : 404, { error: message });
   }
 }
@@ -2124,46 +2186,52 @@ export async function handleApiRequest(request: IncomingMessage, response: Serve
     return false;
   }
 
-  if (request.method && ['POST', 'PATCH', 'DELETE'].includes(request.method) && !isAllowedOrigin(request)) {
-    writeForbiddenOrigin(response);
-    return true;
-  }
+  const correlationId = createCorrelationId(request);
+  response.setHeader('X-Correlation-Id', correlationId);
+  return await requestContextStore.run({ correlationId }, async () => {
+    if (request.method && ['POST', 'PATCH', 'DELETE'].includes(request.method) && !isAllowedOrigin(request)) {
+      writeForbiddenOrigin(response);
+      return true;
+    }
 
-  if (!config.enableAccountApi && accountApiPathAllowed(url.pathname)) {
-    writeJson(response, 404, {
-      error: 'Not Found',
-      message: 'Account API is disabled. Set CUA_ENABLE_ACCOUNT_API=true to enable.',
-    });
-    return true;
-  }
+    if (!config.enableAccountApi && accountApiPathAllowed(url.pathname)) {
+      writeJson(response, 404, {
+        error: 'Not Found',
+        message: 'Account API is disabled. Set CUA_ENABLE_ACCOUNT_API=true to enable.',
+      });
+      return true;
+    }
 
-  if (!config.enableSecretApi && secretApiPathAllowed(url.pathname)) {
-    writeJson(response, 404, {
-      error: 'Not Found',
-      message: 'Secret API is disabled. Set CUA_ENABLE_SECRET_API=true to enable.',
-    });
-    return true;
-  }
+    if (!config.enableSecretApi && secretApiPathAllowed(url.pathname)) {
+      writeJson(response, 404, {
+        error: 'Not Found',
+        message: 'Secret API is disabled. Set CUA_ENABLE_SECRET_API=true to enable.',
+      });
+      return true;
+    }
 
-  const authContext = await getAuthContext(request);
-  const rateLimit = await enforceGlobalApiRateLimit(request, authContext, url.pathname);
-  if (!rateLimit.ok) {
-    writeJson(response, rateLimit.status, rateLimit.body);
-    return true;
-  }
+    const authContext = await getAuthContext(request);
+    const rateLimit = await enforceGlobalApiRateLimit(request, authContext, url.pathname);
+    if (!rateLimit.ok) {
+      writeJson(response, rateLimit.status, {
+        ...rateLimit.body,
+        correlationId,
+      });
+      return true;
+    }
 
-  const origin = getCorsOrigin(request);
-  response.setHeader('Access-Control-Allow-Origin', origin);
-  response.setHeader('Access-Control-Allow-Credentials', 'true');
-  response.setHeader('Access-Control-Allow-Headers', 'content-type, authorization');
-  response.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
+    const origin = getCorsOrigin(request);
+    response.setHeader('Access-Control-Allow-Origin', origin);
+    response.setHeader('Access-Control-Allow-Credentials', 'true');
+    response.setHeader('Access-Control-Allow-Headers', 'content-type, authorization, x-correlation-id');
+    response.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
 
-  if (request.method === 'OPTIONS') {
-    response.writeHead(204).end();
-    return true;
-  }
+    if (request.method === 'OPTIONS') {
+      response.writeHead(204).end();
+      return true;
+    }
 
-  try {
+    try {
     if (request.method === 'POST' && url.pathname === '/api/auth/request-code') {
       await handleAuthRequestCode(request, response);
       return true;
@@ -2351,19 +2419,48 @@ export async function handleApiRequest(request: IncomingMessage, response: Serve
       return true;
     }
 
-    writeJson(response, 404, {
-      error: 'Not Found',
-      path: url.pathname,
-    });
-    return true;
-  } catch (error: any) {
-    console.error('[api] request failed', error);
-    writeJson(response, 500, {
-      error: 'Internal server error',
-      message: error?.message || 'Unknown error',
-    });
-    return true;
-  }
+      writeJson(response, 404, {
+        error: 'Not Found',
+        path: url.pathname,
+      });
+      return true;
+    } catch (error: any) {
+      const errorMessage = String(error?.message || 'Unknown error');
+      const failurePayload = {
+        component: 'api',
+        eventType: 'api_request_failed',
+        timestamp: new Date().toISOString(),
+        correlationId,
+        method: String(request.method || 'UNKNOWN'),
+        path: url.pathname,
+        userId: authContext?.userId || null,
+        error: errorMessage,
+      };
+      console.error(JSON.stringify(failurePayload));
+
+      const isConnectionFlow =
+        url.pathname.startsWith('/api/connections') ||
+        url.pathname === '/api/cua/secret-fill-plan';
+      if (authContext?.userId && isConnectionFlow) {
+        try {
+          await logSecurityEvent(authContext.userId, 'connection_api_failed', 'connection', {
+            method: String(request.method || 'UNKNOWN'),
+            path: url.pathname,
+            error: errorMessage,
+          });
+        } catch {
+          // Ignore secondary logging failures in request error path.
+        }
+      }
+
+      writeJson(response, 500, {
+        error: 'Internal server error',
+        message: errorMessage,
+        correlationId,
+      });
+      return true;
+    }
+  });
 }
 
 export async function handleFrontendRequest(request: IncomingMessage, response: ServerResponse, url: URL): Promise<boolean> {

@@ -412,6 +412,8 @@ export const PUBLIC_APP_HTML = `<!doctype html>
       }
 
       .toast {
+        display: grid;
+        gap: 10px;
         min-width: 240px;
         max-width: 360px;
         padding: 14px 16px;
@@ -431,6 +433,21 @@ export const PUBLIC_APP_HTML = `<!doctype html>
 
       .toast.ok { background: rgba(45, 140, 100, 0.94); }
       .toast.err { background: rgba(195, 74, 66, 0.96); }
+      .toast-message {
+        margin: 0;
+        line-height: 1.5;
+      }
+      .toast-copy {
+        justify-self: start;
+        min-height: 30px;
+        padding: 0 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 250, 241, 0.55);
+        background: rgba(255, 250, 241, 0.18);
+        color: #fffaf1;
+        font-weight: 700;
+        cursor: pointer;
+      }
 
       .dev-output {
         display: none !important;
@@ -596,7 +613,28 @@ export const PUBLIC_APP_HTML = `<!doctype html>
         if (!toastStack || !message) return;
         const toast = document.createElement('div');
         toast.className = 'toast ' + (kind || '');
-        toast.textContent = message;
+        const text = String(message || '');
+        const messageEl = document.createElement('div');
+        messageEl.className = 'toast-message';
+        messageEl.textContent = text;
+        toast.appendChild(messageEl);
+        const errorId = extractErrorId(text);
+        if (errorId) {
+          const action = document.createElement('button');
+          action.type = 'button';
+          action.className = 'toast-copy';
+          action.textContent = 'Copy Error ID';
+          action.addEventListener('click', async function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            const copied = await copyToClipboard(errorId);
+            action.textContent = copied ? 'Copied' : 'Copy failed';
+            window.setTimeout(function () {
+              action.textContent = 'Copy Error ID';
+            }, 1200);
+          });
+          toast.appendChild(action);
+        }
         toastStack.appendChild(toast);
         requestAnimationFrame(function () {
           toast.classList.add('show');
@@ -609,11 +647,57 @@ export const PUBLIC_APP_HTML = `<!doctype html>
         }, kind === 'err' ? 4200 : 2600);
       }
 
+      function extractErrorId(message) {
+        const text = String(message || '');
+        const marker = 'error id:';
+        const lower = text.toLowerCase();
+        const index = lower.lastIndexOf(marker);
+        if (index < 0) return '';
+        const tail = text.slice(index + marker.length).trim();
+        const match = tail.match(/^[A-Za-z0-9-]+/);
+        return match ? String(match[0]) : '';
+      }
+
+      async function copyToClipboard(value) {
+        const text = String(value || '');
+        if (!text) return false;
+        try {
+          if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+            await navigator.clipboard.writeText(text);
+            return true;
+          }
+        } catch {
+        }
+        try {
+          const input = document.createElement('textarea');
+          input.value = text;
+          input.setAttribute('readonly', 'true');
+          input.style.position = 'fixed';
+          input.style.opacity = '0';
+          input.style.pointerEvents = 'none';
+          document.body.appendChild(input);
+          input.select();
+          const ok = document.execCommand('copy');
+          input.remove();
+          return ok;
+        } catch {
+          return false;
+        }
+      }
+
       function setBanner(kind, message) {
         if (!banner) return;
         banner.className = 'banner ' + (kind || '');
         banner.textContent = message;
         showToast(kind, message);
+      }
+
+      function withCorrelationId(message, correlationId) {
+        const clean = String(message || '').trim();
+        const cid = String(correlationId || '').trim();
+        if (!cid) return clean;
+        if (clean.toLowerCase().includes('error id:')) return clean;
+        return clean + ' (Error ID: ' + cid + ')';
       }
 
       function print(value) {
@@ -660,9 +744,14 @@ export const PUBLIC_APP_HTML = `<!doctype html>
         } catch {
           parsed = { raw: text };
         }
+        const correlationId =
+          String(response.headers.get('x-correlation-id') || '').trim() ||
+          String(parsed && parsed.correlationId || '').trim();
         if (!response.ok) {
-          const error = new Error(String(parsed && (parsed.message || parsed.error) || 'Request failed'));
+          const msg = String(parsed && (parsed.message || parsed.error) || 'Request failed');
+          const error = new Error(withCorrelationId(msg, correlationId));
           error.data = parsed;
+          error.correlationId = correlationId;
           throw error;
         }
         return parsed;

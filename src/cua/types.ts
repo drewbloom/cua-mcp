@@ -8,6 +8,7 @@ export interface CuaRunInput {
   authStateId?: string;
   connectionId?: string;
   environment?: CuaEnvironment;
+  correlationId?: string;
 }
 
 export interface CuaEvent {
