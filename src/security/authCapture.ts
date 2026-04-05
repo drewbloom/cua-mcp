@@ -53,6 +53,11 @@ type InternalCaptureSession = {
 const CAPTURE_SESSION_TTL_MS = 15 * 60 * 1000;
 const sessions = new Map<string, InternalCaptureSession>();
 
+function isCaptureConnectionFkError(error: unknown): boolean {
+  const value = error as { code?: string; constraint?: string } | null;
+  return value?.code === '23503' && String(value?.constraint || '').includes('capture_sessions_connection_id_fkey');
+}
+
 function nowIso(): string {
   return new Date().toISOString();
 }
@@ -132,47 +137,55 @@ function buildSnapshot(session: InternalCaptureSession): CaptureSnapshot {
   };
 }
 
-async function persistSnapshot(session: InternalCaptureSession): Promise<void> {
+async function persistSnapshot(session: InternalCaptureSession): Promise<boolean> {
   const db = getPool();
-  await db.query(
-    `
-    INSERT INTO capture_sessions (
-      id, user_id, connection_id, status, current_url, title,
-      screenshot_data_url, last_error, ended_reason,
-      seen_urls_json, discovered_hosts_json, discovered_path_prefixes_json,
-      started_at, updated_at
-    )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11::jsonb, $12::jsonb, $13, $14)
-    ON CONFLICT (id)
-    DO UPDATE SET
-      status = EXCLUDED.status,
-      current_url = EXCLUDED.current_url,
-      title = EXCLUDED.title,
-      screenshot_data_url = EXCLUDED.screenshot_data_url,
-      last_error = EXCLUDED.last_error,
-      ended_reason = EXCLUDED.ended_reason,
-      seen_urls_json = EXCLUDED.seen_urls_json,
-      discovered_hosts_json = EXCLUDED.discovered_hosts_json,
-      discovered_path_prefixes_json = EXCLUDED.discovered_path_prefixes_json,
-      updated_at = EXCLUDED.updated_at
-    `,
-    [
-      session.id,
-      session.userId,
-      session.connectionId,
-      session.status,
-      session.currentUrl,
-      session.title,
-      null,
-      session.lastError,
-      session.endedReason,
-      JSON.stringify([...session.seenUrls]),
-      JSON.stringify([...session.discoveredHosts]),
-      JSON.stringify([...session.discoveredPathPrefixes]),
-      session.startedAt,
-      session.updatedAt,
-    ],
-  );
+  try {
+    await db.query(
+      `
+      INSERT INTO capture_sessions (
+        id, user_id, connection_id, status, current_url, title,
+        screenshot_data_url, last_error, ended_reason,
+        seen_urls_json, discovered_hosts_json, discovered_path_prefixes_json,
+        started_at, updated_at
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11::jsonb, $12::jsonb, $13, $14)
+      ON CONFLICT (id)
+      DO UPDATE SET
+        status = EXCLUDED.status,
+        current_url = EXCLUDED.current_url,
+        title = EXCLUDED.title,
+        screenshot_data_url = EXCLUDED.screenshot_data_url,
+        last_error = EXCLUDED.last_error,
+        ended_reason = EXCLUDED.ended_reason,
+        seen_urls_json = EXCLUDED.seen_urls_json,
+        discovered_hosts_json = EXCLUDED.discovered_hosts_json,
+        discovered_path_prefixes_json = EXCLUDED.discovered_path_prefixes_json,
+        updated_at = EXCLUDED.updated_at
+      `,
+      [
+        session.id,
+        session.userId,
+        session.connectionId,
+        session.status,
+        session.currentUrl,
+        session.title,
+        null,
+        session.lastError,
+        session.endedReason,
+        JSON.stringify([...session.seenUrls]),
+        JSON.stringify([...session.discoveredHosts]),
+        JSON.stringify([...session.discoveredPathPrefixes]),
+        session.startedAt,
+        session.updatedAt,
+      ],
+    );
+    return true;
+  } catch (error) {
+    if (isCaptureConnectionFkError(error)) {
+      return false;
+    }
+    throw error;
+  }
 }
 
 function rowToSnapshot(row: any): CaptureSnapshot {
@@ -259,7 +272,11 @@ async function closeSession(session: InternalCaptureSession): Promise<void> {
     session.timeoutHandle = null;
   }
   session.updatedAt = nowIso();
-  await persistSnapshot(session);
+  try {
+    await persistSnapshot(session);
+  } catch {
+    // Ignore persistence failures while closing in-memory browser resources.
+  }
   try {
     await session.page.close();
   } catch {
@@ -283,8 +300,40 @@ function armExpiry(session: InternalCaptureSession): void {
     clearTimeout(session.timeoutHandle);
   }
   session.timeoutHandle = setTimeout(() => {
-    void closeSession(session);
+    session.status = 'cancelled';
+    session.endedReason = 'timeout';
+    if (!session.lastError) {
+      session.lastError = 'Capture session timed out after inactivity. Start a new session to continue.';
+    }
+    void closeSession(session).catch(() => {
+      sessions.delete(session.id);
+    });
   }, CAPTURE_SESSION_TTL_MS);
+}
+
+export async function cancelActiveCaptureSessionsForConnection(params: {
+  userId: string;
+  connectionId: string;
+  endedReason?: string;
+}): Promise<void> {
+  const endedReason = String(params.endedReason || 'connection_deleted').trim() || 'connection_deleted';
+  const pending = [...sessions.values()].filter(
+    (session) => session.userId === params.userId && session.connectionId === params.connectionId,
+  );
+  for (const session of pending) {
+    session.status = 'cancelled';
+    session.endedReason = endedReason;
+    if (!session.lastError) {
+      session.lastError = endedReason === 'connection_deleted'
+        ? 'Capture session ended because the connection was deleted.'
+        : 'Capture session ended.';
+    }
+    try {
+      await closeSession(session);
+    } catch {
+      sessions.delete(session.id);
+    }
+  }
 }
 
 function getSession(sessionId: string, userId: string, connectionId: string): InternalCaptureSession {

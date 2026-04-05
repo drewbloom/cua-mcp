@@ -31,6 +31,9 @@ export function renderDashboardClientScript(initialSectionId: string, openCompos
           patternEditorMode: 'create',
           patternEditId: '',
           connectionCreateMode: 'guided',
+          captureSessionId: '',
+          captureConnectionId: '',
+          pendingCaptureConnectionId: '',
         };
 
         const sections = Array.from(document.querySelectorAll('[data-reveal]'));
@@ -53,8 +56,14 @@ export function renderDashboardClientScript(initialSectionId: string, openCompos
         const selectedConnectionShell = $('selectedConnectionShell');
         const connectionComposer = $('connectionComposer');
         const connectionCreateModeModal = $('connectionCreateModeModal');
+        const captureLaunchModal = $('captureLaunchModal');
         const oneTimeKeyModal = $('oneTimeKeyModal');
         const runDetailModal = $('runDetailModal');
+        const captureImage = $('captureImage');
+        const captureMarker = $('captureMarker');
+        const captureSelectionText = $('captureSelectionText');
+
+        let capturePollTimer = null;
 
         const DASHBOARD_ROUTE_BY_SECTION = {
           'llm-step': '/dashboard/llm-api-keys',
@@ -619,6 +628,278 @@ export function renderDashboardClientScript(initialSectionId: string, openCompos
           const isAccess = view === 'access';
           showSurface(setup, !isAccess);
           showSurface(access, isAccess);
+          if (!isAccess) {
+            stopCapturePolling();
+          }
+        }
+
+        function hasActiveCaptureSession() {
+          const sessionId = String(state.captureSessionId || $('captureSessionId')?.value || '').trim();
+          return Boolean(sessionId);
+        }
+
+        function stopCapturePolling() {
+          if (capturePollTimer) {
+            window.clearInterval(capturePollTimer);
+            capturePollTimer = null;
+          }
+        }
+
+        function setCapturePreviewLoading(message) {
+          const captureFrame = $('captureFrame');
+          const captureEmptyText = $('captureEmptyText');
+          if (captureFrame) captureFrame.classList.add('empty');
+          if (captureImage) {
+            captureImage.style.display = 'none';
+            captureImage.removeAttribute('src');
+          }
+          if (captureMarker) captureMarker.style.display = 'none';
+          if (captureEmptyText) captureEmptyText.textContent = message || 'Loading capture preview...';
+          if (captureSelectionText) captureSelectionText.textContent = 'No coordinate selected';
+          if ($('captureCursorCoords')) $('captureCursorCoords').textContent = 'x: -, y: -';
+        }
+
+        function clearCaptureState(message) {
+          stopCapturePolling();
+          state.captureSessionId = '';
+          state.captureConnectionId = '';
+          state.pendingCaptureConnectionId = '';
+          if ($('captureSessionId')) $('captureSessionId').value = '';
+          if ($('captureCurrentUrl')) $('captureCurrentUrl').value = '';
+          if ($('capturePageTitle')) $('capturePageTitle').value = '';
+          if ($('captureDiscoveredHosts')) $('captureDiscoveredHosts').value = '';
+          if ($('captureDiscoveredPaths')) $('captureDiscoveredPaths').value = '';
+          setCapturePreviewLoading(message || 'Capture session ended. Start a new session to continue.');
+          setConnectionsSubview('setup');
+        }
+
+        function renderCaptureHistory(captures) {
+          const container = $('captureHistoryOut');
+          const items = Array.isArray(captures) ? captures : [];
+          if (!container) return;
+          if (!items.length) {
+            container.className = 'capture-history-empty';
+            container.textContent = 'No capture history loaded yet.';
+            return;
+          }
+          container.className = 'capture-history-list';
+          container.innerHTML = items.map((capture) => {
+            const status = escapeHtml(String(capture.status || 'unknown').toLowerCase());
+            const sessionId = escapeHtml(String(capture.sessionId || ''));
+            const currentUrl = escapeHtml(String(capture.currentUrl || 'Unknown URL'));
+            return '<article class="capture-history-item">' +
+              '<div class="capture-history-head"><div class="capture-history-id">' + sessionId + '</div><span class="capture-badge ' + status + '">' + status + '</span></div>' +
+              '<div class="capture-meta"><div><strong>Updated:</strong> ' + escapeHtml(formatTimestamp(capture.updatedAt)) + '</div><div><strong>URL:</strong> ' + currentUrl + '</div>' +
+              '<div class="button-row"><button class="secondary" type="button" data-capture-resume="' + sessionId + '">Open</button></div></div></article>';
+          }).join('');
+        }
+
+        function renderCaptureSnapshot(snapshot) {
+          const captureFrame = $('captureFrame');
+          const captureEmptyText = $('captureEmptyText');
+          if (!snapshot) {
+            setCapturePreviewLoading('Start an auth capture session to control an isolated browser.');
+            return;
+          }
+
+          const sessionId = String(snapshot.sessionId || '').trim();
+          if (sessionId) {
+            state.captureSessionId = sessionId;
+            if ($('captureSessionId')) $('captureSessionId').value = sessionId;
+          }
+          if ($('captureNavigateUrl')) $('captureNavigateUrl').value = String(snapshot.currentUrl || $('captureNavigateUrl')?.value || '');
+          if ($('captureCurrentUrl')) $('captureCurrentUrl').value = String(snapshot.currentUrl || '');
+          if ($('capturePageTitle')) $('capturePageTitle').value = String(snapshot.title || '');
+          const discoveredHosts = Array.isArray(snapshot.discoveredHosts) ? snapshot.discoveredHosts.map((v) => String(v || '').trim()).filter(Boolean) : [];
+          const discoveredPaths = Array.isArray(snapshot.discoveredPathPrefixes) ? snapshot.discoveredPathPrefixes.map((v) => String(v || '').trim()).filter(Boolean) : [];
+          if ($('captureDiscoveredHosts')) $('captureDiscoveredHosts').value = discoveredHosts.join(', ');
+          if ($('captureDiscoveredPaths')) $('captureDiscoveredPaths').value = discoveredPaths.join(', ');
+
+          const status = String(snapshot.status || 'ready');
+          const title = String(snapshot.title || '');
+          const url = String(snapshot.currentUrl || '');
+          const details = [];
+          details.push('Session ' + (sessionId || 'unknown'));
+          details.push('Status ' + status);
+          if (title) details.push('Title ' + title);
+          if (url) details.push('URL ' + url);
+          if (snapshot.lastError) details.push('Last error ' + String(snapshot.lastError));
+          if (captureSelectionText) captureSelectionText.textContent = details.join(' · ');
+
+          const screenshot = String(snapshot.screenshotDataUrl || '').trim();
+          if (screenshot && captureImage) {
+            captureImage.src = screenshot;
+            captureImage.style.display = 'block';
+            if (captureFrame) captureFrame.classList.remove('empty');
+            if (captureEmptyText) captureEmptyText.textContent = '';
+          } else {
+            if (captureImage) {
+              captureImage.style.display = 'none';
+              captureImage.removeAttribute('src');
+            }
+            if (captureFrame) captureFrame.classList.add('empty');
+            if (captureEmptyText) captureEmptyText.textContent = 'Capture session is active. Preview is not available yet.';
+          }
+        }
+
+        async function refreshCaptureHistory(connectionId) {
+          const connId = String(connectionId || state.captureConnectionId || $('secretConnId')?.value || '').trim();
+          if (!connId) return;
+          const data = await api('/api/connections/' + encodeURIComponent(connId) + '/capture-sessions?limit=12');
+          if (data.ok) {
+            renderCaptureHistory(data.body?.captures || []);
+          }
+        }
+
+        async function resolveCaptureSessionId(connectionId) {
+          const connId = String(connectionId || state.captureConnectionId || $('secretConnId')?.value || '').trim();
+          const explicit = String(state.captureSessionId || $('captureSessionId')?.value || '').trim();
+          if (!connId) return { connectionId: '', sessionId: '' };
+          if (explicit) return { connectionId: connId, sessionId: explicit };
+
+          const data = await api('/api/connections/' + encodeURIComponent(connId) + '/capture-sessions?limit=12');
+          if (!data.ok) return { connectionId: connId, sessionId: '' };
+          const captures = Array.isArray(data.body?.captures) ? data.body.captures : [];
+          const active = captures.find((item) => {
+            const status = String(item?.status || '').toLowerCase();
+            const endedReason = String(item?.endedReason || '').trim();
+            if (endedReason) return false;
+            return !['finalized', 'cancelled', 'ended', 'failed', 'expired'].includes(status);
+          }) || captures[0];
+          const sessionId = String(active?.sessionId || '').trim();
+          if (sessionId && $('captureSessionId')) $('captureSessionId').value = sessionId;
+          if (sessionId) state.captureSessionId = sessionId;
+          return { connectionId: connId, sessionId };
+        }
+
+        async function refreshCaptureSnapshot(connectionId, sessionId) {
+          const connId = String(connectionId || state.captureConnectionId || $('secretConnId')?.value || '').trim();
+          const sid = String(sessionId || state.captureSessionId || $('captureSessionId')?.value || '').trim();
+          if (!connId || !sid) return;
+          const data = await api('/api/connections/' + encodeURIComponent(connId) + '/capture-sessions/' + encodeURIComponent(sid));
+          if (data.ok) {
+            renderCaptureSnapshot(data.body?.capture || null);
+          }
+        }
+
+        function startCapturePolling() {
+          stopCapturePolling();
+          capturePollTimer = window.setInterval(() => {
+            refreshCaptureSnapshot();
+          }, 2200);
+        }
+
+        function bindCaptureResponse(data, connectionId) {
+          const connId = String(connectionId || data?.body?.connection?.id || state.selectedConnectionId || '').trim();
+          if (connId) {
+            state.captureConnectionId = connId;
+            if ($('secretConnId')) $('secretConnId').value = connId;
+          }
+          const snapshot = data?.body?.capture || null;
+          if (snapshot) {
+            state.pendingCaptureConnectionId = '';
+            setConnectionsSubview('access');
+            renderCaptureSnapshot(snapshot);
+            startCapturePolling();
+            refreshCaptureHistory(connId);
+          }
+        }
+
+        function selectedConnectionAuthMethod(connectionId) {
+          const connection = state.connections.find((entry) => entry.id === connectionId);
+          return String(connection?.authMethod || $('connAuthMethod')?.value || 'oauth').toLowerCase();
+        }
+
+        function captureStartUrlForConnection(connectionId) {
+          const connection = state.connections.find((entry) => entry.id === connectionId);
+          const requested = String($('captureStartUrl')?.value || '').trim();
+          if (requested) return requested;
+          const host = String(connection?.baseHost || '').trim();
+          return host ? ('https://' + host) : '';
+        }
+
+        async function launchCaptureSessionForConnection(connectionId) {
+          const connId = String(connectionId || '').trim();
+          if (!connId) {
+            setBanner('err', 'Select a connection first.');
+            return;
+          }
+          state.captureConnectionId = connId;
+          state.pendingCaptureConnectionId = '';
+          setConnectionsSubview('access');
+          setCapturePreviewLoading('Launching capture session...');
+          const startUrl = captureStartUrlForConnection(connId);
+          const data = await api('/api/connections/' + encodeURIComponent(connId) + '/capture-sessions', 'POST', {
+            startUrl: startUrl || undefined,
+          });
+          print(out.conn, data);
+          if (data.ok) {
+            bindCaptureResponse(data, connId);
+          }
+        }
+
+        function openCaptureLaunchModal(connectionId) {
+          const connId = String(connectionId || '').trim();
+          if (!connId) {
+            setBanner('err', 'Select a connection first.');
+            return;
+          }
+          state.pendingCaptureConnectionId = connId;
+          const authMethod = selectedConnectionAuthMethod(connId);
+          const title = $('captureLaunchTitle');
+          const body = $('captureLaunchBody');
+          const mode = $('captureModeSummary');
+          if (authMethod === 'oauth') {
+            if (title) title.textContent = 'Launch OAuth-style secure capture?';
+            if (body) body.textContent = 'This opens an OAuth helper popup in your browser and launches secure remote capture in this page so auth state can be captured safely. Use the control panel on the right to complete sign-in.';
+            if (mode) mode.value = 'OAuth preference: secure remote capture';
+          } else if (authMethod === 'credentials') {
+            if (title) title.textContent = 'Launch credential capture controls?';
+            if (body) body.textContent = 'A secure remote browser session will open in this page. Use the right-side controls to navigate and enter credentials.';
+            if (mode) mode.value = 'Credentials mode: secure remote capture';
+          } else {
+            if (title) title.textContent = 'Launch secure capture session?';
+            if (body) body.textContent = 'A secure remote browser session will open in this page. Use the right-side controls to complete sign-in and finalize.';
+            if (mode) mode.value = 'Auth state mode: secure remote capture';
+          }
+          openModal(captureLaunchModal);
+        }
+
+        async function cancelCaptureIfActive(trigger) {
+          const reason = String(trigger || 'navigation').trim();
+          const resolved = await resolveCaptureSessionId();
+          const connId = String(resolved.connectionId || '').trim();
+          const sessionId = String(resolved.sessionId || '').trim();
+
+          if (!connId && !sessionId) {
+            clearCaptureState('Capture session closed.');
+            return true;
+          }
+
+          if (!sessionId) {
+            clearCaptureState('Capture session closed.');
+            if (connId) await refreshCaptureHistory(connId);
+            return true;
+          }
+
+          const data = await api('/api/connections/' + encodeURIComponent(connId) + '/capture-sessions/' + encodeURIComponent(sessionId), 'DELETE');
+          print(out.conn, data);
+          clearCaptureState('Capture session ended.');
+          if (connId) await refreshCaptureHistory(connId);
+          if (!data.ok) {
+            setBanner('err', 'Capture session close was forced locally. Server session may already be closed.');
+          } else if (reason !== 'navigation') {
+            setBanner('ok', 'Capture session cancelled.');
+          }
+          return true;
+        }
+
+        async function confirmLeaveActiveCapture() {
+          if (!hasActiveCaptureSession()) return true;
+          const approved = window.confirm('A capture session is active. Leaving this page will cancel it. Continue?');
+          if (!approved) return false;
+          await cancelCaptureIfActive('navigation');
+          return true;
         }
 
         function closeModal(modal) {
@@ -645,15 +926,32 @@ export function renderDashboardClientScript(initialSectionId: string, openCompos
         });
 
         navLinks.forEach((link) => {
-          link.addEventListener('click', (event) => {
+          link.addEventListener('click', async (event) => {
             event.preventDefault();
+            const proceed = await confirmLeaveActiveCapture();
+            if (!proceed) return;
             const sectionId = link.getAttribute('data-step-link') || 'llm-step';
             activateSection(sectionId, true);
           });
         });
 
-        window.addEventListener('popstate', () => {
-          activateSection(sectionFromPath(window.location.pathname), false);
+        window.addEventListener('popstate', async () => {
+          const nextSection = sectionFromPath(window.location.pathname);
+          if (nextSection !== 'connections-step') {
+            const proceed = await confirmLeaveActiveCapture();
+            if (!proceed) {
+              history.pushState({ sectionId: 'connections-step' }, '', routeFromSection('connections-step') + window.location.search);
+              activateSection('connections-step', false);
+              return;
+            }
+          }
+          activateSection(nextSection, false);
+        });
+
+        window.addEventListener('beforeunload', (event) => {
+          if (!hasActiveCaptureSession()) return;
+          event.preventDefault();
+          event.returnValue = 'A capture session is active. Leaving will cancel the session.';
         });
 
         $('signOutButton')?.addEventListener('click', async () => {
@@ -964,7 +1262,19 @@ export function renderDashboardClientScript(initialSectionId: string, openCompos
             if (!approved) return;
             const data = await api('/api/connections/' + encodeURIComponent(connectionId), 'DELETE');
             print(out.conn, data);
-            if (data.ok) await loadConnections();
+            if (data.ok) {
+              if (state.selectedConnectionId === connectionId || state.captureConnectionId === connectionId || String($('secretConnId')?.value || '') === connectionId) {
+                state.selectedConnectionId = '';
+                if (selectedConnectionShell) selectedConnectionShell.classList.add('empty');
+                if (selectedConnectionName) selectedConnectionName.textContent = 'No connection selected';
+                if (selectedConnectionMeta) {
+                  selectedConnectionMeta.innerHTML = '<span class="connection-tag">Create or choose a connection card, then launch capture.</span>';
+                }
+                if ($('secretConnId')) $('secretConnId').value = '';
+                clearCaptureState('Connection deleted. Capture session closed.');
+              }
+              await loadConnections();
+            }
             return;
           }
 
@@ -975,14 +1285,17 @@ export function renderDashboardClientScript(initialSectionId: string, openCompos
 
           if (captureId) {
             if ($('secretConnId')) $('secretConnId').value = connectionId;
+            state.selectedConnectionId = connectionId;
+            state.captureConnectionId = connectionId;
+            if (selectedConnectionShell) selectedConnectionShell.classList.remove('empty');
+            if (selectedConnectionName) selectedConnectionName.textContent = connection?.name || 'Unnamed connection';
+            if (selectedConnectionMeta) {
+              selectedConnectionMeta.innerHTML = '<span class="connection-tag">' + escapeHtml(String(connection?.baseHost || '')) + '</span>';
+            }
             if ($('captureStartUrl') && connection?.baseHost) {
               $('captureStartUrl').value = 'https://' + String(connection.baseHost || '');
             }
-            setConnectionsSubview('access');
-            const data = await api('/api/connections/' + encodeURIComponent(connectionId) + '/capture-sessions', 'POST', {
-              startUrl: $('captureStartUrl')?.value?.trim() || undefined,
-            });
-            print(out.conn, data);
+            openCaptureLaunchModal(connectionId);
           }
         });
 
@@ -1007,10 +1320,8 @@ export function renderDashboardClientScript(initialSectionId: string, openCompos
             if (state.connectionCreateMode === 'guided' && data.body?.connection?.id) {
               const connId = String(data.body.connection.id);
               if ($('secretConnId')) $('secretConnId').value = connId;
-              setConnectionsSubview('access');
-              await api('/api/connections/' + encodeURIComponent(connId) + '/capture-sessions', 'POST', {
-                startUrl: $('captureStartUrl')?.value?.trim() || undefined,
-              });
+              state.captureConnectionId = connId;
+              openCaptureLaunchModal(connId);
             }
           }
         });
@@ -1043,35 +1354,47 @@ export function renderDashboardClientScript(initialSectionId: string, openCompos
             setBanner('err', 'Select a connection first.');
             return;
           }
-          setConnectionsSubview('access');
-          await api('/api/connections/' + encodeURIComponent(connId) + '/capture-sessions', 'POST', {
-            startUrl: $('captureStartUrl')?.value?.trim() || undefined,
-          });
+          openCaptureLaunchModal(connId);
         });
 
         async function runCaptureAction(payload) {
-          const connId = requireText('secretConnId', 'Connection ID');
-          if (!connId) return;
-          const sessionId = requireText('captureSessionId', 'Capture session ID');
-          if (!sessionId) return;
+          const resolved = await resolveCaptureSessionId();
+          const connId = String(resolved.connectionId || $('secretConnId')?.value || '').trim();
+          const sessionId = String(resolved.sessionId || $('captureSessionId')?.value || '').trim();
+          if (!connId) {
+            setBanner('err', 'Connection ID is required.');
+            return;
+          }
+          if (!sessionId) {
+            setBanner('err', 'Capture session ID is required. Start capture first.');
+            return;
+          }
+          state.captureConnectionId = connId;
+          state.captureSessionId = sessionId;
           const data = await api('/api/connections/' + encodeURIComponent(connId) + '/capture-sessions/' + encodeURIComponent(sessionId) + '/actions', 'POST', payload);
           print(out.conn, data);
+          if (data.ok) {
+            bindCaptureResponse(data, connId);
+          }
         }
 
         $('startCapture')?.addEventListener('click', async () => {
           const connId = requireText('secretConnId', 'Connection ID');
           if (!connId) return;
-          await api('/api/connections/' + encodeURIComponent(connId) + '/capture-sessions', 'POST', {
-            startUrl: $('captureStartUrl')?.value?.trim() || undefined,
-          });
+          await launchCaptureSessionForConnection(connId);
         });
         $('refreshCapture')?.addEventListener('click', async () => {
           const connId = requireText('secretConnId', 'Connection ID');
           if (!connId) return;
           const sessionId = requireText('captureSessionId', 'Capture session ID');
           if (!sessionId) return;
+          state.captureConnectionId = connId;
+          state.captureSessionId = sessionId;
           const data = await api('/api/connections/' + encodeURIComponent(connId) + '/capture-sessions/' + encodeURIComponent(sessionId));
           print(out.conn, data);
+          if (data.ok) {
+            renderCaptureSnapshot(data.body?.capture || null);
+          }
         });
         $('captureNavigate')?.addEventListener('click', async () => {
           const url = requireText('captureNavigateUrl', 'Navigate URL');
@@ -1117,14 +1440,37 @@ export function renderDashboardClientScript(initialSectionId: string, openCompos
             expiresAt: $('authStateExpiresAt')?.value?.trim() || undefined,
           });
           print(out.conn, data);
+          if (data.ok) {
+            stopCapturePolling();
+            await refreshCaptureHistory(connId);
+            setBanner('ok', 'Capture finalized and auth state saved.');
+          }
         });
         $('cancelCapture')?.addEventListener('click', async () => {
-          const connId = requireText('secretConnId', 'Connection ID');
-          if (!connId) return;
-          const sessionId = requireText('captureSessionId', 'Capture session ID');
-          if (!sessionId) return;
-          const data = await api('/api/connections/' + encodeURIComponent(connId) + '/capture-sessions/' + encodeURIComponent(sessionId), 'DELETE');
-          print(out.conn, data);
+          await cancelCaptureIfActive('manual');
+        });
+
+        $('confirmCaptureLaunch')?.addEventListener('click', async () => {
+          const connId = String(state.pendingCaptureConnectionId || state.captureConnectionId || $('secretConnId')?.value || '').trim();
+          const authMethod = selectedConnectionAuthMethod(connId);
+          const startUrl = captureStartUrlForConnection(connId);
+          if (authMethod === 'oauth' && startUrl) {
+            try {
+              const popup = window.open(startUrl, 'cua_oauth_capture', 'popup=yes,width=520,height=760');
+              if (!popup) {
+                setBanner('err', 'Popup was blocked. Allow popups for this site to assist OAuth login.');
+              }
+            } catch {
+              // Continue with secure remote capture even if popup helper fails.
+            }
+          }
+          closeModal(captureLaunchModal);
+          await launchCaptureSessionForConnection(connId);
+        });
+
+        $('cancelCaptureLaunch')?.addEventListener('click', () => {
+          state.pendingCaptureConnectionId = '';
+          closeModal(captureLaunchModal);
         });
 
         $('loadRuntimeSettings')?.addEventListener('click', loadRuntimeSettings);
@@ -1220,15 +1566,12 @@ export function renderDashboardClientScript(initialSectionId: string, openCompos
           closeModal(oneTimeKeyModal);
         });
 
-        [oneTimeKeyModal, runDetailModal, connectionCreateModeModal].forEach((modal) => {
+        [oneTimeKeyModal, runDetailModal, connectionCreateModeModal, captureLaunchModal].forEach((modal) => {
           modal?.addEventListener('click', (event) => {
             if (event.target === modal) closeModal(modal);
           });
         });
 
-        const captureImage = $('captureImage');
-        const captureMarker = $('captureMarker');
-        const captureSelectionText = $('captureSelectionText');
         captureImage?.addEventListener('click', (event) => {
           const rect = captureImage.getBoundingClientRect();
           if (!rect.width || !rect.height || !captureImage.naturalWidth || !captureImage.naturalHeight) return;
@@ -1243,6 +1586,27 @@ export function renderDashboardClientScript(initialSectionId: string, openCompos
             captureMarker.style.display = 'block';
           }
           if (captureSelectionText) captureSelectionText.textContent = 'Selected ' + x + ',' + y;
+          if ($('captureCursorCoords')) $('captureCursorCoords').textContent = 'x: ' + x + ', y: ' + y;
+          if ($('captureAutoClick')?.checked) {
+            runCaptureAction({ actionType: 'click', x, y });
+          }
+        });
+
+        $('captureHistoryOut')?.addEventListener('click', async (event) => {
+          const target = event.target;
+          if (!(target instanceof HTMLElement)) return;
+          const sessionId = String(target.getAttribute('data-capture-resume') || '').trim();
+          if (!sessionId) return;
+          const connId = String(state.captureConnectionId || $('secretConnId')?.value || '').trim();
+          if (!connId) {
+            setBanner('err', 'Select a connection first.');
+            return;
+          }
+          if ($('captureSessionId')) $('captureSessionId').value = sessionId;
+          state.captureSessionId = sessionId;
+          setConnectionsSubview('access');
+          await refreshCaptureSnapshot(connId, sessionId);
+          startCapturePolling();
         });
 
         const initialSection = ${initial};
@@ -1255,6 +1619,7 @@ export function renderDashboardClientScript(initialSectionId: string, openCompos
         showKeyComposer(false);
         showPatternEditor(false);
         showSurface(connectionComposer, false);
+        setCapturePreviewLoading('Start an auth capture session to control an isolated browser.');
 
         if (initialComposer === 'llm') {
           resetLlmComposer();

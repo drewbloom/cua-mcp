@@ -11,7 +11,15 @@ import { PUBLIC_APP_HTML } from '../ui/publicAppHtml.js';
 import { LANDING_PAGE_HTML } from '../ui/landingPageHtml.js';
 import { encryptText, hashValue, isSameHash, requireFlexible32ByteKey } from '../security/crypto.js';
 import { buildSecretFillPlan, getConnectionPolicyForUser, isUrlAllowedByPolicy, normalizeHost, normalizePathPrefix } from '../security/secretBoundary.js';
-import { cancelCaptureSession, finalizeCaptureSession, getCaptureSnapshot, listCaptureSnapshots, performCaptureAction, startCaptureSession } from '../security/authCapture.js';
+import {
+  cancelActiveCaptureSessionsForConnection,
+  cancelCaptureSession,
+  finalizeCaptureSession,
+  getCaptureSnapshot,
+  listCaptureSnapshots,
+  performCaptureAction,
+  startCaptureSession,
+} from '../security/authCapture.js';
 import { cuaRuntime } from '../cua/runtime.js';
 import { getUserCuaSettings, updateUserCuaSettings } from '../cua/userSettings.js';
 import { deleteOrchestrationPattern, listOrchestrationPatterns, upsertOrchestrationPattern } from '../orchestration/patternLibrary.js';
@@ -2156,6 +2164,12 @@ async function handleConnectionPatch(request: IncomingMessage, response: ServerR
 async function handleConnectionDelete(request: IncomingMessage, response: ServerResponse, connectionId: string): Promise<void> {
   const auth = await requireAuth(request, response);
   if (!auth) return;
+
+  await cancelActiveCaptureSessionsForConnection({
+    userId: auth.userId,
+    connectionId,
+    endedReason: 'connection_deleted',
+  });
 
   const db = getPool();
   const res = await db.query(

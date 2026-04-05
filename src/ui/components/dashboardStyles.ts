@@ -270,6 +270,11 @@ input, textarea, select {
   font: inherit;
   padding: 13px 14px;
 }
+select option,
+select optgroup {
+  background: #0d1824;
+  color: var(--ink);
+}
 textarea { min-height: 110px; resize: vertical; }
 .checkbox-field {
   grid-template-columns: 1fr auto;
@@ -339,13 +344,27 @@ textarea { min-height: 110px; resize: vertical; }
 }
 .capture-frame.empty { display: grid; place-items: center; padding: 24px; color: rgba(215, 233, 251, 0.72); }
 .capture-frame img { display: block; width: 100%; height: auto; cursor: crosshair; }
+.capture-workspace {
+  display: grid;
+  gap: 14px;
+  align-items: start;
+}
+.capture-controls {
+  align-content: start;
+}
+.capture-cursor-readout {
+  font-family: "JetBrains Mono", "Consolas", monospace;
+  font-size: 16px;
+  letter-spacing: 0.04em;
+}
 .capture-marker {
   position: absolute;
-  width: 16px;
-  height: 16px;
+  width: 24px;
+  height: 24px;
   border-radius: 999px;
-  border: 2px solid #fff;
+  border: 3px solid #fff;
   background: rgba(255, 140, 66, 0.92);
+  box-shadow: 0 0 0 3px rgba(7, 14, 22, 0.65);
   transform: translate(-50%, -50%);
   pointer-events: none;
   display: none;
@@ -432,5 +451,12 @@ textarea { min-height: 110px; resize: vertical; }
 @media (max-width: 1100px) {
   .app-shell { grid-template-columns: 1fr; }
   .session-rail-inner { position: static; }
+  .capture-workspace { grid-template-columns: 1fr; }
+}
+
+@media (min-width: 1160px) {
+  .capture-workspace {
+    grid-template-columns: minmax(0, 1fr) 360px;
+  }
 }
 `;
