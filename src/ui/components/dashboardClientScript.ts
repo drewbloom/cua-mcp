@@ -1378,6 +1378,15 @@ export function renderDashboardClientScript(initialSectionId: string, openCompos
           }
         }
 
+        function bindEnterCaptureAction(inputId, actionButtonId) {
+          const input = $(inputId);
+          input?.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            $(actionButtonId)?.click();
+          });
+        }
+
         $('startCapture')?.addEventListener('click', async () => {
           const connId = requireText('secretConnId', 'Connection ID');
           if (!connId) return;
@@ -1431,6 +1440,12 @@ export function renderDashboardClientScript(initialSectionId: string, openCompos
           const ms = Number($('captureWaitMs')?.value || 1000);
           await runCaptureAction({ actionType: 'wait', ms: Number.isFinite(ms) ? ms : 1000 });
         });
+        bindEnterCaptureAction('captureNavigateUrl', 'captureNavigate');
+        bindEnterCaptureAction('captureTypeText', 'captureType');
+        bindEnterCaptureAction('captureKeypress', 'captureKey');
+        bindEnterCaptureAction('captureClick', 'captureClickButton');
+        bindEnterCaptureAction('captureScrollY', 'captureScrollButton');
+        bindEnterCaptureAction('captureWaitMs', 'captureWaitButton');
         $('finalizeCapture')?.addEventListener('click', async () => {
           const connId = requireText('secretConnId', 'Connection ID');
           if (!connId) return;

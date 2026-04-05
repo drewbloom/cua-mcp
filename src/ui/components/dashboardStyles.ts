@@ -336,21 +336,69 @@ textarea { min-height: 110px; resize: vertical; }
 }
 .capture-frame {
   position: relative;
+  display: grid;
+  place-items: center;
   overflow: hidden;
   border-radius: 22px;
   border: 1px solid var(--line);
   background: rgba(16, 24, 35, 0.92);
-  min-height: 280px;
+  min-height: 420px;
+  height: clamp(420px, 72vh, 780px);
 }
 .capture-frame.empty { display: grid; place-items: center; padding: 24px; color: rgba(215, 233, 251, 0.72); }
-.capture-frame img { display: block; width: 100%; height: auto; cursor: crosshair; }
+.capture-frame img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  cursor: crosshair;
+}
 .capture-workspace {
   display: grid;
   gap: 14px;
-  align-items: start;
+  align-items: stretch;
 }
 .capture-controls {
+  display: grid;
+  gap: 12px;
   align-content: start;
+  max-height: clamp(420px, 72vh, 780px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+}
+.capture-control-grid {
+  gap: 10px;
+}
+.capture-control-grid .field {
+  gap: 8px;
+}
+.capture-control-grid input,
+.capture-control-grid select {
+  padding: 10px 12px;
+}
+.capture-action-field {
+  display: grid;
+  gap: 8px;
+}
+.capture-inline-action {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+.capture-go {
+  width: 38px;
+  min-width: 38px;
+  min-height: 38px;
+  padding: 0;
+  border-radius: 12px;
+}
+.capture-go svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
 }
 .capture-cursor-readout {
   font-family: "JetBrains Mono", "Consolas", monospace;
@@ -452,6 +500,15 @@ textarea { min-height: 110px; resize: vertical; }
   .app-shell { grid-template-columns: 1fr; }
   .session-rail-inner { position: static; }
   .capture-workspace { grid-template-columns: 1fr; }
+  .capture-frame {
+    min-height: 300px;
+    height: auto;
+  }
+  .capture-controls {
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
+  }
 }
 
 @media (min-width: 1160px) {

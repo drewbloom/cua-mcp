@@ -106,7 +106,7 @@ export function renderConnectionsSection(hiddenAttr: string): string {
               <span class="field-label">Remote controls</span>
               <p class="micro-copy">All actions apply to the isolated capture browser shown on the left.</p>
             </div>
-            <div class="field-grid">
+            <div class="field-grid capture-control-grid">
               <label class="field field-span-2"><span class="field-label">Capture session id</span><input id="captureSessionId" placeholder="Start a capture session." /></label>
               <label class="field field-span-2"><span class="field-label">Auth state expiry</span><input id="authStateExpiresAt" placeholder="2026-01-31T18:30:00Z" /></label>
               <label class="field field-span-2"><span class="field-label">Capture start URL</span><input id="captureStartUrl" placeholder="https://portal.example.com/login" /></label>
@@ -114,23 +114,17 @@ export function renderConnectionsSection(hiddenAttr: string): string {
               <label class="field field-span-2"><span class="field-label">Current page title</span><input id="capturePageTitle" placeholder="Captured title" readonly /></label>
               <label class="field field-span-2"><span class="field-label">Discovered hosts</span><input id="captureDiscoveredHosts" placeholder="Discovered during session" readonly /></label>
               <label class="field field-span-2"><span class="field-label">Discovered path prefixes</span><input id="captureDiscoveredPaths" placeholder="Discovered during session" readonly /></label>
-              <label class="field"><span class="field-label">Navigate URL</span><input id="captureNavigateUrl" placeholder="https://portal.example.com/account" /></label>
-              <label class="field"><span class="field-label">Type text</span><input id="captureTypeText" placeholder="Text to type" /></label>
-              <label class="field"><span class="field-label">Keypress combo</span><input id="captureKeypress" placeholder="Tab or Control+L" /></label>
-              <label class="field"><span class="field-label">Click position</span><input id="captureClick" placeholder="x,y" /></label>
+              <label class="field field-span-2 capture-action-field"><span class="field-label">Navigate URL</span><div class="capture-inline-action"><input id="captureNavigateUrl" placeholder="https://portal.example.com/account" /><button class="ghost capture-go" id="captureNavigate" type="button" aria-label="Navigate" title="Navigate"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 3l7 5-7 5V3z"/></svg></button></div></label>
+              <label class="field field-span-2 capture-action-field"><span class="field-label">Type text</span><div class="capture-inline-action"><input id="captureTypeText" placeholder="Text to type" /><button class="ghost capture-go" id="captureType" type="button" aria-label="Type" title="Type"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 3l7 5-7 5V3z"/></svg></button></div></label>
+              <label class="field field-span-2 capture-action-field"><span class="field-label">Keypress combo</span><div class="capture-inline-action"><input id="captureKeypress" placeholder="Tab or Control+L" /><button class="ghost capture-go" id="captureKey" type="button" aria-label="Send keypress" title="Send keypress"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 3l7 5-7 5V3z"/></svg></button></div></label>
+              <label class="field field-span-2 capture-action-field"><span class="field-label">Click position</span><div class="capture-inline-action"><input id="captureClick" placeholder="x,y" /><button class="ghost capture-go" id="captureClickButton" type="button" aria-label="Click" title="Click"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 3l7 5-7 5V3z"/></svg></button></div></label>
               <label class="field checkbox-field"><span class="field-label">Instant click on preview selection</span><input id="captureAutoClick" type="checkbox" /></label>
-              <label class="field"><span class="field-label">Scroll delta Y</span><input id="captureScrollY" placeholder="600" /></label>
-              <label class="field"><span class="field-label">Wait milliseconds</span><input id="captureWaitMs" placeholder="1000" /></label>
+              <label class="field field-span-2 capture-action-field"><span class="field-label">Scroll delta Y</span><div class="capture-inline-action"><input id="captureScrollY" placeholder="600" /><button class="ghost capture-go" id="captureScrollButton" type="button" aria-label="Scroll" title="Scroll"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 3l7 5-7 5V3z"/></svg></button></div></label>
+              <label class="field field-span-2 capture-action-field"><span class="field-label">Wait milliseconds</span><div class="capture-inline-action"><input id="captureWaitMs" placeholder="1000" /><button class="ghost capture-go" id="captureWaitButton" type="button" aria-label="Wait" title="Wait"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 3l7 5-7 5V3z"/></svg></button></div></label>
             </div>
             <div class="button-row">
               <button class="secondary" id="startCapture">Start capture</button>
               <button class="ghost" id="refreshCapture">Refresh capture</button>
-              <button class="ghost" id="captureNavigate">Navigate</button>
-              <button class="ghost" id="captureType">Type</button>
-              <button class="ghost" id="captureKey">Keypress</button>
-              <button class="ghost" id="captureClickButton">Click</button>
-              <button class="ghost" id="captureScrollButton">Scroll</button>
-              <button class="ghost" id="captureWaitButton">Wait</button>
               <button class="secondary" id="finalizeCapture">Finalize</button>
               <button class="danger" id="cancelCapture">Cancel</button>
             </div>
